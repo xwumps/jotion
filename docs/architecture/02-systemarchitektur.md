@@ -25,7 +25,7 @@
 ```
 - **web**: Next.js (App Router) liefert UI. Keine Geschäftslogik in Route Handlers, nur Rendering und Auth-Session-Weitergabe. Kommuniziert mit `api` über einen typisierten Client (generiert aus OpenAPI via `@hey-api/openapi-ts` oder ts-rest-Contract).
 - **api**: NestJS mit Fastify-Adapter. Domänenmodule (siehe F). REST + Server-Sent Events/WebSocket-Kanal für Realtime-Invalidierungen (DB-Zeilen, Sidebar, Kommentare).
-- **collab**: Hocuspocus-Server (Yjs), authentifiziert über Token von `api`, persistiert Yjs-Updates in PostgreSQL, publiziert Änderungen via Redis (horizontal skalierbar).
+- **collab**: Hocuspocus (Yjs), **eingebettet im `api`-Prozess** (eigener WebSocket-Pfad `/collab`), persistiert Yjs-Updates in PostgreSQL. Als eigenes Modul gekapselt, damit es bei Bedarf später in einen separaten Container ausgelagert werden kann (Redis-Extension).
 - **worker**: gleiche Codebasis wie api (gemeinsame Module), anderer Entrypoint. BullMQ-Queues.
 - **postgres**: Extensions `pg_trgm`, `unaccent`, `btree_gin`, `ltree`.
 - **redis**: Queues, Pub/Sub, Rate-Limits, Cache.
@@ -50,7 +50,7 @@
 Scheduler (BullMQ repeatable) → `sync.run(connectionId)` → Connector `pull(cursor)` → Normalisierung zu `ExternalRecord` → Mapping-Engine → Upsert über `external_entities` (Dedupe) → Field-Ownership-Check → Schreiben über dieselbe Domänen-API wie die UI (keine Direkt-SQL-Umgehung) → `sync_runs`-Protokoll.
 
 ### B.3 Komponentenübersicht Frontend
-- `AppShell`: Sidebar (Workspace-Switcher, Suche, Inbox, Einstellungen, Favoriten, Teamspaces, Private, Papierkorb), Topbar (Breadcrumbs, Teilen, Kommentare, Updates, Favorit, `...`-Menü).
+- `AppShell`: Sidebar (Workspace-Switcher, Suche, Inbox, Einstellungen, Favoriten, Team (geteilte Seiten), Privat, Papierkorb), Topbar (Breadcrumbs, Teilen, Kommentare, Updates, Favorit, `...`-Menü).
 - `PageView`: Cover, Icon, Titel, Properties-Bereich (bei DB-Zeilen), Editor, Backlinks, Kommentare.
 - `Editor`: Tiptap-Instanz, Extensions-Registry, SlashMenu, BlockMenu, DragHandle, BubbleMenu, MentionPicker, NodeViews.
 - `DatabaseView`: ViewTabs, Toolbar (Filter, Sort, Group, Properties, Suche, Neu), Renderer je ViewType, PropertyCellEditors, RowPeek.
@@ -89,7 +89,8 @@ Regel: Connectoren kennen weder UI noch Jotion-Datenmodell. Sie liefern nur `Ext
 - **XSS/Injection**: Editor-Inhalte sind strukturierte Yjs/ProseMirror-Daten, kein Roh-HTML. Paste-HTML wird über Schema geparst. Embeds nur über Whitelist mit `sandbox`-iframe. Strikte CSP mit Nonces. Formeln laufen in eigenem Interpreter (kein `eval`).
 - **SSRF**: Bookmark-Preview, Webhooks und Connector-Requests über `SafeHttpClient` (DNS-Auflösung prüfen, private IP-Bereiche blockieren, außer explizit freigegeben z. B. für intern gehostetes Nextcloud/IServ per Admin-Allowlist), Timeouts, Größenlimits.
 - **CSRF**: SameSite-Cookies plus Origin-Check für mutierende Requests.
-- **Audit-Log**: Login, Rechteänderungen, Freigaben, Integrationsänderungen, Exporte.
+- **Audit-Log**: Später. Für den privaten Einsatz genügt ein Aktivitätsprotokoll für Logins und Integrationsänderungen.
+- **Zugang**: Registrierung standardmäßig geschlossen (Einladung durch Owner). Betrieb hinter VPN empfohlen; bei öffentlicher Domain Caddy mit Auto-HTTPS.
 - **Backups** verschlüsselt (optional age-Key).
 
 ---

@@ -11,8 +11,8 @@
 | Mittel | Zeitzonen, Ganztags-Termine, RRULE-Ausnahmen beim Sync | ical.js + rrule, Speicherung UTC + `v_tz`, Fixture-Katalog mit Randfällen (DST, EXDATE, RECURRENCE-ID). |
 | Mittel | OAuth-Connectoren self-hosted: Nutzer braucht eigene Google/Microsoft-App | Assistent mit Schritt-für-Schritt-Doku; Redirect-URL wird angezeigt. |
 | Mittel | Speicherwachstum `page_doc_updates` und Snapshots | Kompaktierung, Retention-Policy, Monitoring der Tabellengröße im Admin-Bereich. |
-| Niedrig | Markenrecht: "Jotion" ähnelt "Notion" | Vor Veröffentlichung prüfen; Branding nutzt keine Notion-Assets, Logos oder Texte, nur eigenes Design. |
-| Niedrig | Lizenzwahl für das Projekt (AGPL vs. MIT) | Entscheidung durch Nutzer; Empfehlung AGPL-3.0 für Self-Hosted-Server. Abhängigkeiten auf kompatible Lizenzen prüfen (CI-Lizenzcheck). |
+| Entfällt | Markenrecht: "Jotion" ähnelt "Notion" | Bei rein privatem Einsatz kein Thema. Branding nutzt trotzdem nur eigenes Design. Nur relevant, falls Jotion je veröffentlicht wird. |
+| Entfällt | Lizenzwahl für das Projekt | Privates Repo, keine Lizenz nötig. Abhängigkeiten bleiben Open Source mit freien Lizenzen. |
 | Offen | Mehrsprachigkeit über DE/EN hinaus? Mobile Apps nativ? KI-Funktionen? | Als "Später" eingeplant; Architektur blockiert nichts davon. |
 
 ---

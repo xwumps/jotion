@@ -26,7 +26,7 @@ Komplexität: 1 (gering) bis 5 (sehr hoch). Phase: siehe Roadmap (E).
 | Öffentlich veröffentlichen (Read-only Link, optional Ablaufdatum, Passwort) | P | 3 | 10 |
 | Templates (Seiten-Templates, Template-Galerie, eigene Templates) | E | 3 | 9 |
 | Import/Export (Markdown, HTML, CSV, PDF, Notion-Export-ZIP) | E | 4 | 12 |
-| Teamspaces (Bereiche innerhalb Workspace mit eigenen Rechten) | P | 3 | 10 |
+| Teamspaces (Bereiche innerhalb Workspace mit eigenen Rechten) | P | 3 | S |
 | Benachrichtigungen / Inbox (Mentions, Kommentare, Erinnerungen) | E | 3 | 10 |
 | Dark Mode, Light Mode, System | G | 1 | 0 |
 | Mobile-taugliche Web-UI (responsive), PWA | E | 3 | 12 |
@@ -125,7 +125,7 @@ Widgets: Anstehend (aggregiert aus mehreren DBs mit Date-Property), Überfällig
 Komplexität 5.
 
 ### A.8 Benutzerverwaltung (Phase 1/10)
-Rollen Workspace: Owner, Admin, Member, Guest. Seitenrechte: Full access, Can edit, Can edit content (nur DB-Zeilen), Can comment, Can view, No access. Gruppen. Einladungen per Link/E-Mail. 2FA (TOTP), Passkeys (S), OIDC-Login (z. B. IServ-SSO, Keycloak, Authentik) ab Phase 10. Admin-Bereich: Nutzer, Speichernutzung, Audit-Log.
+Rollen Workspace: Owner, Member (Admin und Guest später). Seiten sind entweder **privat** oder **im Team geteilt**; pro Seite optional Einschränkung auf Can edit / Can comment / Can view für einzelne Mitglieder. Einladungen per Link. 2FA (TOTP) optional. Gruppen, Gäste, OIDC-Login, Audit-Log und Admin-Statistiken: Später. Einfacher Owner-Bereich: Mitglieder, Speicherbelegung, Backups.
 
 ---
 

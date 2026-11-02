@@ -5,7 +5,7 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 ### Phase 0: Fundament und Branding
 - **Ziel**: Monorepo, Tooling, Infrastruktur, Designsystem "Jotion".
 - **Funktionen**: Leere App-Shell, Theme (Light/Dark/System), Logo, Login-Platzhalter.
-- **Aufgaben**: pnpm + Turborepo; apps `web`, `api`, `collab`, `worker`; packages `shared`, `db`, `ui`, `editor`, `formula`, `query`, `integrations-sdk`, `config`; ESLint/Prettier/TS strict; Prisma-Setup + erste Migration; Docker Compose (dev + prod), Caddy; GitHub Actions (lint, typecheck, test, build images); pino-Logging; Konfiguration via Zod-validierte ENV; i18n (next-intl). **Branding**: Name "Jotion", Wortmarke + Signet (stilisiertes "J" als Blatt/Block, monochrom, SVG), Notion-ähnliche ruhige Typografie (Inter / System-UI, Serif-Option: Lyon-ähnliche freie Schrift wie "Source Serif 4", Mono: "JetBrains Mono"), Farbpalette (neutrales Grau, 10 Notion-ähnliche Textfarben + Hintergrundfarben als Tokens), Favicon, PWA-Manifest, `<title>`-Muster "Seitentitel | Jotion".
+- **Aufgaben**: pnpm + Turborepo; apps `web`, `api` (inkl. Collab-Modul), `worker`; packages `shared`, `db`, `ui`, `editor`, `formula`, `query`, `integrations-sdk`, `config`; ESLint/Prettier/TS strict; Prisma-Setup + erste Migration; Docker Compose (dev + prod), Caddy; GitHub Actions (lint, typecheck, test, build images); pino-Logging; Konfiguration via Zod-validierte ENV; i18n (next-intl). **Branding**: Name "Jotion", Wortmarke + Signet (stilisiertes "J" als Blatt/Block, monochrom, SVG), Notion-ähnliche ruhige Typografie (Inter / System-UI, Serif-Option: Lyon-ähnliche freie Schrift wie "Source Serif 4", Mono: "JetBrains Mono"), Farbpalette (neutrales Grau, 10 Notion-ähnliche Textfarben + Hintergrundfarben als Tokens), Favicon, PWA-Manifest, `<title>`-Muster "Seitentitel | Jotion".
 - **Abhängigkeiten**: keine.
 - **Akzeptanz**: `docker compose up` startet alle Dienste mit Healthchecks grün; Web zeigt gebrandete Shell.
 - **Tests**: Smoke-E2E (Playwright), Docker-Healthcheck-Test in CI.
@@ -68,7 +68,7 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 - **Tests**: Engine-Unit-Tests, Template-Kopie-Integrität (Relationen zeigen in Kopie korrekt), E2E Builder.
 
 ### Phase 10: Kollaboration, Rechte, Historie, Synced Blocks
-- **Funktionen**: Seitenrechte + Teilen-Dialog, Gäste, Gruppen, Teamspaces, öffentliche Links, Live-Cursor/Präsenz, Kommentare + Inbox + Mentions-Benachrichtigungen, Seitenhistorie mit Diff und Restore, Synced Blocks, Seite in anderen Workspace verschieben, OIDC-Login (inkl. IServ-SSO falls verfügbar), Audit-Log.
+- **Funktionen**: Teilen im Team (privat/geteilt, Rechte pro Mitglied), optional Read-only-Link, Live-Cursor/Präsenz, Kommentare + Inbox + Mentions-Benachrichtigungen, Seitenhistorie mit Diff und Restore, Synced Blocks, Seite in anderen Workspace verschieben, (OIDC-Login, Gäste, Gruppen, Teamspaces, Audit-Log: Später).
 - **Aufgaben**: Rechtevererbung + Cache; Collab-Rechteprüfung; Snapshot-Diff (Projektion beider Versionen → Block-Diff); Synced Blocks als Yjs-Subdocs.
 - **Tests**: Vollständige Berechtigungsmatrix (Principal × Level × Vererbung × Aktion, generiert), Leak-Tests (Suche/Backlinks/Mentions zeigen keine unberechtigten Titel), E2E Mehrbenutzer.
 
@@ -77,7 +77,7 @@ Nextcloud (CalDAV/WebDAV), iCloud, Google (Calendar, Gmail read-only, Drive), Mi
 
 ### Phase 12: Betrieb, Import/Export, Härtung
 - **Funktionen**: Backup/Restore-CLI und geplanter Backup-Job, Update-Prozess, Import (Markdown, CSV, Notion-Export-ZIP), Export (Markdown, HTML, PDF via Chromium im Worker, CSV), öffentliche REST-API mit Tokens, responsive/PWA, Admin-Bereich, Metriken (Prometheus-Endpoint optional).
-- **Tests**: Backup-Restore-Roundtrip in CI, Upgrade-Test (Daten der Vorversion → neue Version, Migrationen + Datenvalidierung), Lasttests (k6), Security-Scan (ZAP Baseline, Trivy für Images).
+- **Tests**: Backup-Restore-Roundtrip in CI, Upgrade-Test (Daten der Vorversion → neue Version, Migrationen + Datenvalidierung), Security-Scan (ZAP Baseline, Trivy für Images).
 
 **Reihenfolge-Abhängigkeiten**: 0 → 1 → 2 → 3; 2 → 4 → 5 → 6 → 7; 4 → 8 → 11; 6 → 9; 2+4 → 10; alles → 12. Phasen 3 und 4 sowie 7 und 8 können parallel bearbeitet werden.
 
