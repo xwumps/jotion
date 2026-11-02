@@ -1,0 +1,52 @@
+{
+  "name": "@jotion/editor",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./projection": {
+      "types": "./dist/projection.d.ts",
+      "default": "./dist/projection.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "projection": [
+        "./dist/projection.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.32.2",
+    "@tiptap/extension-blockquote": "3.32.2",
+    "@tiptap/extension-code-block-lowlight": "3.32.2",
+    "@tiptap/extension-details": "3.32.2",
+    "@tiptap/extension-list": "3.32.2",
+    "@tiptap/extension-unique-id": "3.32.2",
+    "@tiptap/extensions": "3.32.2",
+    "@tiptap/pm": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2",
+    "lowlight": "3.3.0",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@jotion/config": "workspace:*",
+    "vitest": "3.2.7",
+    "@tiptap/y-tiptap": "3.0.12",
+    "y-prosemirror": "1.3.7"
+  }
+}

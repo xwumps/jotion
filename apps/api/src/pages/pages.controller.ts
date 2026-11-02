@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   createPageSchema,
   movePageSchema,
@@ -42,6 +42,16 @@ export class PagesController {
   @Get('workspaces/:id/recent')
   recent(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string) {
     return this.pages.recent(u, id);
+  }
+
+  @Get('workspaces/:id/search')
+  search(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Query('q') q?: string) {
+    return this.pages.search(u, id, typeof q === 'string' ? q : '');
+  }
+
+  @Get('pages/:id/summary')
+  summary(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string) {
+    return this.pages.summary(u, id);
   }
 
   @Get('pages/:id')

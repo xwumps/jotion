@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
+import { CollabModule } from './collab/collab.module';
 import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
 import { EventsModule } from './events/events.module';
@@ -21,6 +22,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     PermissionsModule,
     EventsModule,
     AuthModule,
+    CollabModule,
     WorkspacesModule,
     PagesModule,
     FilesModule,

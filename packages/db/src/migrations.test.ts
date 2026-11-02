@@ -23,6 +23,15 @@ describe('Datenbank nach Migration', () => {
     for (const ext of ['pg_trgm', 'unaccent', 'btree_gin', 'ltree']) expect(names).toContain(ext);
   });
 
+  it('hat die von Hand gepflegten Indizes (Prisma kennt sie nicht und würde sie in Diffs löschen)', async () => {
+    const rows = await client.$queryRaw<
+      { indexname: string }[]
+    >`SELECT indexname FROM pg_indexes WHERE tablename = 'pages'`;
+    const names = rows.map((r) => r.indexname);
+    expect(names).toContain('pages_path_gist_idx');
+    expect(names).toContain('pages_title_trgm_idx');
+  });
+
   it('kann Systemeinstellungen schreiben und lesen', async () => {
     const key = `test.${Date.now()}`;
     await client.systemSetting.create({ data: { key, value: { ok: true } } });

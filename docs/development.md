@@ -69,3 +69,11 @@ packages/config  TypeScript-Presets
 - Konfiguration nur über `@jotion/shared/env` (Zod-validiert, unterstützt `*_FILE` für Docker Secrets). Fehlermeldungen nennen Schlüssel, nie Werte.
 - Datenbankänderungen nur über Prisma-Migrationen, nur vorwärts.
 - Keine Em-Dashes in Texten und Übersetzungen (wird für Übersetzungen per Test geprüft).
+
+## Migrationen erzeugen
+`prisma migrate diff` bzw. `migrate dev` kennt einige von Hand gepflegte Datenbankobjekte nicht und schlägt vor, sie zu löschen. Diese Zeilen **immer aus neuen Migrationen entfernen**:
+- Index `pages_path_gist_idx` (GiST auf dem ltree-Pfad)
+- Index `pages_title_trgm_idx` (Trigramm-Suche auf Titeln)
+- Trigger und Funktionen `jotion_pages_*` (Seitenbaum)
+
+Ein Test in `packages/db` prüft, dass die Indizes vorhanden sind.

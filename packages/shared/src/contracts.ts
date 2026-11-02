@@ -184,6 +184,8 @@ export const createPageSchema = z.object({
   ...placement,
   title: z.string().max(PAGE_TITLE_MAX).optional(),
   icon: pageIconSchema.nullable().optional(),
+  /** false, wenn der Editor den Unterseiten-Block selbst an der Cursorposition einfügt */
+  insertBlock: z.boolean().default(true),
 });
 export type CreatePageInput = z.input<typeof createPageSchema>;
 
@@ -229,6 +231,24 @@ export interface PageDto extends PageTreeNodeDto {
   breadcrumbs: BreadcrumbDto[];
   /** Rechte des aktuellen Nutzers auf dieser Seite */
   canEdit: boolean;
+}
+
+/** Kompakte Seiteninfo für Verweise im Editor (ohne Besuch zu zählen). */
+export interface PageSummaryDto {
+  id: string;
+  title: string;
+  icon: PageIcon | null;
+  archived: boolean;
+  deleted: boolean;
+}
+
+export interface SearchResultDto {
+  id: string;
+  title: string;
+  icon: PageIcon | null;
+  /** Titel der Vorfahren, z. B. "Projekt / Planung" */
+  path: string;
+  lastEditedAt: string;
 }
 
 export interface TrashItemDto {

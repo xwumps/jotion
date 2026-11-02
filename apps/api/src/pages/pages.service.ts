@@ -7,8 +7,10 @@ import type {
   PageDto,
   PageIcon,
   PageSettings,
+  PageSummaryDto,
   PageTreeNodeDto,
   RecentPageDto,
+  SearchResultDto,
   TrashItemDto,
   createPageSchema,
   movePageSchema,
@@ -21,6 +23,7 @@ import { AppError, forbidden, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
+import { CollabService } from '../collab/collab.service';
 import { PermissionService } from '../permissions/permission.service';
 import { computePosition } from './positions';
 
@@ -43,6 +46,7 @@ export class PagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly perms: PermissionService,
+    private readonly collab: CollabService,
   ) {}
 
   // ---------------------------------------------------------------- Baum
@@ -138,6 +142,7 @@ export class PagesService {
       await this.event(tx, created, 'page.created', user.id, { parentId: created.parentId });
       return created;
     });
+    if (parent && input.insertBlock) await this.collab.addSubpageBlock(parent.id, page.id);
     return this.toDto(user, page);
   }
 
@@ -173,6 +178,13 @@ export class PagesService {
       });
       return u;
     });
+    // Sperre wirkt sofort auch auf offene Editoren
+    if (
+      input.settings?.locked !== undefined &&
+      input.settings.locked !== Boolean(settings.locked)
+    ) {
+      this.collab.revalidate(pageId);
+    }
     return this.toDto(user, updated);
   }
 
@@ -238,6 +250,12 @@ export class PagesService {
       });
       return u;
     });
+    if (page.parentId !== moved.parentId) {
+      if (page.parentId) await this.collab.removeSubpageBlock(page.parentId, page.id);
+      if (moved.parentId) await this.collab.addSubpageBlock(moved.parentId, page.id);
+    }
+    // Sichtbarkeit des Teilbaums kann sich geändert haben
+    if (page.scope !== moved.scope || page.ownerId !== moved.ownerId) this.collab.revalidate();
     return this.toDto(user, moved);
   }
 
@@ -263,6 +281,9 @@ export class PagesService {
          WHERE path <@ (SELECT path FROM pages WHERE id = ${page.id}::uuid) AND deleted_at IS NULL`;
       await this.event(tx, page, 'page.trashed', user.id, { parentId: page.parentId });
     });
+    if (page.parentId) await this.collab.removeSubpageBlock(page.parentId, page.id);
+    // Seiten im Papierkorb sind schreibgeschützt: offene Editoren neu verbinden lassen
+    this.collab.revalidate();
   }
 
   async restore(user: AuthUser, pageId: string): Promise<PageDto> {
@@ -302,6 +323,8 @@ export class PagesService {
       await this.event(tx, u, 'page.restored', user.id, { parentId: u.parentId });
       return u;
     });
+    if (restored.parentId) await this.collab.addSubpageBlock(restored.parentId, restored.id);
+    this.collab.revalidate();
     return this.toDto(user, restored);
   }
 
@@ -315,6 +338,53 @@ export class PagesService {
       await this.event(tx, page, 'page.deleted', user.id, {});
       await tx.page.delete({ where: { id: page.id } });
     });
+    this.collab.revalidate();
+  }
+
+  // ---------------------------------------------------------------- Suche & Verweise
+
+  /** Kompakte Infos für Seitenverweise im Editor. Zählt nicht als Besuch. */
+  async summary(user: AuthUser, pageId: string): Promise<PageSummaryDto> {
+    const { page } = await this.perms.requirePage(user.id, pageId, { includeTrashed: true });
+    return {
+      id: page.id,
+      title: page.title,
+      icon: (page.icon as PageIcon | null) ?? null,
+      archived: Boolean(page.archivedAt),
+      deleted: Boolean(page.deletedAt),
+    };
+  }
+
+  /** Schnellsuche über Seitentitel (Trigramm-Index), ohne Suchbegriff die zuletzt bearbeiteten Seiten. */
+  async search(user: AuthUser, workspaceId: string, query: string): Promise<SearchResultDto[]> {
+    await this.perms.requireMember(user.id, workspaceId);
+    const q = query.trim().slice(0, 200);
+    const like = `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+    const rows = await this.prisma.client.$queryRaw<
+      {
+        id: string;
+        title: string;
+        icon: PageIcon | null;
+        path: string | null;
+        last_edited_at: Date;
+      }[]
+    >`
+      SELECT p.id::text, p.title, p.icon, p.last_edited_at,
+             (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
+                FROM pages a WHERE a.path @> p.path AND a.id <> p.id) AS path
+        FROM pages p
+       WHERE p.workspace_id = ${workspaceId}::uuid AND p.deleted_at IS NULL
+         AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         ${q ? Prisma.sql`AND p.title ILIKE ${like}` : Prisma.empty}
+       ORDER BY ${q ? Prisma.sql`similarity(p.title, ${q}) DESC,` : Prisma.empty} p.last_edited_at DESC
+       LIMIT 20`;
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      icon: r.icon,
+      path: r.path ?? '',
+      lastEditedAt: r.last_edited_at.toISOString(),
+    }));
   }
 
   async trashList(user: AuthUser, workspaceId: string): Promise<TrashItemDto[]> {
