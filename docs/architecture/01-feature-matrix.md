@@ -19,13 +19,14 @@ Komplexität: 1 (gering) bis 5 (sehr hoch). Phase: siehe Roadmap (E).
 | Seite duplizieren (inkl. Unterseiten, Inline-DBs) | E | 3 | 3 |
 | Seite verschieben (in andere Seite, anderen Workspace) | G | 3 | 1/10 |
 | Seitenoptionen: Schriftart (Default/Serif/Mono), Kleine Schrift, Volle Breite, Sperren | G | 1 | 2 |
-| Schnellsuche (Cmd+K / Cmd+P) | G | 2 | 2 |
+| Schnellsuche (Cmd+K; Cmd+P bleibt dem Browser-Druck vorbehalten) | G | 2 | 2 |
 | Globale Volltextsuche mit Filtern (Workspace, Ersteller, Datum, Typ) | E | 3 | 3 |
 | Seitenhistorie (Versionen, Diff-Ansicht, Wiederherstellen) | P | 4 | 10 |
 | Teilen: Mitglieder, Gäste, Rollen pro Seite | E | 4 | 10 |
 | Öffentlich veröffentlichen (Read-only Link, optional Ablaufdatum, Passwort) | P | 3 | 10 |
 | Templates (Seiten-Templates, Template-Galerie, eigene Templates) | E | 3 | 9 |
-| Import/Export (Markdown, HTML, CSV, PDF, Notion-Export-ZIP) | E | 4 | 12 |
+| Drucken / Als PDF speichern über die Druckfunktion des Browsers (Druck-Stylesheet, siehe B.3.1) | G | 2 | 3 |
+| Import/Export (Markdown, HTML, CSV, Notion-Export-ZIP) | E | 4 | 12 |
 | Teamspaces (Bereiche innerhalb Workspace mit eigenen Rechten) | P | 3 | S |
 | Benachrichtigungen / Inbox (Mentions, Kommentare, Erinnerungen) | E | 3 | 10 |
 | Dark Mode, Light Mode, System | G | 1 | 0 |

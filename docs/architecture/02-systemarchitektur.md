@@ -57,6 +57,17 @@ Scheduler (BullMQ repeatable) → `sync.run(connectionId)` → Connector `pull(c
 - `ChartBuilder`, `ChartRenderer`, `DashboardGrid`, `WidgetRegistry`.
 - `Settings`: Konto, Workspace, Mitglieder, Integrationen, Import/Export, Sicherheit, Admin.
 
+### B.3.1 Drucken und PDF (Browser-Druckfunktion)
+PDF entsteht ausschließlich im Browser über "Drucken → Als PDF speichern". Es gibt keinen serverseitigen PDF-Renderer.
+- **Auslösen**: Seitenmenü `...` → "Drucken / Als PDF" sowie Cmd/Strg+P. Beides öffnet die Route `/print/$pageId` (gleiche Daten, statisch gerendert) und ruft nach vollständigem Laden `window.print()` auf. Danach Rücksprung zur Seite.
+- **Druck-Stylesheet** (`@media print`, Tailwind-Variante `print:`): Sidebar, Topbar, Drag-Handles, Hover-Menüs, Kommentar-Leiste und Editor-Cursor ausgeblendet; Seitenbreite = Druckbreite; `@page { size: A4; margin: 18mm 16mm }`; Cover und Icon oben; Seitentitel und Druckdatum optional in der Kopfzeile.
+- **Seitenumbrüche**: `break-inside: avoid` für Callouts, Codeblöcke, Bilder, Tabellenzeilen, Karten; Überschriften `break-after: avoid`.
+- **Farben**: `print-color-adjust: exact` für Callouts, Select-Badges und Charts; immer helles Theme beim Druck, auch wenn Dark Mode aktiv ist.
+- **Druckoptionen** (kleiner Dialog vor dem Druck, Auswahl wird lokal gemerkt): Toggles aufgeklappt oder zugeklappt, Kommentare ja/nein, Unterseiten-Links als Liste, Hintergrundfarben ja/nein.
+- **Datenbanken**: Inline- und Full-Page-DBs werden für den Druck nicht virtualisiert gerendert (alle Zeilen der aktuellen Ansicht, Hinweis ab 1.000 Zeilen). Board, Gallery, Kalender und Timeline drucken in ihrer Ansicht mit umbrechenden Spalten; als Alternative "Als Tabelle drucken".
+- **Charts**: ECharts reagiert auf `beforeprint` (Resize auf Druckbreite, Animationen aus) und wird zur sicheren Darstellung als SVG-Renderer neu gezeichnet; `afterprint` stellt den Normalzustand wieder her.
+- **Code, Formeln**: Syntax-Highlighting in Druckfarben, lange Zeilen umbrechen; KaTeX unverändert.
+
 ### B.4 Integrationsarchitektur (Adapter-Pattern)
 ```
  UI (Settings → Integrationen)            Domänenkern (Pages/Databases)

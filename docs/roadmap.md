@@ -25,10 +25,10 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 - **Tests**: Unit (Extensions, Input Rules), Yjs-Persistenz-Integrationstests (Update-Reihenfolge, Kompaktierung, Crash zwischen Append und Ack), **Datenverlust-E2E-Suite** (Playwright mit Netzwerk-Offline-Simulation, Container-Restart), Snapshot-Tests des Schemas.
 
 ### Phase 3: Editor erweitert
-- **Funktionen**: Bild/Video/Audio/Datei/PDF, Bookmark, Embeds, einfache Tabelle, Spalten, Inhaltsverzeichnis, Breadcrumb-Block, KaTeX, Mentions (@Person/@Seite/@Datum), Mehrfachauswahl (Rechteck), erweitertes Copy & Paste, Seite duplizieren, Volltextsuche (Postgres FTS + trigram, Ranking, Filter).
+- **Funktionen**: Bild/Video/Audio/Datei/PDF, Bookmark, Embeds, einfache Tabelle, Spalten, Inhaltsverzeichnis, Breadcrumb-Block, KaTeX, Mentions (@Person/@Seite/@Datum), Mehrfachauswahl (Rechteck), erweitertes Copy & Paste, Seite duplizieren, Volltextsuche (Postgres FTS + trigram, Ranking, Filter). Drucken / Als PDF über die Browser-Druckfunktion (Route `/print/$pageId`, Druck-Stylesheet, Druckoptionen; Datenbank- und Chart-Druck folgt in Phase 4/5/7).
 - **Aufgaben**: NodeViews in React; Paste-Normalisierer (Notion/Google Docs/Word-HTML → Schema); OpenGraph-Fetcher über SafeHttpClient; Performance: Lazy NodeViews, `content-visibility: auto` für Blöcke außerhalb des Viewports, Profiling mit 5.000 Blöcken.
 - **Akzeptanz**: Dokument mit 5.000 Blöcken: Öffnen <1,5 s, Tippen-Latenz p95 <16 ms (Chrome, Mittelklasse-Laptop).
-- **Tests**: Paste-Fixture-Tests (gespeicherte HTML-Clipboards), Performance-Benchmark in CI (Playwright + Trace), E2E Upload/Mention/Suche.
+- **Tests**: Druck-Tests mit Playwright `page.pdf()` (nur in CI, nicht im Produktivbetrieb) + Visual Regression der Druckansicht, Paste-Fixture-Tests (gespeicherte HTML-Clipboards), Performance-Benchmark in CI (Playwright + Trace), E2E Upload/Mention/Suche.
 
 ### Phase 4: Datenbank-Kern und Table View
 - **Funktionen**: Full-Page- und Inline-DB, Linked DB, alle Basis-Property-Typen (A.3 Zeile 2), Table View (virtualisiert, Spalten-DnD/Resize/Fix, Zellen-Editoren), Zeilen-Peek/Seite, Filter (einfach + Gruppen), Sort, Suche, Ansichten-Tabs, Spaltenberechnungen.
