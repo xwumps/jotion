@@ -22,5 +22,6 @@ Dokumentation in ein neues Repo `/home/user/jotion` geschrieben (`docs/architect
 - **Weniger Dienste**: der Collab-Server (Hocuspocus) läuft im selben Prozess wie die API. Container: `caddy`, `web`, `api`, `worker`, `postgres`, `redis`.
 - **Einfacheres Rechtemodell**: Workspace-Rollen Owner/Member, dazu private Seiten und Teilen innerhalb des Teams. Gäste, Gruppen, Teamspaces, Audit-Log und öffentliche Links werden auf "Später" verschoben.
 - **Performance-Ziele** bleiben als Qualitätsmaßstab bestehen (große Seiten, große Datenbanken), Lasttests mit vielen gleichzeitigen Nutzern entfallen.
+- **Kein Headless-Chromium**: PDF entsteht über die Druckfunktion des Browsers (Druck-Stylesheet), nicht auf dem Server.
 - **Marke und Lizenz** sind kein Thema, solange Jotion nicht veröffentlicht wird.
 - **Unverändert wichtig**: kein Datenverlust, keine Dubletten bei der Synchronisation, Backups, sichere Speicherung der Zugangsdaten.

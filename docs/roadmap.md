@@ -76,7 +76,7 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 Nextcloud (CalDAV/WebDAV), iCloud, Google (Calendar, Gmail read-only, Drive), Microsoft Graph, Dropbox, Telegram. Je Connector: Fixtures + Contract-Tests gegen das SDK-Interface. Abhängigkeit: Phase 8.
 
 ### Phase 12: Betrieb, Import/Export, Härtung
-- **Funktionen**: Backup/Restore-CLI und geplanter Backup-Job, Update-Prozess, Import (Markdown, CSV, Notion-Export-ZIP), Export (Markdown, HTML, PDF via Chromium im Worker, CSV), öffentliche REST-API mit Tokens, responsive/PWA, Admin-Bereich, Metriken (Prometheus-Endpoint optional).
+- **Funktionen**: Backup/Restore-CLI und geplanter Backup-Job, Update-Prozess, Import (Markdown, CSV, Notion-Export-ZIP), Export (Markdown, HTML, CSV; PDF nur über die Browser-Druckfunktion, siehe B.3.1), öffentliche REST-API mit Tokens, responsive/PWA, Admin-Bereich, Metriken (Prometheus-Endpoint optional).
 - **Tests**: Backup-Restore-Roundtrip in CI, Upgrade-Test (Daten der Vorversion → neue Version, Migrationen + Datenvalidierung), Security-Scan (ZAP Baseline, Trivy für Images).
 
 **Reihenfolge-Abhängigkeiten**: 0 → 1 → 2 → 3; 2 → 4 → 5 → 6 → 7; 4 → 8 → 11; 6 → 9; 2+4 → 10; alles → 12. Phasen 3 und 4 sowie 7 und 8 können parallel bearbeitet werden.
