@@ -23,6 +23,8 @@ In `.env` für die Entwicklung setzen:
 ```
 DATABASE_URL=postgresql://jotion:jotion@localhost:5432/jotion
 REDIS_URL=redis://:jotion@localhost:6379
+JOTION_ALLOWED_ORIGINS=http://localhost:3000
+JOTION_FILES_DIR=./docker/data/files
 JOTION_MASTER_KEY=<openssl rand -base64 32>
 AUTH_SECRET=<openssl rand -base64 32>
 NODE_ENV=development
@@ -45,8 +47,8 @@ Die Umgebungsvariablen müssen in der Shell gesetzt sein (z. B. `set -a; source 
 |---|---|
 | `pnpm build` | Alle Packages und Apps bauen |
 | `pnpm lint` / `pnpm typecheck` | Statische Prüfungen |
-| `pnpm test --concurrency=1` | Unit- und Integrationstests (brauchen PostgreSQL und Redis) |
-| `pnpm e2e` | Playwright gegen laufenden Stack (`JOTION_E2E_URL`, Standard http://localhost:8080) |
+| `pnpm test --concurrency=1` | Unit- und Integrationstests (brauchen PostgreSQL und Redis). `DATABASE_URL` muss auf eine Datenbank mit Namen `*_test` zeigen, da die Tests sie leeren. |
+| `pnpm e2e` | Playwright gegen einen frisch gestarteten Stack mit leerer Datenbank (`docker compose down -v && docker compose up -d --wait`), Adresse über `JOTION_E2E_URL`, Standard http://localhost:8080 |
 | `pnpm format` | Prettier |
 | `pnpm db:migrate:dev` | Neue Migration aus Schemaänderung erzeugen |
 

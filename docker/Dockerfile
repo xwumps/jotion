@@ -46,6 +46,9 @@ WORKDIR /app
 # ---------- api (auch für Migrationen) ----------
 FROM runtime AS api
 COPY --from=build --chown=node:node /out/api ./
+# Volume-Ziel vorab anlegen, damit es dem Laufzeitnutzer gehört
+RUN mkdir -p /data/files && chown -R node:node /data
+ENV JOTION_FILES_DIR=/data/files
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
@@ -55,6 +58,8 @@ CMD ["node", "dist/main.js"]
 # ---------- worker ----------
 FROM runtime AS worker
 COPY --from=build --chown=node:node /out/worker ./
+RUN mkdir -p /data/files /data/backups && chown -R node:node /data
+ENV JOTION_FILES_DIR=/data/files
 USER node
 HEALTHCHECK --interval=20s --timeout=5s --start-period=20s --retries=5 \
   CMD ["node", "dist/healthcheck.js"]

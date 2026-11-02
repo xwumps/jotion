@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { OutgoingHttpHeaders } from 'node:http';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { PrismaClient } from '@jotion/db';
 import { PrismaService } from '../src/infra/prisma.service';
@@ -41,7 +42,7 @@ export async function resetState(app: NestFastifyApplication): Promise<void> {
 interface Res {
   status: number;
   body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  headers: Record<string, string | string[] | undefined>;
+  headers: OutgoingHttpHeaders;
 }
 
 /** HTTP-Client mit Cookie-Speicher über app.inject (kein echter Netzwerkport). */

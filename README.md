@@ -2,7 +2,9 @@
 
 Jotion ist eine selbst gehostete Alternative zu Notion für den privaten Gebrauch und kleine Teams: Block-Editor, flexible Datenbanken (Table, Board, List, Gallery, Calendar, Timeline, Chart), Dashboards, Automatisierungen, Templates und ein modulares Integrationssystem (zuerst IServ).
 
-**Stand: Phase 0 abgeschlossen** (Fundament, Infrastruktur, Branding). Anmeldung, Seiten und Editor folgen in den nächsten Phasen, siehe [Roadmap](docs/roadmap.md).
+**Stand: Phase 1 abgeschlossen.** Anmeldung mit Einladungen, mehrere Workspaces, Seitenbaum mit Drag-and-drop, Icons, Cover, Favoriten, Archiv und Papierkorb. Der Block-Editor folgt in Phase 2, siehe [Roadmap](docs/roadmap.md).
+
+Beim ersten Aufruf führt Jotion durch die Einrichtung: Das erste Konto wird Owner. Weitere Personen kommen nur über Einladungslinks dazu.
 
 ## Schnellstart (Docker)
 

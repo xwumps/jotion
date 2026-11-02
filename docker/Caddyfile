@@ -15,6 +15,14 @@
 		-Server
 	}
 
+	# Server-Sent Events ohne Pufferung durchreichen
+	@events path_regexp ^/api/workspaces/[^/]+/events$
+	handle @events {
+		reverse_proxy api:4000 {
+			flush_interval -1
+		}
+	}
+
 	# REST-API und Realtime-WebSocket (ab Phase 2)
 	handle /api/* {
 		reverse_proxy api:4000
