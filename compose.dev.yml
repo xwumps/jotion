@@ -1,0 +1,29 @@
+# Nur Infrastruktur für die lokale Entwicklung (pnpm dev läuft auf dem Host).
+# Start: docker compose -f compose.dev.yml up -d
+name: jotion-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jotion
+      POSTGRES_PASSWORD: jotion
+      POSTGRES_DB: jotion
+    ports: ['127.0.0.1:5432:5432']
+    volumes: [dev_pg:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jotion']
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--requirepass', 'jotion']
+    ports: ['127.0.0.1:6379:6379']
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a jotion --no-auth-warning ping | grep -q PONG']
+      interval: 3s
+      retries: 20
+
+volumes:
+  dev_pg:

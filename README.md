@@ -1,5 +1,39 @@
 # Jotion
 
-Jotion ist eine selbst gehostete Alternative zu Notion: Block-Editor, flexible Datenbanken (Table, Board, List, Gallery, Calendar, Timeline, Chart), Dashboards, Automatisierungen, Templates und ein modulares Integrationssystem (zuerst IServ).
+Jotion ist eine selbst gehostete Alternative zu Notion für den privaten Gebrauch und kleine Teams: Block-Editor, flexible Datenbanken (Table, Board, List, Gallery, Calendar, Timeline, Chart), Dashboards, Automatisierungen, Templates und ein modulares Integrationssystem (zuerst IServ).
 
-Status: **Planungsphase**. Der vollständige Bauplan liegt unter [docs/](docs/README.md).
+**Stand: Phase 0 abgeschlossen** (Fundament, Infrastruktur, Branding). Anmeldung, Seiten und Editor folgen in den nächsten Phasen, siehe [Roadmap](docs/roadmap.md).
+
+## Schnellstart (Docker)
+
+Voraussetzung: Docker mit Compose v2.
+
+```bash
+bash scripts/init.sh
+```
+
+```bash
+docker compose up -d --build --wait
+```
+
+Danach ist Jotion unter http://localhost:8080 erreichbar.
+
+`scripts/init.sh` erzeugt eine `.env` mit zufälligen Passwörtern und Schlüsseln. **Den `JOTION_MASTER_KEY` aus der `.env` zusätzlich sicher aufbewahren**, ohne ihn sind gespeicherte Zugangsdaten von Integrationen nicht mehr lesbar.
+
+## Dienste
+
+| Dienst     | Aufgabe                                                       |
+| ---------- | ------------------------------------------------------------- |
+| `caddy`    | Reverse Proxy, optional automatisches HTTPS                   |
+| `web`      | Oberfläche (Next.js)                                          |
+| `api`      | REST-API (NestJS), ab Phase 2 auch Echtzeit-Bearbeitung       |
+| `worker`   | Hintergrundjobs (Synchronisation, Automatisierungen, Wartung) |
+| `migrate`  | Einmaliger Job: Datenbankmigrationen vor jedem Start          |
+| `postgres` | Datenbank                                                     |
+| `redis`    | Job-Queue und Cache                                           |
+
+## Weitere Dokumentation
+
+- [Entwicklung](docs/development.md): lokale Einrichtung, Tests, Projektaufbau
+- [Betrieb](docs/operations.md): Docker, Backups, Updates
+- [Technischer Bauplan](docs/README.md): Architektur, Datenmodell, Integrationen, Roadmap

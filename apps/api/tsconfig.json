@@ -1,0 +1,5 @@
+{
+  "extends": "@jotion/config/tsconfig.nest.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "." },
+  "include": ["src", "test", "vitest.config.ts"]
+}

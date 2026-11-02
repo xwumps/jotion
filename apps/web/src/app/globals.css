@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/source-serif-4';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@jotion/ui/styles/tokens.css';
+
+@source '../../../../packages/ui/src';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --font-inter: 'Inter Variable';
+  --font-source-serif: 'Source Serif 4 Variable';
+  --font-jetbrains-mono: 'JetBrains Mono Variable';
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(45, 170, 219, 0.3);
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+}

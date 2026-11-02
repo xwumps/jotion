@@ -1,0 +1,48 @@
+{
+  "meta": { "description": "Your workspace for notes, knowledge and projects." },
+  "sidebar": {
+    "workspace": "My workspace",
+    "search": "Search",
+    "home": "Home",
+    "inbox": "Inbox",
+    "settings": "Settings",
+    "private": "Private",
+    "team": "Team",
+    "trash": "Trash",
+    "newPage": "New page",
+    "emptyTree": "No pages yet",
+    "comingSoon": "Coming in a later phase"
+  },
+  "home": {
+    "greetingMorning": "Good morning",
+    "greetingDay": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "intro": "Jotion is set up. Pages, the editor and databases arrive in the next stages.",
+    "statusTitle": "System status",
+    "statusOk": "All services are running",
+    "statusError": "At least one service reports an error",
+    "statusUnreachable": "API unreachable",
+    "service": {
+      "database": "Database",
+      "redis": "Redis",
+      "worker": "Background worker"
+    },
+    "roadmapTitle": "Up next",
+    "roadmap": {
+      "auth": "Sign-in, workspaces and page tree",
+      "editor": "Block editor with slash menu and autosave",
+      "databases": "Databases with table, board, calendar and timeline"
+    }
+  },
+  "login": {
+    "title": "Log in to Jotion",
+    "email": "Email",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "submit": "Continue",
+    "notice": "Sign-in will be enabled in phase 1.",
+    "back": "Back to home"
+  },
+  "theme": { "label": "Appearance", "light": "Light", "dark": "Dark", "system": "System" },
+  "language": { "label": "Language" }
+}

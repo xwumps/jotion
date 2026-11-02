@@ -2,7 +2,7 @@
 
 Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisierter Doku. DoD für alle Phasen (zusätzlich zu den phasenspezifischen Punkten): Typecheck + Lint fehlerfrei, Tests grün, Migrationen vorwärts lauffähig auf Kopie der Vorphasen-Daten, keine neuen kritischen `npm audit`-Funde, i18n-Strings DE/EN, Dark Mode geprüft, Accessibility-Basics (Tastatur, Fokus, ARIA) geprüft.
 
-### Phase 0: Fundament und Branding
+### Phase 0: Fundament und Branding (abgeschlossen)
 - **Ziel**: Monorepo, Tooling, Infrastruktur, Designsystem "Jotion".
 - **Funktionen**: Leere App-Shell, Theme (Light/Dark/System), Logo, Login-Platzhalter.
 - **Aufgaben**: pnpm + Turborepo; apps `web`, `api` (inkl. Collab-Modul), `worker`; packages `shared`, `db`, `ui`, `editor`, `formula`, `query`, `integrations-sdk`, `config`; ESLint/Prettier/TS strict; Prisma-Setup + erste Migration; Docker Compose (dev + prod), Caddy; GitHub Actions (lint, typecheck, test, build images); pino-Logging; Konfiguration via Zod-validierte ENV; i18n (next-intl). **Branding**: Name "Jotion", Wortmarke + Signet (stilisiertes "J" als Blatt/Block, monochrom, SVG), Notion-ähnliche ruhige Typografie (Inter / System-UI, Serif-Option: Lyon-ähnliche freie Schrift wie "Source Serif 4", Mono: "JetBrains Mono"), Farbpalette (neutrales Grau, 10 Notion-ähnliche Textfarben + Hintergrundfarben als Tokens), Favicon, PWA-Manifest, `<title>`-Muster "Seitentitel | Jotion".

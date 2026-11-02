@@ -1,0 +1,29 @@
+# Jotion Reverse Proxy.
+# JOTION_SITE_ADDRESS: ":80" für LAN/VPN ohne TLS, oder eine Domain für automatisches HTTPS.
+{
+	admin off
+}
+
+{$JOTION_SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options SAMEORIGIN
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# REST-API und Realtime-WebSocket (ab Phase 2)
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle /collab* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

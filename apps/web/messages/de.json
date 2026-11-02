@@ -1,0 +1,48 @@
+{
+  "meta": { "description": "Dein Workspace für Notizen, Wissen und Projekte." },
+  "sidebar": {
+    "workspace": "Mein Workspace",
+    "search": "Suchen",
+    "home": "Startseite",
+    "inbox": "Posteingang",
+    "settings": "Einstellungen",
+    "private": "Privat",
+    "team": "Team",
+    "trash": "Papierkorb",
+    "newPage": "Neue Seite",
+    "emptyTree": "Noch keine Seiten",
+    "comingSoon": "Folgt in einer späteren Phase"
+  },
+  "home": {
+    "greetingMorning": "Guten Morgen",
+    "greetingDay": "Guten Tag",
+    "greetingEvening": "Guten Abend",
+    "intro": "Jotion ist eingerichtet. Seiten, Editor und Datenbanken kommen in den nächsten Ausbaustufen dazu.",
+    "statusTitle": "Systemstatus",
+    "statusOk": "Alle Dienste laufen",
+    "statusError": "Mindestens ein Dienst meldet einen Fehler",
+    "statusUnreachable": "API nicht erreichbar",
+    "service": {
+      "database": "Datenbank",
+      "redis": "Redis",
+      "worker": "Hintergrund-Worker"
+    },
+    "roadmapTitle": "Als Nächstes",
+    "roadmap": {
+      "auth": "Anmeldung, Workspaces und Seitenbaum",
+      "editor": "Block-Editor mit Slash-Menü und Autosave",
+      "databases": "Datenbanken mit Tabelle, Board, Kalender und Timeline"
+    }
+  },
+  "login": {
+    "title": "Bei Jotion anmelden",
+    "email": "E-Mail",
+    "emailPlaceholder": "name@beispiel.de",
+    "password": "Passwort",
+    "submit": "Weiter",
+    "notice": "Die Anmeldung wird in Phase 1 freigeschaltet.",
+    "back": "Zurück zur Startseite"
+  },
+  "theme": { "label": "Darstellung", "light": "Hell", "dark": "Dunkel", "system": "System" },
+  "language": { "label": "Sprache" }
+}

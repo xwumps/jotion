@@ -1,0 +1,35 @@
+{
+  "name": "@jotion/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/source-serif-4": "5.3.1",
+    "@jotion/shared": "workspace:*",
+    "@jotion/ui": "workspace:*",
+    "lucide-react": "1.66.0",
+    "next": "15.5.28",
+    "next-intl": "4.14.9",
+    "next-themes": "0.4.6",
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@jotion/config": "workspace:*",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "vitest": "3.2.7"
+  }
+}

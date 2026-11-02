@@ -1,0 +1,36 @@
+{
+  "name": "jotion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Jotion: selbst gehostete Notion-Alternative",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @jotion/db generate",
+    "db:migrate": "pnpm --filter @jotion/db migrate:deploy",
+    "db:migrate:dev": "pnpm --filter @jotion/db migrate:dev",
+    "e2e": "playwright test",
+    "init": "bash scripts/init.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "extends": "@jotion/config/tsconfig.node.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

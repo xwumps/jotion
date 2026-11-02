@@ -1,0 +1,101 @@
+/*
+ * Jotion Design-Tokens. Ruhige, papierartige Oberfläche.
+ * Light ist Standard, Dark über die Klasse .dark auf <html> (next-themes).
+ */
+:root {
+  --bg: #ffffff;
+  --bg-sidebar: #f8f8f6;
+  --bg-elevated: #ffffff;
+  --fg: #2f2e2b;
+  --fg-muted: #78766f;
+  --fg-subtle: #a3a19a;
+  --border: #e9e8e4;
+  --hover: rgba(55, 53, 47, 0.06);
+  --active: rgba(55, 53, 47, 0.1);
+  --accent: #2f76d2;
+  --accent-hover: #2867ba;
+  --shadow-popover:
+    0 0 0 1px rgba(15, 15, 15, 0.05), 0 3px 6px rgba(15, 15, 15, 0.1),
+    0 9px 24px rgba(15, 15, 15, 0.2);
+
+  /* Inhaltsfarben: Text */
+  --c-gray: #7d7a75;
+  --c-brown: #9f6b53;
+  --c-orange: #d9730d;
+  --c-yellow: #cb912f;
+  --c-green: #448361;
+  --c-blue: #337ea9;
+  --c-purple: #9065b0;
+  --c-pink: #c14c8a;
+  --c-red: #d44c47;
+  /* Inhaltsfarben: Hintergrund */
+  --cb-gray: #f1f1ef;
+  --cb-brown: #f4eeee;
+  --cb-orange: #fbecdd;
+  --cb-yellow: #fbf3db;
+  --cb-green: #edf3ec;
+  --cb-blue: #e7f3f8;
+  --cb-purple: #f4f0f7;
+  --cb-pink: #f9eef3;
+  --cb-red: #fdebec;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #191919;
+  --bg-sidebar: #202020;
+  --bg-elevated: #252525;
+  --fg: #e6e5e3;
+  --fg-muted: #9b9a97;
+  --fg-subtle: #6f6e6b;
+  --border: #2f2f2f;
+  --hover: rgba(255, 255, 255, 0.055);
+  --active: rgba(255, 255, 255, 0.09);
+  --accent: #3b88e0;
+  --accent-hover: #4c95e8;
+  --shadow-popover:
+    0 0 0 1px rgba(255, 255, 255, 0.06), 0 3px 6px rgba(0, 0, 0, 0.3),
+    0 9px 24px rgba(0, 0, 0, 0.45);
+
+  --c-gray: #9b9b9b;
+  --c-brown: #ba856f;
+  --c-orange: #c77d48;
+  --c-yellow: #ca9849;
+  --c-green: #529e72;
+  --c-blue: #5e87c9;
+  --c-purple: #9d68d3;
+  --c-pink: #d15796;
+  --c-red: #df5452;
+  --cb-gray: #2f2f2f;
+  --cb-brown: #4a3228;
+  --cb-orange: #5c3b23;
+  --cb-yellow: #564328;
+  --cb-green: #243d30;
+  --cb-blue: #143a4e;
+  --cb-purple: #3c2d49;
+  --cb-pink: #4e2c3c;
+  --cb-red: #522e2a;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --shadow-popover: var(--shadow-popover);
+
+  --font-sans:
+    var(--font-inter), ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}

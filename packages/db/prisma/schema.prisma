@@ -1,0 +1,26 @@
+// Jotion Datenmodell. Siehe docs/architecture/03-datenmodell.md
+// Phase 0: nur Infrastruktur (Extensions, Instanz-Einstellungen).
+// Weitere Modelle folgen phasenweise über eigene Migrationen.
+
+generator client {
+  provider      = "prisma-client-js"
+  // Fester Ausgabeort im Package, unabhängig vom pnpm-Layout (lokal und in Docker)
+  output        = "../generated/client"
+  // native für Entwicklung, musl für die Alpine-Images (x86_64 und ARM64, z. B. Raspberry Pi / NAS)
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Instanzweite Einstellungen (Branding, Feature-Flags, Schema-Version der Daten).
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("system_settings")
+}
