@@ -7,7 +7,14 @@ export const QUEUES = {
 
 export const SYSTEM_JOBS = {
   heartbeat: 'heartbeat',
+  maintenance: 'maintenance',
 } as const;
+
+/** Seiten im Papierkorb werden nach so vielen Tagen endgültig gelöscht. */
+export const TRASH_RETENTION_DAYS = 30;
+/** Veröffentlichte Realtime-Ereignisse werden nach so vielen Tagen entfernt. */
+export const EVENT_RETENTION_DAYS = 7;
+export const MAINTENANCE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /** Redis-Schlüssel, in den der Worker regelmäßig einen Zeitstempel schreibt. */
 export const WORKER_HEARTBEAT_KEY = `${QUEUE_PREFIX}:worker:heartbeat`;

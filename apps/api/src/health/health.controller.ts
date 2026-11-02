@@ -8,10 +8,12 @@ import {
   type HealthReport,
 } from '@jotion/shared';
 import type { FastifyReply } from 'fastify';
+import { Public } from '../common/request-context';
 import { PrismaService } from '../infra/prisma.service';
 import { RedisService } from '../infra/redis.service';
 import { API_VERSION } from '../version';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

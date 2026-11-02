@@ -1,11 +1,30 @@
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
+import { AuthModule } from './auth/auth.module';
+import { CommonModule } from './common/common.module';
 import { ConfigModule } from './config/config.module';
+import { EventsModule } from './events/events.module';
+import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
 import { InfraModule } from './infra/infra.module';
 import { loggerOptions } from './logger';
+import { PagesModule } from './pages/pages.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
 
 @Module({
-  imports: [LoggerModule.forRoot(loggerOptions()), ConfigModule, InfraModule, HealthModule],
+  imports: [
+    LoggerModule.forRoot(loggerOptions()),
+    ConfigModule,
+    InfraModule,
+    CommonModule,
+    PermissionsModule,
+    EventsModule,
+    AuthModule,
+    WorkspacesModule,
+    PagesModule,
+    FilesModule,
+    HealthModule,
+  ],
 })
 export class AppModule {}
