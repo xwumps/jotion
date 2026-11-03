@@ -1,9 +1,14 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
+import fastifyMultipart from '@fastify/multipart';
+import { MAX_IMAGE_UPLOAD_BYTES } from '@jotion/shared';
 import { parseEnv, serverEnvSchema } from '@jotion/shared/env';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { registerOriginCheck } from './auth/origin-check';
+import { AllExceptionsFilter } from './common/exception.filter';
 
 export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -13,6 +18,15 @@ export async function createApp(): Promise<NestFastifyApplication> {
   );
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api');
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  const env = parseEnv(serverEnvSchema);
+  const fastify = app.getHttpAdapter().getInstance();
+  await app.register(fastifyCookie as never);
+  await app.register(fastifyMultipart as never, {
+    limits: { fileSize: MAX_IMAGE_UPLOAD_BYTES, files: 1 },
+  });
+  registerOriginCheck(fastify, [env.JOTION_PUBLIC_URL, ...env.JOTION_ALLOWED_ORIGINS]);
   app.enableShutdownHooks();
   return app;
 }

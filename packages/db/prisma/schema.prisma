@@ -1,6 +1,6 @@
 // Jotion Datenmodell. Siehe docs/architecture/03-datenmodell.md
-// Phase 0: nur Infrastruktur (Extensions, Instanz-Einstellungen).
 // Weitere Modelle folgen phasenweise über eigene Migrationen.
+// Spalten in snake_case, Tabellen im Plural. IDs: UUIDv7 (zeitlich sortierbar).
 
 generator client {
   provider      = "prisma-client-js"
@@ -23,4 +23,225 @@ model SystemSetting {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@map("system_settings")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1: Identität, Workspaces, Seitenbaum
+// ---------------------------------------------------------------------------
+
+enum WorkspaceRole {
+  OWNER
+  MEMBER
+}
+
+/// PRIVATE: nur für den Ersteller sichtbar. TEAM: für alle Mitglieder des Workspace.
+enum PageScope {
+  PRIVATE
+  TEAM
+}
+
+model User {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  /// immer kleingeschrieben gespeichert
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  locale       String?
+  disabledAt   DateTime? @map("disabled_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions     Session[]
+  memberships  WorkspaceMember[]
+  favorites    Favorite[]
+  pageVisits   PageVisit[]
+  resetTokens  PasswordResetToken[] @relation("ResetTokenUser")
+  createdPages Page[]               @relation("PageCreatedBy")
+  ownedPages   Page[]               @relation("PageOwner")
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  /// SHA-256 des Cookie-Tokens, das Token selbst wird nie gespeichert
+  tokenHash  String   @unique @map("token_hash")
+  userAgent  String?  @map("user_agent")
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  createdById String?   @map("created_by_id") @db.Uuid
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt      DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation("ResetTokenUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Workspace {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  icon      Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  members     WorkspaceMember[]
+  invitations Invitation[]
+  pages       Page[]
+  files       File[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  workspaceId String        @map("workspace_id") @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now()) @map("joined_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model Invitation {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  workspaceId String        @map("workspace_id") @db.Uuid
+  tokenHash   String        @unique @map("token_hash")
+  role        WorkspaceRole @default(MEMBER)
+  /// optional: Hinweis, für wen der Link gedacht ist
+  note        String?
+  createdById String        @map("created_by_id") @db.Uuid
+  expiresAt   DateTime      @map("expires_at") @db.Timestamptz(3)
+  maxUses     Int           @default(1) @map("max_uses")
+  uses        Int           @default(0)
+  revokedAt   DateTime?     @map("revoked_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("invitations")
+}
+
+/// Seite im Baum. `path` (ltree) und `scope` werden per Trigger aus dem Elternteil
+/// abgeleitet, siehe Migration 20261102010000_phase1. Nie manuell setzen.
+model Page {
+  id             String               @id @default(uuid(7)) @db.Uuid
+  workspaceId    String               @map("workspace_id") @db.Uuid
+  parentId       String?              @map("parent_id") @db.Uuid
+  path           Unsupported("ltree") @default(dbgenerated("''::ltree"))
+  /// Fractional Index für die Reihenfolge unter Geschwistern
+  position       String
+  title          String               @default("")
+  icon           Json?
+  cover          Json?
+  scope          PageScope            @default(TEAM)
+  /// Ersteller der Wurzelseite; bei PRIVATE der einzige mit Zugriff
+  ownerId        String               @map("owner_id") @db.Uuid
+  settings       Json                 @default("{}")
+  createdById    String               @map("created_by_id") @db.Uuid
+  lastEditedById String               @map("last_edited_by_id") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastEditedAt   DateTime             @default(now()) @map("last_edited_at") @db.Timestamptz(3)
+  archivedAt     DateTime?            @map("archived_at") @db.Timestamptz(3)
+  deletedAt      DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  deletedById    String?              @map("deleted_by_id") @db.Uuid
+  /// Seite, mit der dieser Teilbaum in den Papierkorb kam (Wiederherstellung als Einheit)
+  trashRootId    String?              @map("trash_root_id") @db.Uuid
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    Page?       @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Page[]      @relation("PageTree")
+  owner     User        @relation("PageOwner", fields: [ownerId], references: [id])
+  createdBy User        @relation("PageCreatedBy", fields: [createdById], references: [id])
+  favorites Favorite[]
+  visits    PageVisit[]
+
+  @@index([workspaceId, parentId, position])
+  @@index([workspaceId, deletedAt])
+  @@index([trashRootId])
+  @@map("pages")
+}
+
+model Favorite {
+  userId    String   @map("user_id") @db.Uuid
+  pageId    String   @map("page_id") @db.Uuid
+  position  String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pageId])
+  @@map("favorites")
+}
+
+model PageVisit {
+  userId    String   @map("user_id") @db.Uuid
+  pageId    String   @map("page_id") @db.Uuid
+  visitedAt DateTime @default(now()) @map("visited_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pageId])
+  @@index([userId, visitedAt(sort: Desc)])
+  @@map("page_visits")
+}
+
+model File {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  workspaceId  String   @map("workspace_id") @db.Uuid
+  storageKey   String   @unique @map("storage_key")
+  mime         String
+  size         Int
+  sha256       String
+  width        Int?
+  height       Int?
+  originalName String?  @map("original_name")
+  uploadedById String   @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("files")
+}
+
+/// Transactional Outbox: Domänenereignisse, in derselben Transaktion wie die Änderung geschrieben.
+model ChangeEvent {
+  id             BigInt    @id @default(autoincrement())
+  workspaceId    String    @map("workspace_id") @db.Uuid
+  type           String
+  entityId       String    @map("entity_id") @db.Uuid
+  /// PRIVATE-Ereignisse gehen nur an diesen Nutzer
+  audienceUserId String?   @map("audience_user_id") @db.Uuid
+  payload        Json      @default("{}")
+  actorId        String?   @map("actor_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz(3)
+
+  @@index([publishedAt, id])
+  @@map("change_events")
 }

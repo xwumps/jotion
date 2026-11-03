@@ -29,6 +29,18 @@ export const serverEnvSchema = z.object({
   JOTION_MASTER_KEY: base64Key32,
   AUTH_SECRET: base64Key32,
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  /** Verzeichnis für hochgeladene Dateien (Docker-Volume) */
+  JOTION_FILES_DIR: z.string().min(1).default('/data/files'),
+  /** Zusätzlich erlaubte Origins für schreibende Requests (kommagetrennt), z. B. Dev-Server */
+  JOTION_ALLOWED_ORIGINS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    ),
 });
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 

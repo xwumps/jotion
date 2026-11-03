@@ -93,7 +93,7 @@ PDF entsteht ausschließlich im Browser über "Drucken → Als PDF speichern". E
 Regel: Connectoren kennen weder UI noch Jotion-Datenmodell. Sie liefern nur `ExternalRecord`s mit stabiler `externalId`, `etag/version`, `updatedAt` und typisierten Feldern. Die Abbildung auf Jotion-Properties erfolgt ausschließlich durch die Mapping-Engine anhand nutzerdefinierter Konfiguration.
 
 ### B.5 Sicherheitskonzept
-- **AuthN**: Better Auth (Email/Passwort mit Argon2id, Sessions in DB, HttpOnly/Secure/SameSite=Lax Cookies), TOTP-2FA, später OIDC. Rate-Limiting für Login (Redis). Account-Lockout mit Backoff.
+- **AuthN**: eigene Session-Authentifizierung, siehe ADR 13 (Email/Passwort mit Argon2id, Sessions in DB, HttpOnly/Secure/SameSite=Lax Cookies), TOTP-2FA, später OIDC. Rate-Limiting für Login (Redis). Account-Lockout mit Backoff.
 - **AuthZ**: Zentrale `PermissionService.can(user, action, resource)`; Seitenrechte werden über den Baum vererbt (nächster expliziter Eintrag gewinnt). Jede API-Route deklariert benötigte Berechtigung per Decorator; Default deny. Collab-Server prüft beim Verbindungsaufbau und bei Rechteänderung (Disconnect).
 - **Secrets der Integrationen**: AES-256-GCM, Envelope Encryption: Master Key aus `JOTION_MASTER_KEY` (Docker Secret), pro Datensatz Data Key, Spalte `key_version` für Rotation. Secrets werden nie an das Frontend zurückgegeben (nur "gesetzt/nicht gesetzt"), nie geloggt (Log-Redaction in pino).
 - **Uploads**: MIME-Sniffing (file-type), Größenlimit, Bild-Re-Encoding (sharp) zum Entfernen von EXIF, Auslieferung über signierte, kurzlebige URLs mit `Content-Disposition` und separatem Pfad; SVG nur als Download oder sanitized.

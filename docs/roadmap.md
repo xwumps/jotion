@@ -10,12 +10,18 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 - **Akzeptanz**: `docker compose up` startet alle Dienste mit Healthchecks grün; Web zeigt gebrandete Shell.
 - **Tests**: Smoke-E2E (Playwright), Docker-Healthcheck-Test in CI.
 
-### Phase 1: Auth, Workspaces, Seitenbaum
+### Phase 1: Auth, Workspaces, Seitenbaum (abgeschlossen)
 - **Funktionen**: Registrierung/Login/Logout, Passwort-Reset (SMTP optional, sonst Admin-Reset), Workspaces + Mitglieder + Einladungslinks, Sidebar-Baum mit DnD (dnd-kit), Seite anlegen/umbenennen/verschieben/löschen, Icons/Cover, Breadcrumbs, Favoriten, Zuletzt, Papierkorb, Archiv, Basis-Rechte (Workspace-Rolle).
-- **Aufgaben**: Better Auth integrieren; `PermissionService`; `PageService` mit `ltree`-Pfadpflege bei Move (Transaktion, Zyklusprüfung); Fractional Indexing; Datei-Upload-Service + StorageDriver; Outbox + Realtime-Kanal (SSE) für Sidebar.
+- **Aufgaben**: Session-Authentifizierung (ADR 13); `PermissionService`; `PageService` mit `ltree`-Pfadpflege bei Move (Transaktion, Zyklusprüfung); Fractional Indexing; Datei-Upload-Service + StorageDriver; Outbox + Realtime-Kanal (SSE) für Sidebar.
 - **Abhängigkeiten**: Phase 0.
 - **Akzeptanz**: 1.000 Seiten in Baum performant (<100 ms Sidebar-Load lazy), Move in eigene Unterseite verhindert, Papierkorb-Restore stellt Unterbaum wieder her.
 - **Tests**: Unit (Pfadlogik, Fractional Index), API-Tests (Supertest + Testcontainers-Postgres), Berechtigungstests (Matrix Rolle × Aktion), E2E Login + Seite anlegen.
+
+**Umsetzungsstand Phase 1**
+- Umgesetzt: Ersteinrichtung (erster Nutzer wird Owner), Login/Logout, Einladungslinks (Rolle, Nutzungen, Ablauf, Widerruf), Passwort-Reset per Owner-Link, mehrere Workspaces mit Umschalter, Mitglieder und Rollen, Seitenbaum mit Drag-and-drop (davor, danach, hinein), Privat/Team, Icons (Emoji, Upload), Cover (Verläufe, Upload), Breadcrumbs, Favoriten mit Reihenfolge, Zuletzt besucht, Archiv, Papierkorb (Teilbaum als Einheit, automatische Löschung nach 30 Tagen), Seitenoptionen (Schrift, kleine Schrift, volle Breite, Sperre), Live-Aktualisierung per SSE.
+- Abweichungen: Passwort-Reset per E-Mail (SMTP) folgt später, bis dahin erzeugt ein Owner den Link. Verschieben in andere Workspaces folgt mit Phase 10. Cover-Position verschieben folgt später.
+- Sicherheitsregel ergänzt: Reset-Links nur, wenn der Owner in allen Workspaces des Mitglieds Owner ist.
+- Tests: 55 API-Tests (inkl. Rechtematrix und Performance mit 1000 Seiten), 11 Trigger-Tests, 14 Shared-Tests (inkl. Property-Tests), 3 Worker-Tests, 12 Browser-Tests.
 
 ### Phase 2: Editor-Kern mit Yjs-Persistenz
 - **Funktionen**: Tiptap v3 mit Blöcken: Paragraph, H1-3, Listen, To-do, Toggle, Callout, Zitat, Trennlinie, Code, Unterseite, Link-to-Page; Slash-Menü, Markdown-Shortcuts, Bubble-Menü (Inline-Formatierung, Farben, Link), Drag-Handle + Block-DnD, Block-Menü (Löschen, Duplizieren, Umwandeln, Farbe, Link zum Block), Undo/Redo, Tastaturkürzel, Autosave-Status, Seitenoptionen, Schnellsuche (Titel).

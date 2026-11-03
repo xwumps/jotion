@@ -13,7 +13,7 @@
 | 10 | Transactional Outbox für Domänenevents | Konsistenz zwischen DB-Änderung und Realtime/Automationen | Direkt-Publish (Eventverlust bei Crash) |
 | 11 | Apache ECharts für Charts | Alle geforderten Typen, Canvas-Performance, Theming/Dark Mode, Animationen, Apache-2.0 | Recharts (SVG, schwächer bei vielen Punkten, weniger Typen); Nivo; Visx (zu low-level); Chart.js (weniger flexibel) |
 | 12 | TanStack Query/Table/Virtual, dnd-kit, react-grid-layout, date-fns | Bewährte, headless Bausteine passend zu Notion-Look | AG Grid (Lizenz, Fremdlook), FullCalendar (Styling schwer an Notion anpassbar) |
-| 13 | Better Auth | Self-hosted, TS-nativ, 2FA, OIDC, Organisationen | Auth.js (schwächere Credentials/2FA-Story), Keycloak (schwergewichtig, optional als OIDC-Provider) |
+| 13 | Eigene, schlanke Session-Authentifizierung (Argon2id via `@node-rs/argon2`, zufällige 256-Bit-Tokens, nur SHA-256 gespeichert, HttpOnly-Cookie, Origin-Prüfung, Rate-Limits in Redis). Geändert in Phase 1. | Für eine private Instanz mit Einladungen genügt ein kleiner, vollständig getesteter Kern; keine Abhängigkeit von Verhalten einer Bibliothek bei Registrierungssperre und Server-Aufrufen. 2FA (TOTP) und OIDC werden später gezielt ergänzt. | Better Auth (ursprüngliche Wahl, mehr Funktionen, aber mehr Unbekannte), Auth.js, Keycloak |
 | 14 | Storage-Abstraktion, Default lokales Volume | Keine Cloud-Pflicht; S3/MinIO optional | Pflicht-MinIO (mehr Betriebsaufwand) |
 | 15 | Fractional Indexing für alle Reihenfolgen | Kein Umsortieren vieler Zeilen, konfliktarm | Integer-Positionen |
 | 16 | Eigene Formelsprache mit isomorphem Interpreter | Sicherheit (kein eval), Notion-Kompatibilität, identische Ergebnisse Client/Server | JS-Sandbox (Sicherheitsrisiko) |
@@ -22,3 +22,5 @@
 
 ---
 
+| 19 | Seitenbaum-Pfad, Scope und Owner per PostgreSQL-Trigger gepflegt (Phase 1) | Die Datenbank garantiert Konsistenz und Zyklenfreiheit unabhängig vom aufrufenden Code; Verschieben ganzer Teilbäume ist eine einzige Änderung am Elternteil | Pfadpflege in der Anwendung (fehleranfällig bei parallelen Änderungen), rekursive CTEs ohne materialisierten Pfad |
+| 20 | Positionsspalten mit `COLLATE "C"` (Phase 1) | Fractional-Index-Schlüssel müssen bytegenau sortieren, unabhängig von der Locale der Datenbank | Sortierung in der Anwendung |

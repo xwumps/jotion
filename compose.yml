@@ -120,7 +120,9 @@ services:
 secrets:
   # Optionales CA-Zertifikat für Builds hinter einem TLS-Proxy. Standard: leer.
   extra_ca:
-    file: ${JOTION_BUILD_CA:-/dev/null}
+    # Ohne eigene CA: leere Platzhalterdatei im Projekt. Dateien außerhalb des Projekts
+    # (z. B. /dev/null) verlangt Docker Compose sonst als Extra-Freigabe (--allow=fs.read).
+    file: ${JOTION_BUILD_CA:-./docker/no-extra-ca.pem}
 
 volumes:
   pg_data:

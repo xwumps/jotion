@@ -15,7 +15,11 @@
 - **Zielumgebung privat**: läuft auf einem Rechner mit 2 CPU-Kernen und 4 GB RAM (Richtwert). Zugriff im LAN oder per VPN; Caddy wahlweise mit interner CA oder Auto-HTTPS für eigene Domain.
 - **Backups extern ablegen**: z. B. auf NAS oder USB-Platte (Volume `backups` per Bind-Mount), Restore regelmäßig testen.
 
-## Stand Phase 0 (gemessen)
+## Gemessener Speicherbedarf
+
+**Phase 1** (nach komplettem E2E-Lauf, zwei Nutzer): caddy 21 MB, web 80 MB, api 64 MB, worker 28 MB, postgres 55 MB, redis 5 MB, **gesamt ca. 255 MB**.
+
+### Stand Phase 0
 
 **RAM im Leerlauf** (`docker stats`, alle Dienste gesund, keine Nutzer):
 
@@ -40,7 +44,7 @@ Fängt ein Proxy (Firma, Schule) TLS-Verbindungen ab, schlägt `pnpm install` im
 JOTION_BUILD_CA=./docker/data/extra-ca.pem
 ```
 
-Die Datei wird nur während des Builds als Secret genutzt und landet nicht im Image.
+Die Datei wird nur während des Builds als Secret genutzt und landet nicht im Image. Ohne Angabe nutzt der Build die leere Platzhalterdatei `docker/no-extra-ca.pem`, es ist also nichts zu tun.
 
 ## Eigene Domain mit HTTPS
 In `.env` `JOTION_SITE_ADDRESS=jotion.example.org`, `JOTION_PUBLIC_URL=https://jotion.example.org` sowie `JOTION_HTTP_PORT=80` und `JOTION_HTTPS_PORT=443` setzen. Caddy holt das Zertifikat automatisch. Für LAN oder VPN bleibt `JOTION_SITE_ADDRESS=:80`.

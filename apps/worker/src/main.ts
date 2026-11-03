@@ -1,5 +1,11 @@
 import { createPrismaClient, pingDatabase } from '@jotion/db';
-import { QUEUE_PREFIX, QUEUES, SYSTEM_JOBS, WORKER_HEARTBEAT_INTERVAL_MS } from '@jotion/shared';
+import {
+  MAINTENANCE_INTERVAL_MS,
+  QUEUE_PREFIX,
+  QUEUES,
+  SYSTEM_JOBS,
+  WORKER_HEARTBEAT_INTERVAL_MS,
+} from '@jotion/shared';
 import { parseEnv, serverEnvSchema } from '@jotion/shared/env';
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
@@ -27,10 +33,19 @@ async function main(): Promise<void> {
     },
   );
 
-  const systemWorker = new Worker(QUEUES.system, createSystemProcessor(redis), {
+  await systemQueue.upsertJobScheduler(
+    'system-maintenance',
+    { every: MAINTENANCE_INTERVAL_MS },
+    { name: SYSTEM_JOBS.maintenance, opts: { removeOnComplete: 20, removeOnFail: 50 } },
+  );
+
+  const systemWorker = new Worker(QUEUES.system, createSystemProcessor(redis, prisma), {
     connection,
     prefix: QUEUE_PREFIX,
     concurrency: 1,
+  });
+  systemWorker.on('completed', (job, result) => {
+    if (job.name === SYSTEM_JOBS.maintenance) logger.info({ result }, 'Wartung abgeschlossen');
   });
   systemWorker.on('failed', (job, err) =>
     logger.error({ job: job?.name, err: err.message }, 'Job fehlgeschlagen'),
