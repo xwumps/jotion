@@ -169,6 +169,10 @@ model Page {
   deletedById    String?              @map("deleted_by_id") @db.Uuid
   /// Seite, mit der dieser Teilbaum in den Papierkorb kam (Wiederherstellung als Einheit)
   trashRootId    String?              @map("trash_root_id") @db.Uuid
+  /// Phase 4: Seite, Datenbank (Full-Page oder Inline) oder Datenbankzeile
+  kind           PageKind             @default(PAGE)
+  /// Phase 4: bei Zeilen die Datenbank (immer gleich parentId), sonst null
+  databaseId     String?              @map("database_id") @db.Uuid
 
   workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   parent          Page?            @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
@@ -181,8 +185,12 @@ model Page {
   docUpdates      PageDocUpdate[]
   blocks          Block[]
   blockReferences BlockReference[]
+  databaseInfo    Database?        @relation("DatabasePage")
+  database        Database?        @relation("DatabaseRows", fields: [databaseId], references: [id], onDelete: Cascade)
+  propertyValues  PropertyValue[]
 
   @@index([workspaceId, parentId, position])
+  @@index([databaseId, position])
   @@index([workspaceId, deletedAt])
   @@index([trashRootId])
   @@map("pages")
@@ -313,4 +321,193 @@ model BlockReference {
   @@id([pageId, blockId, targetId])
   @@index([targetId])
   @@map("block_references")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Datenbanken (typisiertes EAV, Ansichten)
+// ---------------------------------------------------------------------------
+
+enum PageKind {
+  PAGE
+  DATABASE
+  DATABASE_ROW
+}
+
+/// Property-Typen. relation, rollup und formula folgen in Phase 6.
+enum PropertyType {
+  title
+  text
+  number
+  select
+  multi_select
+  status
+  date
+  person
+  checkbox
+  url
+  email
+  phone
+  files
+  created_time
+  created_by
+  last_edited_time
+  last_edited_by
+  unique_id
+  relation
+  rollup
+  formula
+}
+
+/// Ansichtstypen. Phase 4 setzt table um, die übrigen folgen in Phase 5 und 7.
+enum DbViewType {
+  table
+  board
+  list
+  gallery
+  calendar
+  timeline
+  chart
+}
+
+/// Datenbank. id = id der Datenbankseite (pages.kind = DATABASE).
+/// Linked Database: sourceDatabaseId zeigt auf die Quelle, eigene Ansichten, keine eigenen Zeilen.
+model Database {
+  id               String   @id @db.Uuid
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  isInline         Boolean  @default(false) @map("is_inline")
+  sourceDatabaseId String?  @map("source_database_id") @db.Uuid
+  locked           Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  page       Page            @relation("DatabasePage", fields: [id], references: [id], onDelete: Cascade)
+  source     Database?       @relation("LinkedDatabase", fields: [sourceDatabaseId], references: [id], onDelete: SetNull)
+  linked     Database[]      @relation("LinkedDatabase")
+  rows       Page[]          @relation("DatabaseRows")
+  properties DbProperty[]
+  views      DbView[]
+  values     PropertyValue[]
+  relations  RelationLink[]
+
+  @@index([workspaceId])
+  @@index([sourceDatabaseId])
+  @@map("databases")
+}
+
+/// Spalte einer Datenbank. config je Typ, validiert mit den Zod-Schemas aus @jotion/shared.
+model DbProperty {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  databaseId String       @map("database_id") @db.Uuid
+  type       PropertyType
+  name       String
+  /// Fractional Index (COLLATE "C"), Standardreihenfolge der Spalten
+  position   String
+  config     Json         @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  database    Database               @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  values      PropertyValue[]
+  conversions DbPropertyConversion[]
+
+  @@index([databaseId, position])
+  @@map("db_properties")
+}
+
+/// Typisiertes EAV: ein Wert je Zeile und Property, Spalte je nach Typ.
+/// Leere Werte werden nicht gespeichert (kein Eintrag).
+model PropertyValue {
+  rowId        String    @map("row_id") @db.Uuid
+  propertyId   String    @map("property_id") @db.Uuid
+  /// denormalisiert für Indizes und Abfragen je Datenbank
+  databaseId   String    @map("database_id") @db.Uuid
+  vText        String?   @map("v_text")
+  vNumber      Float?    @map("v_number")
+  vBool        Boolean?  @map("v_bool")
+  vDateStart   DateTime? @map("v_date_start") @db.Timestamptz(3)
+  vDateEnd     DateTime? @map("v_date_end") @db.Timestamptz(3)
+  vDateHasTime Boolean?  @map("v_date_has_time")
+  vTz          String?   @map("v_tz")
+  vOptionIds   String[]  @map("v_option_ids") @db.Uuid
+  vUserIds     String[]  @map("v_user_ids") @db.Uuid
+  vJson        Json?     @map("v_json")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  row      Page       @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  property DbProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  database Database   @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+
+  @@id([rowId, propertyId])
+  @@index([propertyId, rowId])
+  @@index([databaseId, propertyId, vNumber])
+  @@index([databaseId, propertyId, vDateStart])
+  @@index([vOptionIds], type: Gin)
+  @@index([vUserIds], type: Gin)
+  @@index([vText(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@map("property_values")
+}
+
+/// Relationen (Phase 6). Bei Zwei-Wege-Relationen wird nur eine Kante gespeichert.
+model RelationLink {
+  databaseId String   @map("database_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  fromRowId  String   @map("from_row_id") @db.Uuid
+  toRowId    String   @map("to_row_id") @db.Uuid
+  position   String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  database Database @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, fromRowId, toRowId])
+  @@index([toRowId])
+  @@map("relation_links")
+}
+
+/// Gespeicherte Ansicht. config (Filter, Sortierung, Spalten, Berechnungen) per Zod validiert.
+model DbView {
+  id         String     @id @default(uuid(7)) @db.Uuid
+  databaseId String     @map("database_id") @db.Uuid
+  type       DbViewType @default(table)
+  name       String
+  position   String
+  config     Json       @default("{}")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  database Database         @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  rowOrder DbViewRowOrder[]
+
+  @@index([databaseId, position])
+  @@map("db_views")
+}
+
+/// Manuelle Reihenfolge je Ansicht (vorgesehen; Phase 4 nutzt die Zeilenposition der Datenbank).
+model DbViewRowOrder {
+  viewId   String @map("view_id") @db.Uuid
+  rowId    String @map("row_id") @db.Uuid
+  position String
+
+  view DbView @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
+  @@id([viewId, rowId])
+  @@map("db_view_row_order")
+}
+
+/// Undo-Snapshot eines Property-Typwechsels (alter Typ, alte Konfiguration, alte Werte).
+model DbPropertyConversion {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  propertyId  String       @map("property_id") @db.Uuid
+  fromType    PropertyType @map("from_type")
+  fromConfig  Json         @map("from_config")
+  toType      PropertyType @map("to_type")
+  toConfig    Json         @map("to_config")
+  /// [{rowId, value}] im API-Format
+  values      Json
+  createdById String       @map("created_by_id") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  property DbProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, createdAt])
+  @@map("db_property_conversions")
 }
