@@ -7,7 +7,9 @@
 }
 /* Blöcke mit Popovern/Menüs oder eigener Höhe nicht einschränken */
 .jt-editor > .is-empty,
-.jt-editor > [data-type='columnList'],
+.jt-editor > .node-columnList,
+.jt-editor > .node-database,
+.jt-editor > .node-mathBlock,
 .jt-editor > table,
 .jt-editor > .tableWrapper {
   content-visibility: visible;

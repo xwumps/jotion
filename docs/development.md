@@ -72,6 +72,15 @@ packages/query   Filter-/Sortier-AST nach SQL (Kysely), Cursor, JS-Referenz, Typ
 - Jede neue Filter- oder Sortierregel braucht die gleiche Semantik in der JS-Referenz (`reference.ts`). Die Vergleichstests in `packages/query/src/compile.test.ts` laufen mit fast-check gegen PostgreSQL und vergleichen beide.
 - Der Leistungstest `apps/api/test/databases-perf.test.ts` legt 50.000 Zeilen an und prüft p95 unter 300 ms (dauert etwa 30 Sekunden).
 
+## Inhalte (Phase 3)
+- Neue Editor-Knoten: Schema in `packages/editor/src/nodes/*`, Eintrag in `jotionExtensions` und `BLOCK_NODE_TYPES`, Text und Eigenschaften in der Projektion (`projection.ts`), Test in `content.test.ts` (Schema, Yjs-Rundreise, Projektion). React-Ansicht in `apps/web/src/components/editor/content-views.tsx`.
+- URLs aus Knotenattributen beim Darstellen immer prüfen (`safeMediaSrc`, `safeExternalUrl`, `resolveEmbed`); neue Embed-Anbieter nur in `packages/editor/src/embeds.ts` mit Test.
+- Einfügen: `@jotion/editor/paste` (nur im Browser, ESM). Gespeicherte Zwischenablagen für Tests liegen in `packages/editor/src/paste-fixtures` (von Prettier ausgenommen).
+- Serverseitige Abrufe nur über `SafeHttpClient` (`apps/api/src/common/safe-http.ts`). Für Tests mit lokalem Server `JOTION_SSRF_ALLOWLIST=127.0.0.1`.
+- ENV: `JOTION_MAX_UPLOAD_MB` (Standard 100), `JOTION_SSRF_ALLOWLIST` (Standard leer).
+- E2E: `tests/e2e/content.spec.ts` richtet selbst ein oder meldet sich an und läuft daher auch allein. Mehrere Stacks parallel: `docker compose -p <name>` und `JOTION_COMPOSE_PROJECT=<name>` für den Neustart-Test.
+- Im Entwicklungsmodus (`next dev`) blieb der Speicherstatus bei Browser-Tests auf "offline" (Ursache noch offen); Browser-Tests daher gegen einen Produktions-Build oder den Docker-Stack laufen lassen.
+
 ## Konventionen
 - Texte in der Oberfläche nur über `apps/web/messages/{de,en}.json`. Ein Test prüft, dass beide Sprachen dieselben Schlüssel haben.
 - Konfiguration nur über `@jotion/shared/env` (Zod-validiert, unterstützt `*_FILE` für Docker Secrets). Fehlermeldungen nennen Schlüssel, nie Werte.
@@ -83,6 +92,7 @@ packages/query   Filter-/Sortier-AST nach SQL (Kysely), Cursor, JS-Referenz, Typ
 - Index `pages_path_gist_idx` (GiST auf dem ltree-Pfad)
 - Index `pages_title_trgm_idx` (Trigramm-Suche auf Titeln)
 - Trigger und Funktionen `jotion_pages_*` (Seitenbaum)
+- Phase 3: Funktion `jotion_unaccent` sowie die Ausdrucksindizes `blocks_search_idx`, `blocks_plain_text_trgm_idx` und `pages_title_unaccent_trgm_idx` (Volltextsuche). Prisma zeigt Ausdrucksindizes derzeit nicht im Diff, sollten sie dort auftauchen, ebenfalls entfernen.
 
 Ein Test in `packages/db` prüft, dass die Indizes vorhanden sind.
 
