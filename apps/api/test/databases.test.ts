@@ -188,6 +188,14 @@ describe('Properties und Werte', () => {
     expect((await bad({ [sel.id]: '01900000-0000-7000-8000-0000000000ff' })).status).toBe(422);
     expect((await bad({ '01900000-0000-7000-8000-0000000000ee': 1 })).status).toBe(422);
     expect((await bad({ [who.id]: ['01900000-0000-7000-8000-0000000000ee'] })).status).toBe(422);
+    const files = await addProp(owner, d.id, { name: 'Anhang', type: 'files' });
+    expect(
+      (
+        await bad({
+          [files.id]: [{ type: 'file', fileId: '01900000-0000-7000-8000-0000000000ee', name: 'x' }],
+        })
+      ).status,
+    ).toBe(422);
     const created = d.properties.find((p: { type: string }) => p.type === 'title');
     expect((await bad({ [created.id]: 'x' })).status).toBe(422);
 
