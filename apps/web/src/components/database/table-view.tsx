@@ -125,27 +125,34 @@ export function TableView({
     columns,
     getRowId: (r) => r.id,
     getCoreRowModel: getCoreRowModel(),
-    columnResizeMode: 'onChange',
-    enableColumnResizing: true,
     state: { columnSizing: sizing, columnPinning: { left: frozenIds } },
     onColumnSizingChange: setSizing,
   });
 
-  // Breite nach dem Ziehen in der Ansicht speichern
-  const resizing = table.getState().columnSizingInfo.isResizingColumn;
-  const lastResizing = useRef<string | false>(false);
-  useEffect(() => {
-    const was = lastResizing.current;
-    lastResizing.current = resizing;
-    if (was && !resizing) {
-      const width = Math.round(table.getColumn(was)?.getSize() ?? DEFAULT_WIDTH);
-      saveColumns(
-        props.map((p) => p.id),
-        (id) => (id === was ? { width } : {}),
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resizing]);
+  // Breite ändern: eigener Ziehgriff (TanStacks Handler rechnet die Breite in einem
+  // React-Updater aus, der bei gebündelten Updates zu spät läuft). Gespeichert beim Loslassen.
+  const [resizing, setResizing] = useState<string | null>(null);
+  const startResize = (columnId: string, clientX: number) => {
+    const startWidth = table.getColumn(columnId)?.getSize() ?? DEFAULT_WIDTH;
+    let width = startWidth;
+    setResizing(columnId);
+    const move = (e: PointerEvent) => {
+      width = Math.min(1200, Math.max(80, Math.round(startWidth + e.clientX - clientX)));
+      setSizing((s) => ({ ...s, [columnId]: width }));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setResizing(null);
+      if (width !== startWidth)
+        saveColumns(
+          props.map((p) => p.id),
+          (id) => (id === columnId ? { width } : {}),
+        );
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -171,7 +178,6 @@ export function TableView({
   }, [rows]);
 
   const cols = table.getVisibleLeafColumns();
-  const headerById = new Map(table.getFlatHeaders().map((h) => [h.column.id, h]));
   const totalWidth = GUTTER + cols.reduce((n, c) => n + c.getSize(), 0) + 40;
   const pinnedLeft = (id: string) => {
     const c = table.getColumn(id);
@@ -284,13 +290,6 @@ export function TableView({
                     dragCol && dragCol !== col.id && 'data-[over=true]:bg-hover',
                   )}
                   style={{ width: col.getSize(), left: left ?? undefined }}
-                  draggable={prop.type !== 'title'}
-                  onDragStart={(e) => {
-                    setDragCol(col.id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', col.id);
-                  }}
-                  onDragEnd={() => setDragCol(null)}
                   onDragOver={(e) => dragCol && e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -305,6 +304,15 @@ export function TableView({
                       <button
                         type="button"
                         className="flex h-full min-w-0 flex-1 items-center gap-1.5 px-2 text-left hover:bg-hover"
+                        // Nur die Beschriftung ist ziehbar, damit der Griff zum Breiteändern frei bleibt
+                        draggable={prop.type !== 'title'}
+                        onDragStart={(e) => {
+                          setDragCol(col.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', col.id);
+                        }}
+                        onDragEnd={() => setDragCol(null)}
+                        data-testid="column-label"
                       >
                         <Icon className="size-3.5 shrink-0 opacity-70" />
                         <span className="truncate">{prop.name}</span>
@@ -352,12 +360,15 @@ export function TableView({
                     </PopoverContent>
                   </Popover>
                   <div
-                    onMouseDown={headerById.get(col.id)?.getResizeHandler()}
-                    onTouchStart={headerById.get(col.id)?.getResizeHandler()}
-                    onDoubleClick={() => col.resetSize()}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      startResize(col.id, e.clientX);
+                    }}
+                    onDoubleClick={() => setSizing((s) => ({ ...s, [col.id]: DEFAULT_WIDTH }))}
                     className={cn(
-                      'absolute -right-[3px] top-0 z-10 h-full w-[6px] cursor-col-resize',
-                      col.getIsResizing() ? 'bg-accent' : 'hover:bg-accent/60',
+                      'absolute right-0 top-0 z-10 h-full w-[5px] cursor-col-resize',
+                      resizing === col.id ? 'bg-accent' : 'hover:bg-accent/60',
                     )}
                     role="separator"
                     aria-label={t('table.resize')}

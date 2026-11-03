@@ -849,11 +849,15 @@ export type CreateViewInput = z.input<typeof createViewSchema>;
 export const updateViewSchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
-    config: viewConfigSchema.partial().optional(),
+    /** Teiländerung; wird mit der gespeicherten Konfiguration zusammengeführt und dann geprüft.
+     *  (Kein viewConfigSchema.partial(): dessen Standardwerte würden fehlende Felder überschreiben.) */
+    config: z.record(z.string(), z.unknown()).optional(),
     ...placement,
   })
   .strict();
-export type UpdateViewInput = z.input<typeof updateViewSchema>;
+export type UpdateViewInput = Omit<z.input<typeof updateViewSchema>, 'config'> & {
+  config?: Partial<ViewConfigInput>;
+};
 
 export const ROW_PAGE_MAX = 200;
 

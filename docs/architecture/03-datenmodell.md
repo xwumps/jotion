@@ -58,6 +58,18 @@ Konventionen: Primärschlüssel `id uuid` (UUIDv7, zeitlich sortierbar), `create
 - `db_views` (database_id, `type enum[table,board,list,gallery,calendar,timeline,chart]`, name, position, `config jsonb`)
   - `config`: `filter` (AST: `{op:'and'|'or', children:[...]}` oder `{propertyId, operator, value}`), `sorts[]`, `groupBy {propertyId, hideEmpty, order[], hidden[], sortMode}`, `subGroupBy`, `properties [{id, visible, width, wrap}]`, `calculations {propertyId: fn}`, typspezifisch: board `{cardPreview, cardSize, colorColumns}`, calendar `{dateProperty, showWeekends}`, timeline `{startProperty, endProperty, zoom, showTable}`, gallery `{cover, size, fit}`, chart `{ChartSpec}`
 - `db_view_row_order` (view_id, row_id, position) nur für manuelle Sortierung.
+
+**Umsetzung Phase 4 (Abweichungen und Präzisierungen)**
+- `databases.id` = `pages.id` der Datenbankseite (`kind = DATABASE`); Spalten `workspace_id`, `is_inline`, `source_database_id` (Linked Database, `ON DELETE SET NULL`), `locked`. Eine Titel-Spalte (`db_properties.type = title`) gibt es genau einmal; ihr Wert ist `pages.title` der Zeile.
+- Zeilen: `pages.kind = DATABASE_ROW`, `pages.database_id = parent_id`, abgesichert durch den CHECK-Constraint `pages_database_row_check`. Scope, Owner und Pfad setzen die Seitenbaum-Trigger wie bei jeder Seite. Zeilen erscheinen nicht im Seitenbaum.
+- Erstellt am/von, Zuletzt bearbeitet am/von und Titel werden nicht in `property_values` gespeichert, sondern aus `pages` gelesen.
+- `v_number` ist `double precision` (ADR 45). Leere Werte (leerer Text, leere Liste, nicht angehakte Checkbox) haben keinen Eintrag.
+- Ganztägige Daten liegen als Mitternacht UTC in `v_date_start`, `v_date_has_time = false`; Datumsfilter vergleichen Kalendertage (mit Uhrzeit in der Zeitzone des Betrachters).
+- Status-Konfiguration: Gruppe je Option (`options[].group` in `todo`, `in_progress`, `complete`) statt separater `groups`-Liste.
+- Unique ID: `config.nextValue` wird vom Server gepflegt (Zeilensperre auf `db_properties`).
+- `db_property_conversions` (property_id, from_type, from_config, to_type, to_config, values jsonb, created_by_id): Undo-Snapshot des letzten Typwechsels.
+- `relation_links` und die Typen `relation`, `rollup`, `formula` sind angelegt, werden aber erst in Phase 6 befüllt; `computed_values` und `property_dependencies` folgen mit Phase 6.
+- `db_views.type` kennt alle Ansichtstypen (table, board, list, gallery, calendar, timeline, chart); anlegbar ist in Phase 4 nur `table`. `config.groupBy`, `board`, `calendar`, `timeline`, `gallery`, `chart` sind im Schema vorgesehen.
 - `db_templates` (database_id, page_id(Template-Seite), is_default, `recurrence jsonb?`)
 
 ### C.5 Charts, Dashboard

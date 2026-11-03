@@ -324,6 +324,17 @@ describe('Abfragen, Ansichten, Berechnungen', () => {
       res.rows.map((r: { values: Record<string, number> }) => r.values[num.id] ?? null),
     ).toEqual([20, 30, null]);
     const calc = (await owner.post(`/api/databases/${d.id}/calculate`, { viewId: view.id })).body;
+    // Teiländerungen lassen die übrigen Einstellungen unverändert
+    await owner.patch(`/api/databases/${d.id}/views/${view.id}`, { config: { wrapCells: true } });
+    const kept = (await owner.get(`/api/databases/${d.id}`)).body.views.find(
+      (v: { id: string }) => v.id === view.id,
+    ).config;
+    expect(kept).toMatchObject({ wrapCells: true, sorts: [{ propertyId: num.id }] });
+    expect(kept.filter.children).toHaveLength(2);
+    expect(
+      (await owner.patch(`/api/databases/${d.id}/views/${view.id}`, { config: { evil: 1 } }))
+        .status,
+    ).toBe(422);
     expect(calc).toEqual({ [num.id]: 50, [d.properties[0].id]: 3 });
 
     const views = (await owner.get(`/api/databases/${d.id}`)).body.views;
