@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { projectDoc } from '@jotion/editor/projection';
+import { projectDoc, type Projection } from '@jotion/editor/projection';
 import { Prisma } from '@jotion/db';
 import * as Y from 'yjs';
 import { PrismaService } from '../infra/prisma.service';
@@ -82,33 +82,7 @@ export class DocStore {
       if (contained.length) {
         await tx.pageDocUpdate.deleteMany({ where: { id: { in: contained.map((u) => u.id) } } });
       }
-      await tx.block.deleteMany({ where: { pageId } });
-      if (projection.blocks.length) {
-        await tx.block.createMany({
-          data: projection.blocks.map((b) => ({
-            pageId,
-            id: b.id.slice(0, 100),
-            parentBlockId: b.parentId?.slice(0, 100) ?? null,
-            type: b.type.slice(0, 50),
-            position: b.position,
-            plainText: b.text.slice(0, 20_000),
-            props: b.props as Prisma.InputJsonValue,
-          })),
-          skipDuplicates: true,
-        });
-      }
-      await tx.blockReference.deleteMany({ where: { pageId } });
-      if (projection.references.length) {
-        await tx.blockReference.createMany({
-          data: projection.references.map((r) => ({
-            pageId,
-            blockId: r.blockId.slice(0, 100),
-            targetType: r.targetType,
-            targetId: r.targetId,
-          })),
-          skipDuplicates: true,
-        });
-      }
+      await this.writeProjection(tx, pageId, projection);
       if (editorUserId) {
         await tx.page.update({
           where: { id: pageId },
@@ -116,5 +90,47 @@ export class DocStore {
         });
       }
     });
+  }
+
+  /** Schreibt die Block-Projektion einer Seite neu (innerhalb einer Transaktion). */
+  async writeProjection(
+    tx: Prisma.TransactionClient,
+    pageId: string,
+    projection: Projection,
+  ): Promise<void> {
+    await tx.block.deleteMany({ where: { pageId } });
+    if (projection.blocks.length) {
+      await tx.block.createMany({
+        data: projection.blocks.map((b) => ({
+          pageId,
+          id: b.id.slice(0, 100),
+          parentBlockId: b.parentId?.slice(0, 100) ?? null,
+          type: b.type.slice(0, 50),
+          position: b.position,
+          plainText: b.text.slice(0, 20_000),
+          props: b.props as Prisma.InputJsonValue,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    await tx.blockReference.deleteMany({ where: { pageId } });
+    if (projection.references.length) {
+      await tx.blockReference.createMany({
+        data: projection.references.map((r) => ({
+          pageId,
+          blockId: r.blockId.slice(0, 100),
+          targetType: r.targetType,
+          targetId: r.targetId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  /** Lädt den vollständigen gespeicherten Inhalt einer Seite in ein neues Dokument. */
+  async loadDoc(pageId: string): Promise<Y.Doc> {
+    const doc = new Y.Doc();
+    await this.loadInto(pageId, doc);
+    return doc;
   }
 }

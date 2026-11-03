@@ -3,3 +3,9 @@ export { jotionExtensions, lowlight, type ExtensionOptions } from './extensions'
 export { Callout } from './nodes/callout';
 export { PageLink, Subpage } from './nodes/page-ref';
 export { BackgroundColor, BlockColor, TextColor } from './marks/colors';
+export * from './urls';
+export * from './embeds';
+export * from './block-selection';
+export * from './nodes/media';
+export * from './nodes/layout';
+export * from './nodes/inline';

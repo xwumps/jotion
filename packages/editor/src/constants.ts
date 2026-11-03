@@ -22,6 +22,19 @@ export const BLOCK_NODE_TYPES = [
   'callout',
   'subpage',
   'pageLink',
+  'image',
+  'video',
+  'audio',
+  'file',
+  'pdf',
+  'bookmark',
+  'embed',
+  'table',
+  'columnList',
+  'column',
+  'tableOfContents',
+  'breadcrumb',
+  'mathBlock',
 ] as const;
 
 /** Knoten mit Hintergrund-/Textfarbe auf Blockebene. */
