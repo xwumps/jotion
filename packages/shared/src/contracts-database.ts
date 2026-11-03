@@ -1,0 +1,906 @@
+/**
+ * Phase 4: Verträge für Datenbanken (Properties, Werte, Filter, Sortierung, Ansichten).
+ * Gleiche Schemas in API (Validierung) und Oberfläche (Typen, Editoren).
+ */
+import { z } from 'zod';
+import type { PageIcon, PageScope } from './contracts';
+
+const id = z.uuid();
+
+// ---------------------------------------------------------------- Property-Typen
+
+export const PROPERTY_TYPES = [
+  'title',
+  'text',
+  'number',
+  'select',
+  'multi_select',
+  'status',
+  'date',
+  'person',
+  'checkbox',
+  'url',
+  'email',
+  'phone',
+  'files',
+  'created_time',
+  'created_by',
+  'last_edited_time',
+  'last_edited_by',
+  'unique_id',
+  'relation',
+  'rollup',
+  'formula',
+] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+/** In Phase 4 anlegbar (relation, rollup, formula folgen in Phase 6, title gibt es genau einmal). */
+export const CREATABLE_PROPERTY_TYPES = [
+  'text',
+  'number',
+  'select',
+  'multi_select',
+  'status',
+  'date',
+  'person',
+  'checkbox',
+  'url',
+  'email',
+  'phone',
+  'files',
+  'created_time',
+  'created_by',
+  'last_edited_time',
+  'last_edited_by',
+  'unique_id',
+] as const satisfies readonly PropertyType[];
+export type CreatablePropertyType = (typeof CREATABLE_PROPERTY_TYPES)[number];
+
+/** Werte stammen aus der Zeilenseite (pages), nicht aus property_values. */
+export const PAGE_DERIVED_TYPES = [
+  'title',
+  'created_time',
+  'created_by',
+  'last_edited_time',
+  'last_edited_by',
+] as const satisfies readonly PropertyType[];
+
+/** Nicht von Hand änderbare Werte. */
+export const READONLY_PROPERTY_TYPES: readonly PropertyType[] = [
+  'created_time',
+  'created_by',
+  'last_edited_time',
+  'last_edited_by',
+  'unique_id',
+  'rollup',
+  'formula',
+];
+
+export const isReadonlyType = (t: PropertyType) => READONLY_PROPERTY_TYPES.includes(t);
+export const isPageDerivedType = (t: PropertyType) =>
+  (PAGE_DERIVED_TYPES as readonly PropertyType[]).includes(t);
+
+export const OPTION_COLORS = [
+  'default',
+  'gray',
+  'brown',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'purple',
+  'pink',
+  'red',
+] as const;
+export type OptionColor = (typeof OPTION_COLORS)[number];
+
+export const STATUS_GROUPS = ['todo', 'in_progress', 'complete'] as const;
+export type StatusGroup = (typeof STATUS_GROUPS)[number];
+
+export const NUMBER_FORMATS = [
+  'number',
+  'number_with_commas',
+  'percent',
+  'euro',
+  'dollar',
+  'pound',
+  'yen',
+  'franc',
+] as const;
+export type NumberFormat = (typeof NUMBER_FORMATS)[number];
+
+export const DATE_FORMATS = ['full', 'short', 'iso', 'month_day_year', 'day_month_year'] as const;
+export const TIME_FORMATS = ['24h', '12h'] as const;
+
+const optionName = z.string().trim().min(1).max(100);
+
+export const selectOptionSchema = z.object({
+  id,
+  name: optionName,
+  color: z.enum(OPTION_COLORS).default('default'),
+});
+export type SelectOption = z.infer<typeof selectOptionSchema>;
+
+export const statusOptionSchema = selectOptionSchema.extend({
+  group: z.enum(STATUS_GROUPS),
+});
+export type StatusOption = z.infer<typeof statusOptionSchema>;
+
+const MAX_OPTIONS = 500;
+
+/** Optionsnamen und IDs müssen eindeutig sein. */
+function uniqueOptions<T extends { id: string; name: string }>(options: T[], ctx: z.RefinementCtx) {
+  const ids = new Set<string>();
+  const names = new Set<string>();
+  for (const o of options) {
+    if (ids.has(o.id)) ctx.addIssue({ code: 'custom', message: `Doppelte Option ${o.id}` });
+    if (names.has(o.name.toLowerCase()))
+      ctx.addIssue({ code: 'custom', message: `Doppelter Optionsname ${o.name}` });
+    ids.add(o.id);
+    names.add(o.name.toLowerCase());
+  }
+}
+
+export const propertyConfigSchemas = {
+  title: z.object({}).strict(),
+  text: z.object({}).strict(),
+  number: z
+    .object({
+      format: z.enum(NUMBER_FORMATS).default('number'),
+      precision: z.number().int().min(0).max(8).nullable().default(null),
+    })
+    .strict(),
+  select: z
+    .object({ options: z.array(selectOptionSchema).max(MAX_OPTIONS).default([]) })
+    .strict()
+    .superRefine((c, ctx) => uniqueOptions(c.options, ctx)),
+  multi_select: z
+    .object({ options: z.array(selectOptionSchema).max(MAX_OPTIONS).default([]) })
+    .strict()
+    .superRefine((c, ctx) => uniqueOptions(c.options, ctx)),
+  status: z
+    .object({ options: z.array(statusOptionSchema).min(1).max(MAX_OPTIONS) })
+    .strict()
+    .superRefine((c, ctx) => uniqueOptions(c.options, ctx)),
+  date: z
+    .object({
+      dateFormat: z.enum(DATE_FORMATS).default('full'),
+      timeFormat: z.enum(TIME_FORMATS).default('24h'),
+    })
+    .strict(),
+  person: z.object({}).strict(),
+  checkbox: z.object({}).strict(),
+  url: z.object({}).strict(),
+  email: z.object({}).strict(),
+  phone: z.object({}).strict(),
+  files: z.object({}).strict(),
+  created_time: z.object({}).strict(),
+  created_by: z.object({}).strict(),
+  last_edited_time: z.object({}).strict(),
+  last_edited_by: z.object({}).strict(),
+  unique_id: z
+    .object({
+      prefix: z
+        .string()
+        .trim()
+        .max(10)
+        .regex(/^[A-Za-z0-9]*$/)
+        .nullable()
+        .default(null),
+      /** vom Server gepflegt */
+      nextValue: z.number().int().min(1).default(1),
+    })
+    .strict(),
+  // Phase 6: Schema vorgesehen, Anlegen in Phase 4 nicht möglich
+  relation: z
+    .object({
+      targetDatabaseId: id,
+      twoWay: z.boolean().default(false),
+      reversePropertyId: id.nullable().default(null),
+      limit: z.enum(['one', 'many']).default('many'),
+    })
+    .strict(),
+  rollup: z
+    .object({
+      relationPropertyId: id,
+      targetPropertyId: id,
+      aggregation: z.string().max(40),
+    })
+    .strict(),
+  formula: z.object({ expression: z.string().max(10_000) }).strict(),
+} satisfies Record<PropertyType, z.ZodType>;
+
+export type PropertyConfig<T extends PropertyType = PropertyType> = z.output<
+  (typeof propertyConfigSchemas)[T]
+>;
+export type NumberConfig = PropertyConfig<'number'>;
+export type SelectConfig = PropertyConfig<'select'>;
+export type StatusConfig = PropertyConfig<'status'>;
+export type UniqueIdConfig = PropertyConfig<'unique_id'>;
+
+/** Validiert und normalisiert die Konfiguration eines Typs (Standardwerte werden ergänzt). */
+export function parsePropertyConfig(type: PropertyType, config: unknown): PropertyConfig {
+  return propertyConfigSchemas[type].parse(config ?? {}) as PropertyConfig;
+}
+
+/** Standard-Optionen eines neuen Status-Properties (wie bei Notion). */
+export function defaultStatusOptions(newId: () => string, labels: [string, string, string]) {
+  return [
+    { id: newId(), name: labels[0], color: 'default' as const, group: 'todo' as const },
+    { id: newId(), name: labels[1], color: 'blue' as const, group: 'in_progress' as const },
+    { id: newId(), name: labels[2], color: 'green' as const, group: 'complete' as const },
+  ];
+}
+
+// ---------------------------------------------------------------- Werte
+
+export const TEXT_MAX = 10_000;
+export const URL_MAX = 2000;
+export const MAX_MULTI_VALUES = 100;
+export const MAX_FILES = 20;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^[0-9+()\-./\s#*]{1,50}$/;
+
+function validDay(s: string): boolean {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/** Datum: ganztägig (YYYY-MM-DD) oder mit Uhrzeit (ISO mit Zeitzone). */
+export const dateValueSchema = z
+  .object({
+    start: z.string(),
+    end: z.string().nullable().default(null),
+    hasTime: z.boolean().default(false),
+    timeZone: z.string().max(64).nullable().default(null),
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    const check = (s: string, key: 'start' | 'end') => {
+      const ok = v.hasTime
+        ? ISO_DATETIME.test(s) && !Number.isNaN(Date.parse(s))
+        : ISO_DATE.test(s) && validDay(s);
+      if (!ok) ctx.addIssue({ code: 'custom', path: [key], message: 'Ungültiges Datum' });
+      return ok;
+    };
+    const a = check(v.start, 'start');
+    if (v.end !== null && check(v.end, 'end') && a) {
+      if (dateValueMs(v.end, v.hasTime) < dateValueMs(v.start, v.hasTime))
+        ctx.addIssue({ code: 'custom', path: ['end'], message: 'Ende liegt vor dem Beginn' });
+    }
+  });
+export type DateValue = z.output<typeof dateValueSchema>;
+
+/** Zeitpunkt eines Datumswerts in ms (ganztägige Daten: Mitternacht UTC). */
+export function dateValueMs(s: string, hasTime: boolean): number {
+  return hasTime ? Date.parse(s) : Date.parse(`${s}T00:00:00Z`);
+}
+
+export const fileValueSchema = z.union([
+  z.object({ type: z.literal('file'), fileId: id, name: z.string().max(255) }).strict(),
+  z
+    .object({
+      type: z.literal('external'),
+      url: z
+        .string()
+        .trim()
+        .max(URL_MAX)
+        .regex(/^https?:\/\//i),
+      name: z.string().max(255),
+    })
+    .strict(),
+]);
+export type FileValue = z.infer<typeof fileValueSchema>;
+
+/** Werte je Typ im API-Format (null = leer). */
+export interface PropertyValueMap {
+  title: string;
+  text: string | null;
+  number: number | null;
+  select: string | null;
+  multi_select: string[];
+  status: string | null;
+  date: DateValue | null;
+  person: string[];
+  checkbox: boolean;
+  url: string | null;
+  email: string | null;
+  phone: string | null;
+  files: FileValue[];
+  created_time: string;
+  created_by: string;
+  last_edited_time: string;
+  last_edited_by: string;
+  unique_id: number | null;
+  relation: string[];
+  rollup: unknown;
+  formula: unknown;
+}
+export type PropertyValue = PropertyValueMap[PropertyType] | null;
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .nullable()
+    .transform((s) => (s === null || s.trim() === '' ? null : s));
+
+/** Eingabeschemas je Typ (vor der Prüfung gegen die Konfiguration). */
+export const propertyValueSchemas = {
+  title: z.string().max(2000),
+  text: optionalText(TEXT_MAX),
+  number: z.number().finite().nullable(),
+  select: id.nullable(),
+  multi_select: z.array(id).max(MAX_MULTI_VALUES),
+  status: id.nullable(),
+  date: dateValueSchema.nullable(),
+  person: z.array(id).max(MAX_MULTI_VALUES),
+  checkbox: z.boolean(),
+  url: optionalText(URL_MAX),
+  email: optionalText(254).refine((s) => s === null || EMAIL_RE.test(s.trim()), {
+    message: 'Ungültige E-Mail-Adresse',
+  }),
+  phone: optionalText(50).refine((s) => s === null || PHONE_RE.test(s.trim()), {
+    message: 'Ungültige Telefonnummer',
+  }),
+  files: z.array(fileValueSchema).max(MAX_FILES),
+  created_time: z.never(),
+  created_by: z.never(),
+  last_edited_time: z.never(),
+  last_edited_by: z.never(),
+  unique_id: z.never(),
+  relation: z.never(),
+  rollup: z.never(),
+  formula: z.never(),
+} satisfies Record<PropertyType, z.ZodType>;
+
+export interface PropertyLike {
+  id: string;
+  type: PropertyType;
+  config: unknown;
+}
+
+export class PropertyValueError extends Error {
+  constructor(
+    readonly propertyId: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'PropertyValueError';
+  }
+}
+
+const dedupe = (ids: string[]) => [...new Set(ids.map((s) => s.toLowerCase()))];
+
+/**
+ * Prüft einen Wert gegen Typ und Konfiguration und normalisiert ihn
+ * (Leerzeichen, doppelte IDs, leere Werte als null bzw. []).
+ * Wirft PropertyValueError bei ungültigen Werten. Mitgliedschaft von Personen prüft die API.
+ */
+export function validatePropertyValue(prop: PropertyLike, raw: unknown): PropertyValue {
+  if (isReadonlyType(prop.type))
+    throw new PropertyValueError(prop.id, 'Dieses Property ist schreibgeschützt');
+  const schema = propertyValueSchemas[prop.type];
+  const parsed = schema.safeParse(raw === undefined ? null : raw);
+  if (!parsed.success)
+    throw new PropertyValueError(prop.id, parsed.error.issues[0]?.message ?? 'Ungültiger Wert');
+  const v = parsed.data as PropertyValue;
+  switch (prop.type) {
+    case 'select':
+    case 'status': {
+      if (v === null) return null;
+      const cfg = parsePropertyConfig(prop.type, prop.config) as SelectConfig;
+      const opt = cfg.options.find((o) => o.id === String(v).toLowerCase());
+      if (!opt) throw new PropertyValueError(prop.id, 'Unbekannte Option');
+      return opt.id;
+    }
+    case 'multi_select': {
+      const cfg = parsePropertyConfig(prop.type, prop.config) as SelectConfig;
+      const ids = dedupe(v as string[]);
+      for (const x of ids)
+        if (!cfg.options.some((o) => o.id === x))
+          throw new PropertyValueError(prop.id, 'Unbekannte Option');
+      return ids;
+    }
+    case 'person':
+      return dedupe(v as string[]);
+    case 'text':
+      return v;
+    case 'url':
+    case 'email':
+    case 'phone':
+      return v === null ? null : String(v).trim();
+    case 'title':
+      return String(v).replace(/\s+/g, ' ').trim();
+    default:
+      return v;
+  }
+}
+
+/** Ist ein Wert leer (für Filter "ist leer" und Berechnungen)? */
+export function isEmptyValue(type: PropertyType, v: unknown): boolean {
+  if (v === null || v === undefined) return true;
+  if (type === 'checkbox') return v !== true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === 'string') return v.trim() === '';
+  return false;
+}
+
+// ---------------------------------------------------------------- Filter
+
+export const TEXT_OPERATORS = [
+  'equals',
+  'does_not_equal',
+  'contains',
+  'does_not_contain',
+  'starts_with',
+  'ends_with',
+  'is_empty',
+  'is_not_empty',
+] as const;
+export const NUMBER_OPERATORS = [
+  'equals',
+  'does_not_equal',
+  'greater_than',
+  'less_than',
+  'greater_than_or_equal_to',
+  'less_than_or_equal_to',
+  'is_empty',
+  'is_not_empty',
+] as const;
+export const SELECT_OPERATORS = ['is', 'is_not', 'is_empty', 'is_not_empty'] as const;
+export const MULTI_OPERATORS = [
+  'contains',
+  'does_not_contain',
+  'is_empty',
+  'is_not_empty',
+] as const;
+export const DATE_OPERATORS = [
+  'is',
+  'is_before',
+  'is_after',
+  'is_on_or_before',
+  'is_on_or_after',
+  'is_within',
+  'is_empty',
+  'is_not_empty',
+] as const;
+export const CHECKBOX_OPERATORS = ['is'] as const;
+export const EMPTY_OPERATORS = ['is_empty', 'is_not_empty'] as const;
+
+export const FILTER_OPERATORS = [
+  ...new Set([
+    ...TEXT_OPERATORS,
+    ...NUMBER_OPERATORS,
+    ...SELECT_OPERATORS,
+    ...MULTI_OPERATORS,
+    ...DATE_OPERATORS,
+  ]),
+] as unknown as readonly [FilterOperator, ...FilterOperator[]];
+export type FilterOperator =
+  | (typeof TEXT_OPERATORS)[number]
+  | (typeof NUMBER_OPERATORS)[number]
+  | (typeof SELECT_OPERATORS)[number]
+  | (typeof MULTI_OPERATORS)[number]
+  | (typeof DATE_OPERATORS)[number];
+
+/** Erlaubte Operatoren je Typ (leer = nicht filterbar). */
+export function operatorsFor(type: PropertyType): readonly FilterOperator[] {
+  switch (type) {
+    case 'title':
+    case 'text':
+    case 'url':
+    case 'email':
+    case 'phone':
+      return TEXT_OPERATORS;
+    case 'number':
+    case 'unique_id':
+      return NUMBER_OPERATORS;
+    case 'select':
+    case 'status':
+      return SELECT_OPERATORS;
+    case 'multi_select':
+    case 'person':
+    case 'created_by':
+    case 'last_edited_by':
+      return MULTI_OPERATORS;
+    case 'date':
+    case 'created_time':
+    case 'last_edited_time':
+      return DATE_OPERATORS;
+    case 'checkbox':
+      return CHECKBOX_OPERATORS;
+    case 'files':
+      return EMPTY_OPERATORS;
+    default:
+      return [];
+  }
+}
+
+export const RELATIVE_DATES = [
+  'today',
+  'tomorrow',
+  'yesterday',
+  'one_week_ago',
+  'one_week_from_now',
+  'one_month_ago',
+  'one_month_from_now',
+] as const;
+export type RelativeDate = (typeof RELATIVE_DATES)[number];
+export const DATE_RANGES = [
+  'past_week',
+  'past_month',
+  'past_year',
+  'next_week',
+  'next_month',
+  'next_year',
+] as const;
+export type DateRange = (typeof DATE_RANGES)[number];
+
+export const dateOperandSchema = z.union([
+  z.object({ kind: z.literal('exact'), date: z.string().regex(ISO_DATE) }).strict(),
+  z.object({ kind: z.literal('relative'), preset: z.enum(RELATIVE_DATES) }).strict(),
+]);
+export type DateOperand = z.infer<typeof dateOperandSchema>;
+
+/** Filterwert: Text, Zahl, Wahrheitswert, Options-/Nutzer-ID, Datumsangabe, Zeitraum. */
+export const filterValueSchema = z.union([
+  z.string().max(1000),
+  z.number().finite(),
+  z.boolean(),
+  dateOperandSchema,
+]);
+
+export const filterConditionSchema = z
+  .object({
+    type: z.literal('condition').default('condition'),
+    propertyId: id,
+    operator: z.enum(FILTER_OPERATORS),
+    value: filterValueSchema.nullable().optional(),
+  })
+  .strict();
+export type FilterCondition = z.output<typeof filterConditionSchema>;
+
+export interface FilterGroup {
+  type: 'group';
+  op: 'and' | 'or';
+  children: (FilterCondition | FilterGroup)[];
+}
+export type FilterNode = FilterCondition | FilterGroup;
+
+/** Maximale Verschachtelung (Wurzelgruppe zählt mit). Phase 6 erweitert die Oberfläche auf Tiefe 3. */
+export const MAX_FILTER_DEPTH = 3;
+export const MAX_FILTER_CONDITIONS = 50;
+
+export const filterGroupSchema: z.ZodType<FilterGroup> = z.lazy(() =>
+  z
+    .object({
+      type: z.literal('group'),
+      op: z.enum(['and', 'or']),
+      children: z.array(z.union([filterConditionSchema, filterGroupSchema])).max(20),
+    })
+    .strict(),
+) as z.ZodType<FilterGroup>;
+
+/** Prüft Tiefe und Anzahl der Bedingungen. */
+export const filterSchema = filterGroupSchema.superRefine((g, ctx) => {
+  let count = 0;
+  const walk = (n: FilterNode, depth: number) => {
+    if (n.type === 'group') {
+      if (depth > MAX_FILTER_DEPTH)
+        ctx.addIssue({ code: 'custom', message: 'Filter zu tief verschachtelt' });
+      for (const c of n.children) walk(c, depth + 1);
+    } else count++;
+  };
+  walk(g, 1);
+  if (count > MAX_FILTER_CONDITIONS)
+    ctx.addIssue({ code: 'custom', message: 'Zu viele Filterbedingungen' });
+});
+
+// ---------------------------------------------------------------- Sortierung
+
+export const sortSchema = z
+  .object({ propertyId: id, direction: z.enum(['asc', 'desc']).default('asc') })
+  .strict();
+export type SortSpec = z.output<typeof sortSchema>;
+export const MAX_SORTS = 10;
+
+/** Typen, nach denen sortiert werden kann. */
+export function isSortable(type: PropertyType): boolean {
+  return !['files', 'relation', 'rollup', 'formula'].includes(type);
+}
+
+// ---------------------------------------------------------------- Berechnungen
+
+export const CALCULATIONS = [
+  'count_all',
+  'count_values',
+  'count_unique',
+  'count_empty',
+  'count_not_empty',
+  'percent_empty',
+  'percent_not_empty',
+  'sum',
+  'average',
+  'median',
+  'min',
+  'max',
+  'range',
+  'earliest_date',
+  'latest_date',
+  'date_range',
+  'checked',
+  'unchecked',
+  'percent_checked',
+  'percent_unchecked',
+] as const;
+export type CalculationFn = (typeof CALCULATIONS)[number];
+
+const COUNT_CALCS: CalculationFn[] = [
+  'count_all',
+  'count_values',
+  'count_unique',
+  'count_empty',
+  'count_not_empty',
+  'percent_empty',
+  'percent_not_empty',
+];
+
+/** Verfügbare Berechnungen je Typ. */
+export function calculationsFor(type: PropertyType): CalculationFn[] {
+  switch (type) {
+    case 'number':
+    case 'unique_id':
+      return [...COUNT_CALCS, 'sum', 'average', 'median', 'min', 'max', 'range'];
+    case 'date':
+    case 'created_time':
+    case 'last_edited_time':
+      return [...COUNT_CALCS, 'earliest_date', 'latest_date', 'date_range'];
+    case 'checkbox':
+      return ['count_all', 'checked', 'unchecked', 'percent_checked', 'percent_unchecked'];
+    case 'relation':
+    case 'rollup':
+    case 'formula':
+      return ['count_all'];
+    default:
+      return COUNT_CALCS;
+  }
+}
+
+// ---------------------------------------------------------------- Ansichten
+
+export const VIEW_TYPES = [
+  'table',
+  'board',
+  'list',
+  'gallery',
+  'calendar',
+  'timeline',
+  'chart',
+] as const;
+export type ViewType = (typeof VIEW_TYPES)[number];
+/** In Phase 4 anlegbar. */
+export const CREATABLE_VIEW_TYPES = ['table'] as const satisfies readonly ViewType[];
+
+export const viewPropertySchema = z
+  .object({
+    id,
+    visible: z.boolean().default(true),
+    width: z.number().int().min(60).max(1200).optional(),
+    wrap: z.boolean().optional(),
+  })
+  .strict();
+export type ViewProperty = z.output<typeof viewPropertySchema>;
+
+export const viewConfigSchema = z
+  .object({
+    filter: filterSchema.nullable().default(null),
+    sorts: z.array(sortSchema).max(MAX_SORTS).default([]),
+    /** Reihenfolge = Spaltenreihenfolge; fehlende Properties erscheinen am Ende */
+    properties: z.array(viewPropertySchema).max(500).default([]),
+    /** Anzahl fixierter Spalten von links (inkl. Titel) */
+    frozenColumns: z.number().int().min(0).max(5).default(1),
+    calculations: z.record(z.string(), z.enum(CALCULATIONS)).default({}),
+    wrapCells: z.boolean().default(false),
+    // Phase 5: Gruppierung und typspezifische Einstellungen
+    groupBy: z
+      .object({ propertyId: id, hideEmpty: z.boolean().default(false) })
+      .strict()
+      .nullable()
+      .default(null),
+    board: z.record(z.string(), z.unknown()).optional(),
+    calendar: z.record(z.string(), z.unknown()).optional(),
+    timeline: z.record(z.string(), z.unknown()).optional(),
+    gallery: z.record(z.string(), z.unknown()).optional(),
+    chart: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+export type ViewConfig = z.output<typeof viewConfigSchema>;
+export type ViewConfigInput = z.input<typeof viewConfigSchema>;
+
+// ---------------------------------------------------------------- DTOs
+
+export interface PropertyDto {
+  id: string;
+  name: string;
+  type: PropertyType;
+  config: PropertyConfig;
+  position: string;
+}
+
+export interface ViewDto {
+  id: string;
+  name: string;
+  type: ViewType;
+  position: string;
+  config: ViewConfig;
+}
+
+export interface DatabaseDto {
+  id: string;
+  workspaceId: string;
+  title: string;
+  icon: PageIcon | null;
+  scope: PageScope;
+  parentId: string | null;
+  isInline: boolean;
+  /** Linked Database: Quelle der Zeilen und Properties */
+  source: { id: string; title: string; icon: PageIcon | null } | null;
+  /** true, wenn es eine Linked Database ist, deren Quelle fehlt oder nicht sichtbar ist */
+  sourceMissing: boolean;
+  /** Datenbank mit Zeilen und Properties (bei Linked Databases die Quelle) */
+  dataId: string;
+  properties: PropertyDto[];
+  views: ViewDto[];
+  canEdit: boolean;
+  deleted: boolean;
+}
+
+export interface RowDto {
+  id: string;
+  title: string;
+  icon: PageIcon | null;
+  position: string;
+  createdAt: string;
+  createdById: string;
+  lastEditedAt: string;
+  lastEditedById: string;
+  /** Werte gespeicherter Properties nach Property-ID (leere fehlen) */
+  values: Record<string, PropertyValue>;
+}
+
+export interface RowQueryResultDto {
+  rows: RowDto[];
+  nextCursor: string | null;
+  /** Anzahl aller passenden Zeilen; nur auf der ersten Seite (sonst null) */
+  total: number | null;
+}
+
+export type CalculationResultDto = Record<string, number | string | null>;
+
+export interface DatabaseSearchResultDto {
+  id: string;
+  title: string;
+  icon: PageIcon | null;
+  path: string;
+}
+
+// ---------------------------------------------------------------- Eingaben
+
+const placement = {
+  afterId: id.nullable().optional(),
+  beforeId: id.nullable().optional(),
+};
+
+export const createDatabaseSchema = z
+  .object({
+    parentId: id.nullable().optional(),
+    scope: z.enum(['PRIVATE', 'TEAM']).optional(),
+    title: z.string().max(2000).optional(),
+    inline: z.boolean().default(false),
+    /** Linked Database auf eine bestehende Datenbank */
+    sourceDatabaseId: id.optional(),
+    /** Full-Page-Datenbank unter einer Seite: Unterseiten-Block anhängen */
+    insertBlock: z.boolean().default(true),
+    ...placement,
+  })
+  .strict()
+  .refine((v) => !v.inline || v.parentId, {
+    message: 'Inline-Datenbanken brauchen eine Elternseite',
+  });
+export type CreateDatabaseInput = z.input<typeof createDatabaseSchema>;
+
+export const createPropertySchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    type: z.enum(CREATABLE_PROPERTY_TYPES),
+    config: z.record(z.string(), z.unknown()).optional(),
+    /** Ansicht, in der die Spalte direkt nach afterPropertyId erscheinen soll */
+    viewId: id.optional(),
+    afterPropertyId: id.nullable().optional(),
+  })
+  .strict();
+export type CreatePropertyInput = z.input<typeof createPropertySchema>;
+
+export const updatePropertySchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    /** Typwechsel mit Konvertierung der Werte */
+    type: z.enum(CREATABLE_PROPERTY_TYPES).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+export type UpdatePropertyInput = z.input<typeof updatePropertySchema>;
+
+export const createViewSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    type: z.enum(VIEW_TYPES).default('table'),
+    /** Konfiguration einer bestehenden Ansicht übernehmen */
+    duplicateOf: id.optional(),
+    ...placement,
+  })
+  .strict();
+export type CreateViewInput = z.input<typeof createViewSchema>;
+
+export const updateViewSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    /** Teiländerung; wird mit der gespeicherten Konfiguration zusammengeführt und dann geprüft.
+     *  (Kein viewConfigSchema.partial(): dessen Standardwerte würden fehlende Felder überschreiben.) */
+    config: z.record(z.string(), z.unknown()).optional(),
+    ...placement,
+  })
+  .strict();
+export type UpdateViewInput = Omit<z.input<typeof updateViewSchema>, 'config'> & {
+  config?: Partial<ViewConfigInput>;
+};
+
+export const ROW_PAGE_MAX = 200;
+
+export const queryRowsSchema = z
+  .object({
+    viewId: id.optional(),
+    /** Überschreibt Filter/Sortierung der Ansicht (z. B. für Vorschau) */
+    filter: filterSchema.nullable().optional(),
+    sorts: z.array(sortSchema).max(MAX_SORTS).optional(),
+    search: z.string().max(200).optional(),
+    cursor: z.string().max(4000).nullable().optional(),
+    limit: z.number().int().min(1).max(ROW_PAGE_MAX).default(100),
+    /** IANA-Zeitzone für Datumsfilter */
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict();
+export type QueryRowsInput = z.input<typeof queryRowsSchema>;
+
+export const calculateSchema = z
+  .object({
+    viewId: id,
+    search: z.string().max(200).optional(),
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict();
+
+export const createRowSchema = z
+  .object({
+    title: z.string().max(2000).optional(),
+    values: z.record(z.string(), z.unknown()).optional(),
+    ...placement,
+  })
+  .strict();
+export type CreateRowInput = z.input<typeof createRowSchema>;
+
+export const updateRowSchema = z
+  .object({
+    title: z.string().max(2000).optional(),
+    values: z.record(z.string(), z.unknown()).default({}),
+  })
+  .strict();
+export type UpdateRowInput = z.input<typeof updateRowSchema>;
+
+export const moveRowSchema = z.object(placement).strict();
+
+export const trashRowsSchema = z.object({ rowIds: z.array(id).min(1).max(500) }).strict();

@@ -231,6 +231,9 @@ export interface PageDto extends PageTreeNodeDto {
   breadcrumbs: BreadcrumbDto[];
   /** Rechte des aktuellen Nutzers auf dieser Seite */
   canEdit: boolean;
+  /** Phase 4: Seite, Datenbank oder Datenbankzeile (databaseId bei Zeilen) */
+  kind: 'PAGE' | 'DATABASE' | 'DATABASE_ROW';
+  databaseId: string | null;
 }
 
 /** Kompakte Seiteninfo für Verweise im Editor (ohne Besuch zu zählen). */
@@ -304,6 +307,8 @@ export const REALTIME_EVENT_TYPES = [
   'page.archived',
   'workspace.updated',
   'members.changed',
+  'database.changed',
+  'database.rows.changed',
 ] as const;
 export type RealtimeEventType = (typeof REALTIME_EVENT_TYPES)[number];
 export interface RealtimeEvent {

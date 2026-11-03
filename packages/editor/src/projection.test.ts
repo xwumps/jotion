@@ -192,4 +192,22 @@ describe('Serverseitige Unterseiten-Blöcke', () => {
     expect(projectDoc(server).blocks.map((b) => b.id)).toContain('typed');
     expect(projectDoc(server).blocks.map((b) => b.id)).toContain('srv');
   });
+  it('erfasst Inline-Datenbanken als Block mit Verweis auf die Datenbankseite', () => {
+    const doc = prosemirrorJSONToYDoc(
+      schema,
+      {
+        type: 'doc',
+        content: [{ type: 'database', attrs: { id: 'db1', databaseId: PAGE_A } }],
+      },
+      DOC_FRAGMENT,
+    );
+    const p = projectDoc(doc);
+    expect(p.blocks).toEqual([
+      expect.objectContaining({ id: 'db1', type: 'database', props: { databaseId: PAGE_A } }),
+    ]);
+    expect(p.references).toEqual([{ blockId: 'db1', targetType: 'page', targetId: PAGE_A }]);
+    // Rundreise durch das Schema behält das Attribut
+    const json = yDocToProsemirrorJSON(doc, DOC_FRAGMENT);
+    expect(PMNode.fromJSON(schema, json).firstChild?.attrs.databaseId).toBe(PAGE_A);
+  });
 });

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { apiDelete, apiGet, apiPatch, apiPost, errorMessage } from './api-client';
 import { pageHref } from './format';
 import { qk } from './query-keys';
+import { handleDatabaseEvent } from '../components/database/use-database';
 
 export interface Sidebar {
   private: PageTreeNodeDto[];
@@ -155,6 +156,10 @@ export function useRealtime(ws: string): void {
         invalidateTree(qc, ws);
         void qc.invalidateQueries({ queryKey: qk.page(event.entityId) });
         void qc.invalidateQueries({ queryKey: ['pageSummary', event.entityId] });
+        // Zeilen sind Seiten: Titel und Papierkorb wirken auf Datenbankansichten
+        void qc.invalidateQueries({ queryKey: ['dbRows'] });
+      } else if (event.type.startsWith('database.')) {
+        handleDatabaseEvent(qc, event.type, event.entityId);
       } else if (event.type === 'members.changed') {
         void qc.invalidateQueries({ queryKey: qk.members(ws) });
       } else if (event.type === 'workspace.updated') {

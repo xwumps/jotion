@@ -24,7 +24,17 @@ export interface Projection {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PROP_KEYS = ['level', 'checked', 'language', 'pageId', 'blockColor', 'icon', 'open', 'start'];
+const PROP_KEYS = [
+  'level',
+  'checked',
+  'language',
+  'pageId',
+  'blockColor',
+  'icon',
+  'open',
+  'start',
+  'databaseId',
+];
 
 function inlineText(el: Y.XmlElement): string {
   let out = '';
@@ -63,6 +73,18 @@ export function projectDoc(doc: Y.Doc): Projection {
         for (const k of PROP_KEYS)
           if (attrs[k] !== undefined && attrs[k] !== null) props[k] = attrs[k];
         blocks.push({ id, parentId, type: child.nodeName, position: position++, text, props });
+        // Inline-Datenbank verweist auf die Datenbankseite (Phase 4)
+        if (
+          child.nodeName === 'database' &&
+          typeof attrs.databaseId === 'string' &&
+          UUID_RE.test(attrs.databaseId)
+        ) {
+          references.push({
+            blockId: id,
+            targetType: 'page',
+            targetId: attrs.databaseId.toLowerCase(),
+          });
+        }
         if (
           (PAGE_REFERENCE_NODES as readonly string[]).includes(child.nodeName) &&
           typeof attrs.pageId === 'string' &&

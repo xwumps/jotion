@@ -1,0 +1,33 @@
+{
+  "name": "@jotion/query",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Filter- und Sortier-AST nach SQL (Kysely) über property_values, JS-Referenz, Typwechsel",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jotion/shared": "workspace:*",
+    "kysely": "0.29.6"
+  },
+  "devDependencies": {
+    "@jotion/config": "workspace:*",
+    "@jotion/db": "workspace:*",
+    "fast-check": "4.10.2",
+    "vitest": "3.2.7"
+  }
+}

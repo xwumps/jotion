@@ -61,6 +61,7 @@ export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEdito
 const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession }>(
   function EditorInner({ page, editable, session }, ref) {
     const t = useTranslations('editor');
+    const tdb = useTranslations('databaseCommands');
     const qc = useQueryClient();
     const [scope, setScope] = useState<'read-write' | 'readonly' | null>(null);
     const canWrite = editable && scope !== 'readonly';
@@ -76,8 +77,10 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     // Labels und Kontext über Refs, damit die Editor-Instanz nicht bei jedem Render neu entsteht
     const labelsRef = useRef<SlashLabels>(null!);
     labelsRef.current = {
-      label: (id) => t(`commands.${id}.label`),
-      description: (id) => t(`commands.${id}.description`),
+      // Datenbank-Befehle (Phase 4) haben eigene Übersetzungen im Namespace databaseCommands
+      label: (id) => (id.startsWith('database') ? tdb(`${id}.label`) : t(`commands.${id}.label`)),
+      description: (id) =>
+        id.startsWith('database') ? tdb(`${id}.description`) : t(`commands.${id}.description`),
       empty: t('noCommands'),
       heading: t('blocks'),
     };
@@ -97,6 +100,21 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
         }
       },
       pickPage,
+      createDatabase: async ({ inline, sourceDatabaseId }) => {
+        try {
+          const db = await apiPost<{ id: string }>(`/workspaces/${page.workspaceId}/databases`, {
+            parentId: page.id,
+            inline,
+            sourceDatabaseId,
+            insertBlock: false,
+          });
+          invalidateTree(qc, page.workspaceId);
+          return db.id;
+        } catch (err) {
+          toast.error(errorMessage(err));
+          return null;
+        }
+      },
     };
 
     const extensions = useMemo(

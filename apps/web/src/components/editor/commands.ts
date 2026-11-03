@@ -3,6 +3,7 @@ import {
   CheckSquare,
   ChevronRight,
   Code,
+  Database,
   FileText,
   Heading1,
   Heading2,
@@ -13,6 +14,8 @@ import {
   Lightbulb,
   Minus,
   Quote,
+  Sheet,
+  Table2,
   Type,
   type LucideIcon,
 } from 'lucide-react';
@@ -20,6 +23,8 @@ import {
 export interface CommandContext {
   createSubpage: () => Promise<string | null>;
   pickPage: () => Promise<string | null>;
+  /** Phase 4: Datenbank unter der aktuellen Seite anlegen (inline, ganzseitig oder verknüpft) */
+  createDatabase?: (opts: { inline: boolean; sourceDatabaseId?: string }) => Promise<string | null>;
 }
 
 export interface BlockCommand {
@@ -151,6 +156,38 @@ export const BLOCK_COMMANDS: BlockCommand[] = [
       if (r) e.chain().focus().deleteRange(r).run();
       const id = await ctx.pickPage();
       if (id) e.chain().focus().insertPageLink(id).run();
+    },
+  },
+  {
+    id: 'database',
+    icon: Table2,
+    aliases: ['datenbank', 'tabelle', 'database', 'table', 'inline'],
+    run: async (e, r, ctx) => {
+      if (r) e.chain().focus().deleteRange(r).run();
+      const id = await ctx.createDatabase?.({ inline: true });
+      if (id) e.chain().focus().insertDatabase(id).run();
+    },
+  },
+  {
+    id: 'databaseFullPage',
+    icon: Sheet,
+    aliases: ['datenbank ganzseitig', 'full page database', 'datenbankseite'],
+    run: async (e, r, ctx) => {
+      if (r) e.chain().focus().deleteRange(r).run();
+      const id = await ctx.createDatabase?.({ inline: false });
+      if (id) e.chain().focus().insertSubpage(id).run();
+    },
+  },
+  {
+    id: 'databaseLinked',
+    icon: Database,
+    aliases: ['verknüpfte datenbank', 'linked database', 'linked view', 'ansicht einer datenbank'],
+    run: async (e, r, ctx) => {
+      if (r) e.chain().focus().deleteRange(r).run();
+      const source = await ctx.pickPage();
+      if (!source) return;
+      const id = await ctx.createDatabase?.({ inline: true, sourceDatabaseId: source });
+      if (id) e.chain().focus().insertDatabase(id).run();
     },
   },
 ];
