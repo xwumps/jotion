@@ -486,7 +486,12 @@ test('Server-Neustart: weiterschreiben ohne Verlust', async () => {
   await newTeamPage('Neustart');
   await page.keyboard.type('Vor dem Neustart.');
   await expect(saveState()).toHaveAttribute('data-state', 'saved');
-  execSync('docker compose restart api', { stdio: 'ignore', timeout: 90_000 });
+  // JOTION_COMPOSE_PROJECT: Projektname, wenn mehrere Stacks parallel laufen (docker compose -p)
+  const project = process.env.JOTION_COMPOSE_PROJECT;
+  execSync(`docker compose ${project ? `-p ${project} ` : ''}restart api`, {
+    stdio: 'ignore',
+    timeout: 90_000,
+  });
   // Während die API weg ist, wird lokal weiter gesichert
   await page.keyboard.press('Enter');
   await page.keyboard.type('Während des Neustarts.');

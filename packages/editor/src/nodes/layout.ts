@@ -68,8 +68,17 @@ export const Column = Node.create({
   parseHTML() {
     return [{ tag: 'div[data-type="column"]' }];
   },
-  renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'column' }), 0];
+  renderHTML({ HTMLAttributes, node }) {
+    const w = typeof node.attrs.width === 'number' && node.attrs.width > 0 ? node.attrs.width : 1;
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-type': 'column',
+        class: 'jt-column',
+        style: `flex-grow: ${w}`,
+      }),
+      0,
+    ];
   },
 });
 

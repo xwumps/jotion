@@ -246,6 +246,8 @@ function Chip({
     <button
       type="button"
       aria-pressed={active}
+      // Fokus bleibt im Suchfeld (Pfeiltasten, Enter)
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
         'rounded-full border px-2 py-0.5 hover:bg-hover',

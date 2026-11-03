@@ -5,7 +5,6 @@ import {
   Bookmark,
   Breadcrumb,
   collectHeadings,
-  Column,
   ColumnList,
   EMBED_SANDBOX,
   Embed,
@@ -116,9 +115,16 @@ function Caption({
       placeholder={placeholder}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => draft !== value && onChange(draft)}
+      // Tasten gehören dem Eingabefeld, nicht dem Editor (sonst ersetzt Enter den Block)
       onKeyDown={(e) => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+        e.stopPropagation();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          if (draft !== value) onChange(draft);
+          (e.target as HTMLInputElement).blur();
+        }
       }}
+      onPaste={(e) => e.stopPropagation()}
       data-testid="media-caption"
     />
   );
@@ -1093,15 +1099,6 @@ function ColumnListView({ node, editor, getPos }: NodeViewProps) {
   );
 }
 
-function ColumnView({ node }: NodeViewProps) {
-  const w = typeof node.attrs.width === 'number' && node.attrs.width > 0 ? node.attrs.width : 1;
-  return (
-    <NodeViewWrapper className="jt-column" data-type="column" style={{ flexGrow: w }}>
-      <NodeViewContent />
-    </NodeViewWrapper>
-  );
-}
-
 // ------------------------------------------------------------------ Registrierung
 
 const mediaView = () => ReactNodeViewRenderer(MediaView);
@@ -1122,5 +1119,4 @@ export const contentNodeViewOverrides = [
   }),
   Mention.extend({ addNodeView: () => ReactNodeViewRenderer(MentionView, { as: 'span' }) }),
   ColumnList.extend({ addNodeView: () => ReactNodeViewRenderer(ColumnListView) }),
-  Column.extend({ addNodeView: () => ReactNodeViewRenderer(ColumnView) }),
 ];
