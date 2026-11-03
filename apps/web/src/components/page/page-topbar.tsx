@@ -19,6 +19,7 @@ import {
   MenuTrigger,
 } from '../ui/menu';
 import { Tooltip } from '../ui/tooltip';
+import { SaveIndicator } from '../editor/save-status';
 import { PageIcon } from './page-icon';
 
 const FONTS = ['default', 'serif', 'mono'] as const;
@@ -65,8 +66,11 @@ export function PageTopbar({ page }: { page: PageDto }) {
           </span>
         )}
       </nav>
-      <span className="hidden text-[13px] text-fg-subtle sm:inline">
-        {t('edited', { time: relativeTime(page.lastEditedAt, locale) })}
+      <span
+        className="hidden sm:inline"
+        title={t('edited', { time: relativeTime(page.lastEditedAt, locale) })}
+      >
+        <SaveIndicator />
       </span>
       {!page.deletedAt && (
         <>

@@ -90,6 +90,8 @@ export function usePageActions(ws: string) {
     }) => apiPatch<PageDto>(`/pages/${id}`, input),
     onSuccess: (page) => {
       qc.setQueryData(qk.page(page.id), page);
+      // Titel und Icon erscheinen auch in Seitenverweisen anderer Seiten
+      void qc.invalidateQueries({ queryKey: ['pageSummary', page.id] });
       // Titel und Icon erscheinen in Sidebar und Breadcrumbs
       void qc.invalidateQueries({ queryKey: qk.sidebar(ws) });
       void qc.invalidateQueries({ queryKey: ['children'] });
@@ -152,6 +154,7 @@ export function useRealtime(ws: string): void {
       if (event.type.startsWith('page.')) {
         invalidateTree(qc, ws);
         void qc.invalidateQueries({ queryKey: qk.page(event.entityId) });
+        void qc.invalidateQueries({ queryKey: ['pageSummary', event.entityId] });
       } else if (event.type === 'members.changed') {
         void qc.invalidateQueries({ queryKey: qk.members(ws) });
       } else if (event.type === 'workspace.updated') {

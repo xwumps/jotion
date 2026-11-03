@@ -3,6 +3,7 @@
 @import '@fontsource-variable/source-serif-4';
 @import '@fontsource-variable/jetbrains-mono';
 @import '@jotion/ui/styles/tokens.css';
+@import './../styles/editor.css';
 
 @source '../../../../packages/ui/src';
 

@@ -1,0 +1,436 @@
+/* Jotion Block-Editor. Abstände und Größen angelehnt an ruhige Dokument-Layouts. */
+
+.jt-editor {
+  outline: none;
+  min-height: 40vh;
+  padding-bottom: 30vh;
+  line-height: 1.5;
+  caret-color: var(--fg);
+  word-break: break-word;
+}
+
+.jt-editor > * + * {
+  margin-top: 2px;
+}
+
+.jt-editor p {
+  padding: 3px 2px;
+  min-height: 1.5em;
+}
+
+.jt-editor h1,
+.jt-editor h2,
+.jt-editor h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 3px 2px;
+}
+.jt-editor h1 {
+  font-size: 1.875em;
+  margin-top: 1.4em;
+  margin-bottom: 2px;
+}
+.jt-editor h2 {
+  font-size: 1.5em;
+  margin-top: 1.1em;
+  margin-bottom: 1px;
+}
+.jt-editor h3 {
+  font-size: 1.25em;
+  margin-top: 1em;
+  margin-bottom: 1px;
+}
+.jt-editor > h1:first-child,
+.jt-editor > h2:first-child,
+.jt-editor > h3:first-child {
+  margin-top: 0.3em;
+}
+
+.jt-editor ul,
+.jt-editor ol {
+  padding-left: 1.6em;
+}
+.jt-editor ul {
+  list-style: disc;
+}
+.jt-editor ul ul {
+  list-style: circle;
+}
+.jt-editor ul ul ul {
+  list-style: square;
+}
+.jt-editor ol {
+  list-style: decimal;
+}
+.jt-editor ol ol {
+  list-style: lower-alpha;
+}
+.jt-editor li > p {
+  padding: 2px 2px;
+}
+
+/* To-do-Listen */
+.jt-editor ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+.jt-editor ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45em;
+}
+.jt-editor ul[data-type='taskList'] li > label {
+  flex-shrink: 0;
+  margin-top: 0.32em;
+  user-select: none;
+}
+.jt-editor ul[data-type='taskList'] li > label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.jt-editor ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.jt-editor ul[data-type='taskList'] li[data-checked='true'] > div > p {
+  color: var(--fg-subtle);
+  text-decoration: line-through;
+}
+
+/* Zitat */
+.jt-editor blockquote {
+  border-left: 3px solid currentColor;
+  padding-left: 14px;
+  margin: 4px 0;
+}
+
+/* Trennlinie */
+.jt-editor hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 2px;
+}
+.jt-editor hr.ProseMirror-selectednode {
+  border-top-color: var(--accent);
+}
+
+/* Inline-Code und Codeblöcke */
+.jt-editor code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--hover);
+  color: var(--c-red);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+}
+.jt-editor pre {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-sidebar);
+  border-radius: 6px;
+  padding: 28px 24px 24px;
+  margin: 6px 0;
+  overflow-x: auto;
+  tab-size: 2;
+  line-height: 1.6;
+}
+.jt-editor pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+.jt-editor .hljs-comment,
+.jt-editor .hljs-quote {
+  color: var(--c-gray);
+}
+.jt-editor .hljs-keyword,
+.jt-editor .hljs-selector-tag,
+.jt-editor .hljs-built_in {
+  color: var(--c-purple);
+}
+.jt-editor .hljs-string,
+.jt-editor .hljs-attr,
+.jt-editor .hljs-template-tag {
+  color: var(--c-green);
+}
+.jt-editor .hljs-number,
+.jt-editor .hljs-literal,
+.jt-editor .hljs-variable {
+  color: var(--c-orange);
+}
+.jt-editor .hljs-title,
+.jt-editor .hljs-function,
+.jt-editor .hljs-section {
+  color: var(--c-blue);
+}
+.jt-editor .hljs-type,
+.jt-editor .hljs-meta {
+  color: var(--c-yellow);
+}
+
+/* Links */
+.jt-editor a:not([data-testid='page-ref']) {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--fg-subtle);
+  text-underline-offset: 2px;
+}
+
+/* Toggle */
+.jt-editor .jt-toggle {
+  display: flex;
+  gap: 2px;
+  align-items: flex-start;
+}
+.jt-editor .jt-toggle > button {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg);
+}
+.jt-editor .jt-toggle > button:hover {
+  background: var(--hover);
+}
+.jt-editor .jt-toggle > button::before {
+  content: '';
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent currentColor;
+  transition: transform 120ms ease;
+}
+.jt-editor .jt-toggle.is-open > button::before {
+  transform: rotate(90deg);
+}
+.jt-editor .jt-toggle > div {
+  flex: 1;
+  min-width: 0;
+}
+.jt-editor .jt-toggle summary {
+  list-style: none;
+  padding: 3px 2px;
+}
+.jt-editor .jt-toggle summary::-webkit-details-marker {
+  display: none;
+}
+.jt-editor .jt-toggle [data-type='detailsContent'] {
+  padding-left: 2px;
+}
+
+/* Callout */
+.jt-editor .jt-callout {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px 14px 12px;
+  border-radius: 6px;
+  background: var(--cb-gray);
+  margin: 4px 0;
+}
+.jt-editor .jt-callout-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  font-size: 20px;
+  line-height: 26px;
+  border-radius: 4px;
+  text-align: center;
+}
+.jt-editor .jt-callout-icon:hover:not(:disabled) {
+  background: var(--hover);
+}
+.jt-editor .jt-callout-content {
+  flex: 1;
+  min-width: 0;
+}
+.jt-editor .jt-callout-content > div > p:first-child {
+  padding-top: 1px;
+}
+
+/* Platzhalter */
+.jt-editor .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--fg-subtle);
+}
+.jt-readonly .jt-editor .is-empty::before {
+  content: none;
+}
+
+/* Auswahl ganzer Blöcke */
+.jt-editor .ProseMirror-selectednode,
+.jt-editor .jt-page-ref.ProseMirror-selectednode {
+  background: rgba(35, 131, 226, 0.14);
+  border-radius: 4px;
+}
+
+/* Hervorhebung beim Springen zu einem Block */
+.jt-flash {
+  animation: jt-flash 2s ease-out;
+  border-radius: 4px;
+}
+@keyframes jt-flash {
+  0%,
+  40% {
+    background: rgba(35, 131, 226, 0.22);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Ziehgriff links neben Blöcken */
+.jt-drag-handle {
+  display: flex;
+  align-items: center;
+  padding-right: 4px;
+  transition: opacity 120ms ease;
+}
+
+/* Farben: Text und Hintergrund (Marks, Blöcke, Farbauswahl) */
+[data-color='gray'] {
+  color: var(--c-gray);
+}
+[data-color='brown'] {
+  color: var(--c-brown);
+}
+[data-color='orange'] {
+  color: var(--c-orange);
+}
+[data-color='yellow'] {
+  color: var(--c-yellow);
+}
+[data-color='green'] {
+  color: var(--c-green);
+}
+[data-color='blue'] {
+  color: var(--c-blue);
+}
+[data-color='purple'] {
+  color: var(--c-purple);
+}
+[data-color='pink'] {
+  color: var(--c-pink);
+}
+[data-color='red'] {
+  color: var(--c-red);
+}
+[data-bg='default'] {
+  background: var(--bg);
+}
+[data-bg='gray'] {
+  background: var(--cb-gray);
+}
+[data-bg='brown'] {
+  background: var(--cb-brown);
+}
+[data-bg='orange'] {
+  background: var(--cb-orange);
+}
+[data-bg='yellow'] {
+  background: var(--cb-yellow);
+}
+[data-bg='green'] {
+  background: var(--cb-green);
+}
+[data-bg='blue'] {
+  background: var(--cb-blue);
+}
+[data-bg='purple'] {
+  background: var(--cb-purple);
+}
+[data-bg='pink'] {
+  background: var(--cb-pink);
+}
+[data-bg='red'] {
+  background: var(--cb-red);
+}
+.jt-bg {
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+[data-block-color='gray'] {
+  color: var(--c-gray);
+}
+[data-block-color='brown'] {
+  color: var(--c-brown);
+}
+[data-block-color='orange'] {
+  color: var(--c-orange);
+}
+[data-block-color='yellow'] {
+  color: var(--c-yellow);
+}
+[data-block-color='green'] {
+  color: var(--c-green);
+}
+[data-block-color='blue'] {
+  color: var(--c-blue);
+}
+[data-block-color='purple'] {
+  color: var(--c-purple);
+}
+[data-block-color='pink'] {
+  color: var(--c-pink);
+}
+[data-block-color='red'] {
+  color: var(--c-red);
+}
+[data-block-color$='_background'] {
+  border-radius: 4px;
+}
+[data-block-color='gray_background'] {
+  background: var(--cb-gray);
+}
+[data-block-color='brown_background'] {
+  background: var(--cb-brown);
+}
+[data-block-color='orange_background'] {
+  background: var(--cb-orange);
+}
+[data-block-color='yellow_background'] {
+  background: var(--cb-yellow);
+}
+[data-block-color='green_background'] {
+  background: var(--cb-green);
+}
+[data-block-color='blue_background'] {
+  background: var(--cb-blue);
+}
+[data-block-color='purple_background'] {
+  background: var(--cb-purple);
+}
+[data-block-color='pink_background'] {
+  background: var(--cb-pink);
+}
+[data-block-color='red_background'] {
+  background: var(--cb-red);
+}
+
+@media print {
+  .jt-drag-handle {
+    display: none !important;
+  }
+  .jt-editor pre,
+  .jt-editor .jt-callout,
+  .jt-editor blockquote {
+    break-inside: avoid;
+  }
+  .jt-editor h1,
+  .jt-editor h2,
+  .jt-editor h3 {
+    break-after: avoid;
+  }
+  .jt-editor {
+    padding-bottom: 0;
+  }
+}

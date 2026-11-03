@@ -12,7 +12,9 @@ import { createApp } from '../src/main';
 export const PUBLIC_URL = 'http://jotion.test';
 
 /** Startet die API für Tests. Datenbank muss auf "_test" enden (Schutz vor Datenverlust). */
-export async function createTestApp(): Promise<{ app: NestFastifyApplication; db: PrismaClient }> {
+export async function createTestApp(
+  opts: { listen?: boolean } = {},
+): Promise<{ app: NestFastifyApplication; db: PrismaClient; port: number }> {
   const dbName = new URL(process.env.DATABASE_URL ?? '').pathname.slice(1);
   if (!dbName.endsWith('_test')) {
     throw new Error(
@@ -24,9 +26,16 @@ export async function createTestApp(): Promise<{ app: NestFastifyApplication; db
   process.env.JOTION_PUBLIC_URL = PUBLIC_URL;
   process.env.JOTION_FILES_DIR = mkdtempSync(join(tmpdir(), 'jotion-files-'));
   const app = await createApp();
-  await app.init();
+  let port = 0;
+  if (opts.listen) {
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const addr = app.getHttpServer().address();
+    port = typeof addr === 'object' && addr ? addr.port : 0;
+  } else {
+    await app.init();
+  }
   await app.getHttpAdapter().getInstance().ready();
-  return { app, db: app.get(PrismaService).client };
+  return { app, db: app.get(PrismaService).client, port };
 }
 
 export async function resetState(app: NestFastifyApplication): Promise<void> {

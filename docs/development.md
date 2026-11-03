@@ -24,6 +24,8 @@ In `.env` für die Entwicklung setzen:
 DATABASE_URL=postgresql://jotion:jotion@localhost:5432/jotion
 REDIS_URL=redis://:jotion@localhost:6379
 JOTION_ALLOWED_ORIGINS=http://localhost:3000
+# Editor-WebSocket direkt zur API, da `pnpm dev` ohne Caddy läuft
+NEXT_PUBLIC_COLLAB_URL=ws://localhost:4000/collab
 JOTION_FILES_DIR=./docker/data/files
 JOTION_MASTER_KEY=<openssl rand -base64 32>
 AUTH_SECRET=<openssl rand -base64 32>
@@ -69,3 +71,16 @@ packages/config  TypeScript-Presets
 - Konfiguration nur über `@jotion/shared/env` (Zod-validiert, unterstützt `*_FILE` für Docker Secrets). Fehlermeldungen nennen Schlüssel, nie Werte.
 - Datenbankänderungen nur über Prisma-Migrationen, nur vorwärts.
 - Keine Em-Dashes in Texten und Übersetzungen (wird für Übersetzungen per Test geprüft).
+
+## Migrationen erzeugen
+`prisma migrate diff` bzw. `migrate dev` kennt einige von Hand gepflegte Datenbankobjekte nicht und schlägt vor, sie zu löschen. Diese Zeilen **immer aus neuen Migrationen entfernen**:
+- Index `pages_path_gist_idx` (GiST auf dem ltree-Pfad)
+- Index `pages_title_trgm_idx` (Trigramm-Suche auf Titeln)
+- Trigger und Funktionen `jotion_pages_*` (Seitenbaum)
+
+Ein Test in `packages/db` prüft, dass die Indizes vorhanden sind.
+
+## Editor und Yjs
+- `packages/editor` wird als ESM (für die Web-App) und CommonJS (für API und Worker) gebaut. Nie beide Formate im selben Prozess laden: doppelte Kopien von yjs oder ProseMirror führen zu Fehlern wie "Yjs was already imported" oder "Adding different instances of a keyed plugin".
+- Die Vitest-Konfiguration der API lädt das Editor-Package deshalb direkt aus `src`.
+- E2E-Tests mit Server-Neustart laufen nur mit `JOTION_E2E_DOCKER=1`.

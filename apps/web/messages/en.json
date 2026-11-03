@@ -1,6 +1,10 @@
 {
-  "meta": { "description": "Your workspace for notes, knowledge and projects." },
-  "common": { "untitled": "Untitled" },
+  "meta": {
+    "description": "Your workspace for notes, knowledge and projects."
+  },
+  "common": {
+    "untitled": "Untitled"
+  },
   "auth": {
     "setupTitle": "Welcome to Jotion",
     "setupIntro": "Create your account and your first workspace. You will become its owner.",
@@ -95,7 +99,11 @@
     "unfavorite": "Remove from favorites",
     "menu": "Page options",
     "style": "Style",
-    "font": { "default": "Default", "serif": "Serif", "mono": "Mono" },
+    "font": {
+      "default": "Default",
+      "serif": "Serif",
+      "mono": "Mono"
+    },
     "smallText": "Small text",
     "fullWidth": "Full width",
     "lock": "Lock page",
@@ -134,10 +142,7 @@
     "gradients": "Gradients",
     "uploadImage": "Upload image",
     "uploading": "Uploading …",
-    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB",
-    "subpages": "Subpages",
-    "addSubpage": "Add a subpage",
-    "editorComingSoon": "The block editor arrives in phase 2. Until then you can create, organize and name pages."
+    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB"
   },
   "home": {
     "greetingMorning": "Good morning",
@@ -151,11 +156,19 @@
     "statusOk": "All services are running",
     "statusError": "At least one service reports an error",
     "statusUnreachable": "API unreachable",
-    "service": { "database": "Database", "redis": "Redis", "worker": "Background worker" }
+    "service": {
+      "database": "Database",
+      "redis": "Redis",
+      "worker": "Background worker"
+    }
   },
   "settings": {
     "title": "Settings",
-    "tabs": { "account": "My account", "workspace": "Workspace", "members": "Members" },
+    "tabs": {
+      "account": "My account",
+      "workspace": "Workspace",
+      "members": "Members"
+    },
     "profile": "Profile",
     "name": "Name",
     "save": "Save",
@@ -185,7 +198,10 @@
     "inviteExpiresAt": "valid until {date}",
     "revoke": "Revoke",
     "membersTitle": "Members ({count})",
-    "role": { "OWNER": "Owner", "MEMBER": "Member" },
+    "role": {
+      "OWNER": "Owner",
+      "MEMBER": "Member"
+    },
     "you": "you",
     "resetLink": "Password reset link",
     "resetLinkCreated": "Link for {name} created. Valid for 24 hours, single use.",
@@ -194,6 +210,154 @@
     "confirmRemove": "Really remove {name} from the workspace?",
     "confirmLeave": "Really leave this workspace? You will need a new invitation to come back."
   },
-  "theme": { "label": "Appearance", "light": "Light", "dark": "Dark", "system": "System" },
-  "language": { "label": "Language" }
+  "theme": {
+    "label": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "editor": {
+    "ariaLabel": "Page content",
+    "placeholder": "Type “/” for commands",
+    "placeholderHeading": "Heading {level}",
+    "placeholderToggle": "Toggle",
+    "blocks": "Blocks",
+    "noCommands": "No matching blocks",
+    "untitled": "Untitled",
+    "noAccess": "No access to this page",
+    "inTrash": "in trash",
+    "archived": "archived",
+    "status": {
+      "connecting": "Connecting …",
+      "saving": "Saving …",
+      "saved": "Saved",
+      "offline": "Offline, saved locally",
+      "readonly": "Read only"
+    },
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strike": "Strikethrough",
+    "code": "Code",
+    "link": "Link",
+    "linkPlaceholder": "Paste or type a link",
+    "apply": "Apply",
+    "color": "Color",
+    "textColor": "Text color",
+    "backgroundColor": "Background",
+    "colors": {
+      "default": "Default",
+      "gray": "Gray",
+      "brown": "Brown",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "blue": "Blue",
+      "purple": "Purple",
+      "pink": "Pink",
+      "red": "Red"
+    },
+    "addBelow": "Add block below",
+    "blockMenu": "Block menu",
+    "dragHint": "Drag to move, click for menu",
+    "delete": "Delete",
+    "duplicate": "Duplicate",
+    "turnInto": "Turn into",
+    "copyBlockLink": "Copy link to block",
+    "blockLinkCopied": "Link to block copied",
+    "commands": {
+      "text": {
+        "label": "Text",
+        "description": "Plain text paragraph"
+      },
+      "h1": {
+        "label": "Heading 1",
+        "description": "Large section heading"
+      },
+      "h2": {
+        "label": "Heading 2",
+        "description": "Medium section heading"
+      },
+      "h3": {
+        "label": "Heading 3",
+        "description": "Small section heading"
+      },
+      "bullet": {
+        "label": "Bulleted list",
+        "description": "Simple bulleted list"
+      },
+      "numbered": {
+        "label": "Numbered list",
+        "description": "List with numbering"
+      },
+      "todo": {
+        "label": "To-do list",
+        "description": "Track tasks with checkboxes"
+      },
+      "toggle": {
+        "label": "Toggle",
+        "description": "Show or hide content"
+      },
+      "quote": {
+        "label": "Quote",
+        "description": "Capture a quote"
+      },
+      "callout": {
+        "label": "Callout",
+        "description": "Make text stand out"
+      },
+      "code": {
+        "label": "Code",
+        "description": "Code block with syntax highlighting"
+      },
+      "divider": {
+        "label": "Divider",
+        "description": "Visually separate sections"
+      },
+      "page": {
+        "label": "Page",
+        "description": "Create a subpage inside this page"
+      },
+      "pageLink": {
+        "label": "Link to page",
+        "description": "Link to an existing page"
+      }
+    }
+  },
+  "search": {
+    "title": "Search",
+    "pickTitle": "Choose a page",
+    "placeholder": "Search pages …",
+    "pickPlaceholder": "Search a page to link …",
+    "results": "Results",
+    "recent": "Recently edited",
+    "empty": "No matching pages"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "search": "Search",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strike": "Strikethrough",
+    "code": "Inline code",
+    "undo": "Undo",
+    "redo": "Redo",
+    "heading": "Heading 1 to 3",
+    "numbered": "Numbered list",
+    "bullet": "Bulleted list",
+    "todo": "To-do list",
+    "slash": "Open block menu",
+    "mdHeading": "Headings",
+    "mdBullet": "Bulleted list",
+    "mdNumbered": "Numbered list",
+    "mdTodo": "To-do",
+    "mdToggle": "Toggle",
+    "mdQuote": "Quote",
+    "mdCode": "Code block",
+    "mdDivider": "Divider"
+  }
 }

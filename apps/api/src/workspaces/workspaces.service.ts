@@ -20,6 +20,7 @@ import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
 import { PermissionService } from '../permissions/permission.service';
 import { SessionService } from '../auth/session.service';
+import { CollabService } from '../collab/collab.service';
 
 const RESET_LINK_HOURS = 24;
 
@@ -29,6 +30,7 @@ export class WorkspacesService {
     private readonly prisma: PrismaService,
     private readonly perms: PermissionService,
     private readonly sessions: SessionService,
+    private readonly collab: CollabService,
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
   ) {}
 

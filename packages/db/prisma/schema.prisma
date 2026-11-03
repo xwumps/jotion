@@ -170,13 +170,17 @@ model Page {
   /// Seite, mit der dieser Teilbaum in den Papierkorb kam (Wiederherstellung als Einheit)
   trashRootId    String?              @map("trash_root_id") @db.Uuid
 
-  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent    Page?       @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Page[]      @relation("PageTree")
-  owner     User        @relation("PageOwner", fields: [ownerId], references: [id])
-  createdBy User        @relation("PageCreatedBy", fields: [createdById], references: [id])
-  favorites Favorite[]
-  visits    PageVisit[]
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent          Page?            @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Page[]           @relation("PageTree")
+  owner           User             @relation("PageOwner", fields: [ownerId], references: [id])
+  createdBy       User             @relation("PageCreatedBy", fields: [createdById], references: [id])
+  favorites       Favorite[]
+  visits          PageVisit[]
+  doc             PageDoc?
+  docUpdates      PageDocUpdate[]
+  blocks          Block[]
+  blockReferences BlockReference[]
 
   @@index([workspaceId, parentId, position])
   @@index([workspaceId, deletedAt])
@@ -244,4 +248,69 @@ model ChangeEvent {
 
   @@index([publishedAt, id])
   @@map("change_events")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Seiteninhalt (Yjs) und abgeleitete Block-Projektion
+// ---------------------------------------------------------------------------
+
+/// Kompaktierter Yjs-Zustand einer Seite. Quelle der Wahrheit für den Inhalt
+/// zusammen mit den noch nicht kompaktierten Einträgen in page_doc_updates.
+model PageDoc {
+  pageId    String   @id @map("page_id") @db.Uuid
+  state     Bytes
+  /// Wird bei jeder Kompaktierung erhöht
+  version   Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("page_docs")
+}
+
+/// Append-only Protokoll eingehender Yjs-Updates. Wird gespeichert, BEVOR der Server
+/// das Update anwendet und dem Client bestätigt. Kompaktierung entfernt enthaltene Einträge.
+model PageDocUpdate {
+  id        BigInt   @id @default(autoincrement())
+  pageId    String   @map("page_id") @db.Uuid
+  update    Bytes
+  userId    String?  @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, id])
+  @@map("page_doc_updates")
+}
+
+/// Projektion der Blöcke aus dem Yjs-Dokument (für Suche, Verweise, Export).
+/// Wird bei jeder Kompaktierung neu geschrieben; nie als Quelle der Wahrheit lesen.
+model Block {
+  pageId        String  @map("page_id") @db.Uuid
+  /// Block-ID aus dem Dokument (Attribut id)
+  id            String
+  parentBlockId String? @map("parent_block_id")
+  type          String
+  position      Int
+  plainText     String  @default("") @map("plain_text")
+  props         Json    @default("{}")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, id])
+  @@map("blocks")
+}
+
+/// Verweise aus Blöcken auf andere Seiten (Unterseiten-Blöcke, Seitenlinks).
+model BlockReference {
+  pageId     String @map("page_id") @db.Uuid
+  blockId    String @map("block_id")
+  targetType String @map("target_type")
+  targetId   String @map("target_id") @db.Uuid
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, blockId, targetId])
+  @@index([targetId])
+  @@map("block_references")
 }

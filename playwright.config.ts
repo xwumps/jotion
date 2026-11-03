@@ -7,7 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './test-results',
-  fullyParallel: true,
+  // Ein gemeinsamer, serieller Ablauf: die Ersteinrichtung ist nur einmal je Instanz möglich
+  fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {

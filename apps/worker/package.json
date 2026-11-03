@@ -14,10 +14,12 @@
   },
   "dependencies": {
     "@jotion/db": "workspace:*",
+    "@jotion/editor": "workspace:*",
     "@jotion/shared": "workspace:*",
     "bullmq": "5.81.5",
     "ioredis": "5.11.1",
-    "pino": "9.14.0"
+    "pino": "9.14.0",
+    "yjs": "13.6.33"
   },
   "devDependencies": {
     "@jotion/config": "workspace:*",

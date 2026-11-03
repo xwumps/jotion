@@ -23,12 +23,19 @@ Jede Phase endet mit lauffähigem `docker compose up`, grüner CI und aktualisie
 - Sicherheitsregel ergänzt: Reset-Links nur, wenn der Owner in allen Workspaces des Mitglieds Owner ist.
 - Tests: 55 API-Tests (inkl. Rechtematrix und Performance mit 1000 Seiten), 11 Trigger-Tests, 14 Shared-Tests (inkl. Property-Tests), 3 Worker-Tests, 12 Browser-Tests.
 
-### Phase 2: Editor-Kern mit Yjs-Persistenz
+### Phase 2: Editor-Kern mit Yjs-Persistenz (abgeschlossen)
 - **Funktionen**: Tiptap v3 mit Blöcken: Paragraph, H1-3, Listen, To-do, Toggle, Callout, Zitat, Trennlinie, Code, Unterseite, Link-to-Page; Slash-Menü, Markdown-Shortcuts, Bubble-Menü (Inline-Formatierung, Farben, Link), Drag-Handle + Block-DnD, Block-Menü (Löschen, Duplizieren, Umwandeln, Farbe, Link zum Block), Undo/Redo, Tastaturkürzel, Autosave-Status, Seitenoptionen, Schnellsuche (Titel).
 - **Aufgaben**: `packages/editor` (Extensions, Schema, eindeutige Block-IDs via UniqueID-Extension); Hocuspocus-Server mit Auth-Hook und PostgreSQL-Extension (append-only Updates + Kompaktierung); y-indexeddb; Projektion `page.project` → `blocks`, `block_references`; Unterseiten-Block erzeugt Page atomar (Server bestätigt, Block erhält pageId).
 - **Abhängigkeiten**: Phase 1.
 - **Akzeptanz**: Kein Datenverlust bei: Tab-Close während Tippen, Netzabbruch 5 min, Server-Neustart, zwei Tabs gleichzeitig. Markdown-Shortcuts identisch zu Notion (`#`, `##`, `-`, `1.`, `[]`, `>`, `"`, ```` ``` ````, `---`).
 - **Tests**: Unit (Extensions, Input Rules), Yjs-Persistenz-Integrationstests (Update-Reihenfolge, Kompaktierung, Crash zwischen Append und Ack), **Datenverlust-E2E-Suite** (Playwright mit Netzwerk-Offline-Simulation, Container-Restart), Snapshot-Tests des Schemas.
+
+**Umsetzungsstand Phase 2**
+- Umgesetzt: Block-Editor (Tiptap 3 + Yjs) mit Text, Überschriften 1 bis 3, Aufzählung, nummerierter Liste, To-do, Toggle, Zitat, Callout, Code mit Syntaxhervorhebung, Trennlinie, Unterseite und Link zu Seite; Slash-Menü (auch mit Leerzeichen, z. B. "/überschrift 1"), Markdown-Kürzel, Bubble-Menü (fett, kursiv, unterstrichen, durchgestrichen, Code, Link, Text- und Hintergrundfarbe), Ziehgriff mit Blockmenü (löschen, duplizieren, umwandeln, Blockfarbe, Link zum Block), "+" zum Einfügen, Rückgängig/Wiederholen, Tastaturkürzel-Übersicht (Strg+/), Schnellsuche (Strg+K) über Titel, Speicherstatus in der Topbar, lokale Kopie in IndexedDB, Warnung beim Schließen mit offenen Änderungen.
+- Speicherung: jedes Update wird in PostgreSQL gespeichert, bevor der Server es bestätigt; Kompaktierung alle 2 bis 10 Sekunden; Block-Projektion und Seitenverweise bei jeder Kompaktierung.
+- Abweichungen: Die Projektion läuft synchron in der API bei der Kompaktierung statt als Worker-Job (immer konsistent mit dem gespeicherten Zustand). Hocuspocus ist in den API-Prozess eingebettet. Löschen eines Unterseiten-Blocks im Editor legt die Seite bewusst nicht in den Papierkorb (kein versehentlicher Verlust); die Seite bleibt in der Sidebar.
+- Gefundene und behobene Fehler: Hocuspocus bestätigte Updates vor dem Speichern; `closeConnections` trennte Clients ohne Neuverbindung; doppelte yjs/ProseMirror-Kopien (ESM und CJS); leerer Startabsatz wurde bei jedem Öffnen ins Dokument geschrieben.
+- Tests: 15 Collab-Tests (Speichern vor Bestätigung, Kompaktierung, beschädigte Daten, Rechte, Origin, Unterseiten-Blöcke, Suche), 9 Editor-Tests, 10 neue Browser-Tests (Blöcke, Formatierung, Blockmenü, Seitenlink, Suche, zwei Tabs, offline, gesperrte Seite, Server-Neustart).
 
 ### Phase 3: Editor erweitert
 - **Funktionen**: Bild/Video/Audio/Datei/PDF, Bookmark, Embeds, einfache Tabelle, Spalten, Inhaltsverzeichnis, Breadcrumb-Block, KaTeX, Mentions (@Person/@Seite/@Datum), Mehrfachauswahl (Rechteck), erweitertes Copy & Paste, Seite duplizieren, Volltextsuche (Postgres FTS + trigram, Ranking, Filter). Drucken / Als PDF über die Browser-Druckfunktion (Route `/print/$pageId`, Druck-Stylesheet, Druckoptionen; Datenbank- und Chart-Druck folgt in Phase 4/5/7).
