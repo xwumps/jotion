@@ -32,6 +32,23 @@ describe('Datenbank nach Migration', () => {
     expect(names).toContain('pages_title_trgm_idx');
   });
 
+  it('hat die Suchindizes und jotion_unaccent aus Phase 3', async () => {
+    const rows = await client.$queryRaw<
+      { indexname: string }[]
+    >`SELECT indexname FROM pg_indexes WHERE tablename IN ('blocks', 'pages')`;
+    const names = rows.map((r) => r.indexname);
+    for (const idx of [
+      'blocks_search_idx',
+      'blocks_plain_text_trgm_idx',
+      'pages_title_unaccent_trgm_idx',
+    ])
+      expect(names).toContain(idx);
+    const [res] = await client.$queryRaw<
+      { v: string }[]
+    >`SELECT jotion_unaccent('Größe Café') AS v`;
+    expect(res?.v).toBe('Grosse Cafe');
+  });
+
   it('kann Systemeinstellungen schreiben und lesen', async () => {
     const key = `test.${Date.now()}`;
     await client.systemSetting.create({ data: { key, value: { ok: true } } });

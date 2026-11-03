@@ -43,7 +43,10 @@ const sample = {
       attrs: { id: 'vid', src: 'https://example.com/a.mp4', name: 'a.mp4', caption: '' },
     },
     { type: 'audio', attrs: { id: 'aud', src: `/api/files/${FILE}`, name: 'ton.mp3' } },
-    { type: 'file', attrs: { id: 'fil', src: `/api/files/${FILE}`, name: 'bericht.zip', size: 42 } },
+    {
+      type: 'file',
+      attrs: { id: 'fil', src: `/api/files/${FILE}`, name: 'bericht.zip', size: 42 },
+    },
     { type: 'pdf', attrs: { id: 'pdf', src: `/api/files/${FILE}`, name: 'handbuch.pdf' } },
     {
       type: 'bookmark',
@@ -248,17 +251,37 @@ describe('remapSubpages', () => {
 
 describe('Embeds (Whitelist)', () => {
   it.each([
-    ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'],
-    ['https://youtu.be/dQw4w9WgXcQ?t=42', 'youtube', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=42'],
+    [
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'youtube',
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+    ],
+    [
+      'https://youtu.be/dQw4w9WgXcQ?t=42',
+      'youtube',
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=42',
+    ],
     ['https://vimeo.com/123456789', 'vimeo', 'https://player.vimeo.com/video/123456789'],
     [
       'https://www.figma.com/design/AbC123/Entwurf',
       'figma',
       'https://www.figma.com/embed?embed_host=jotion&url=https%3A%2F%2Fwww.figma.com%2Fdesign%2FAbC123%2FEntwurf',
     ],
-    ['https://www.google.com/maps/place/Berlin', 'googleMaps', 'https://maps.google.com/maps?q=Berlin&output=embed'],
-    ['https://www.loom.com/share/0123456789abcdef0123', 'loom', 'https://www.loom.com/embed/0123456789abcdef0123'],
-    ['https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC', 'spotify', 'https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC'],
+    [
+      'https://www.google.com/maps/place/Berlin',
+      'googleMaps',
+      'https://maps.google.com/maps?q=Berlin&output=embed',
+    ],
+    [
+      'https://www.loom.com/share/0123456789abcdef0123',
+      'loom',
+      'https://www.loom.com/embed/0123456789abcdef0123',
+    ],
+    [
+      'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC',
+      'spotify',
+      'https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC',
+    ],
   ])('%s', (url, provider, src) => {
     expect(resolveEmbed(url)).toMatchObject({ provider, src });
   });
@@ -312,14 +335,22 @@ describe('Inhaltsverzeichnis', () => {
     const doc = PMNode.fromJSON(schema, {
       type: 'doc',
       content: [
-        { type: 'heading', attrs: { id: 'a', level: 1 }, content: [{ type: 'text', text: 'Eins' }] },
+        {
+          type: 'heading',
+          attrs: { id: 'a', level: 1 },
+          content: [{ type: 'text', text: 'Eins' }],
+        },
         {
           type: 'columnList',
           content: [
             {
               type: 'column',
               content: [
-                { type: 'heading', attrs: { id: 'b', level: 2 }, content: [{ type: 'text', text: 'Zwei' }] },
+                {
+                  type: 'heading',
+                  attrs: { id: 'b', level: 2 },
+                  content: [{ type: 'text', text: 'Zwei' }],
+                },
               ],
             },
             { type: 'column', content: [{ type: 'paragraph' }] },

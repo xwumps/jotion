@@ -12,7 +12,8 @@ const ENTITIES: Record<string, string> = {
 export function decodeEntities(s: string): string {
   return s.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi, (m, e: string) => {
     if (e[0] === '#') {
-      const code = e[1] === 'x' || e[1] === 'X' ? Number.parseInt(e.slice(2), 16) : Number(e.slice(1));
+      const code =
+        e[1] === 'x' || e[1] === 'X' ? Number.parseInt(e.slice(2), 16) : Number(e.slice(1));
       return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
     }
     return ENTITIES[e.toLowerCase()] ?? m;
@@ -87,7 +88,9 @@ export function parseOpenGraph(html: string, pageUrl: string): LinkPreviewDto {
   return {
     url: pageUrl,
     title: clean(
-      meta['og:title'] ?? meta['twitter:title'] ?? (titleTag ? decodeEntities(titleTag) : undefined),
+      meta['og:title'] ??
+        meta['twitter:title'] ??
+        (titleTag ? decodeEntities(titleTag) : undefined),
       300,
     ),
     description: clean(

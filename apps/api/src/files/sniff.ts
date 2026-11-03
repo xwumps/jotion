@@ -6,7 +6,8 @@ export interface SniffResult {
   ext: string;
 }
 
-const ascii = (buf: Buffer, start: number, end: number) => buf.subarray(start, end).toString('latin1');
+const ascii = (buf: Buffer, start: number, end: number) =>
+  buf.subarray(start, end).toString('latin1');
 
 /** Office- und OpenDocument-Formate sind ZIP-Container; Endung nur zur Benennung, Auslieferung immer als Download. */
 const ZIP_TYPES: Record<string, string> = {
@@ -29,7 +30,7 @@ export function looksLikeMarkup(head: Buffer): boolean {
   const s = head
     .subarray(0, 1024)
     .toString('utf8')
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .trimStart()
     .toLowerCase();
   return /^<(\?xml|!doctype|html|svg|script|head|body|iframe|div|a\s|img|!--)/.test(s);
@@ -43,7 +44,9 @@ function isText(head: Buffer): boolean {
   } catch {
     // Abgeschnittenes Mehrbyte-Zeichen am Ende ist kein Binärinhalt
     try {
-      new TextDecoder('utf-8', { fatal: true }).decode(head.subarray(0, Math.max(0, Math.min(head.length, 4000) - 4)));
+      new TextDecoder('utf-8', { fatal: true }).decode(
+        head.subarray(0, Math.max(0, Math.min(head.length, 4000) - 4)),
+      );
       return true;
     } catch {
       return false;
@@ -85,7 +88,11 @@ export function sniff(head: Buffer, name?: string): SniffResult {
     return { mime: 'audio/mpeg', kind: 'audio', ext: 'mp3' };
   if (head.length >= 4 && head.readUInt32BE(0) === 0x504b0304) {
     const ext = extOf(name);
-    return { mime: ZIP_TYPES[ext] ?? 'application/zip', kind: 'file', ext: ZIP_TYPES[ext] ? ext : 'zip' };
+    return {
+      mime: ZIP_TYPES[ext] ?? 'application/zip',
+      kind: 'file',
+      ext: ZIP_TYPES[ext] ? ext : 'zip',
+    };
   }
   if (head.length >= 6 && ascii(head, 0, 6) === '7z\xbc\xaf\x27\x1c')
     return { mime: 'application/x-7z-compressed', kind: 'file', ext: '7z' };

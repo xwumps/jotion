@@ -110,6 +110,7 @@ export function parseRange(
 
 function contentDispositionName(name: string | null): string {
   if (!name) return '';
+  // eslint-disable-next-line no-control-regex -- Steuerzeichen aus Dateinamen entfernen
   const clean = name.replace(/[\x00-\x1f\x7f"\\/]/g, '_').slice(0, 200);
   const ascii = clean.replace(/[^\x20-\x7e]/g, '_');
   return `; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(clean)}`;

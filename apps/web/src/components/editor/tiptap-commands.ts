@@ -6,3 +6,4 @@ import type {} from '@tiptap/extension-list';
 import type {} from '@tiptap/extension-blockquote';
 import type {} from '@tiptap/extension-code-block-lowlight';
 import type {} from '@tiptap/extension-drag-handle';
+import type {} from '@tiptap/extension-table';

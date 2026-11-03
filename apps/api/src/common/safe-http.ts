@@ -141,7 +141,8 @@ export class SafeHttpClient {
     }
     if (url.protocol !== 'http:' && url.protocol !== 'https:')
       throw new SsrfError('Nur http und https sind erlaubt');
-    if (url.username || url.password) throw new SsrfError('Zugangsdaten in URLs sind nicht erlaubt');
+    if (url.username || url.password)
+      throw new SsrfError('Zugangsdaten in URLs sind nicht erlaubt');
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
     const hostAllowed = this.allow.host(hostname);
     const defaultPort = url.port === '' || url.port === '80' || url.port === '443';
@@ -254,7 +255,9 @@ export class SafeHttpClient {
       }, remaining);
       req.on('error', (err) => {
         clearTimeout(timer);
-        reject(err instanceof SsrfError ? err : new SsrfError(`Abruf fehlgeschlagen: ${err.message}`));
+        reject(
+          err instanceof SsrfError ? err : new SsrfError(`Abruf fehlgeschlagen: ${err.message}`),
+        );
       });
       req.end();
     });

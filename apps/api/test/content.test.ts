@@ -76,12 +76,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetState(app);
   ({ client: owner, workspaceId: ws, userId: ownerId } = await setupOwner(app));
-  ({ client: member, userId: memberId } = await addMember(
-    app,
-    owner,
-    ws,
-    'mia@test.local',
-  ));
+  ({ client: member, userId: memberId } = await addMember(app, owner, ws, 'mia@test.local'));
 });
 
 async function newPage(c: Client, body: Record<string, unknown>) {
@@ -152,7 +147,9 @@ describe('Allgemeine Uploads', () => {
     const dl = await fetchFile(owner, res.body.url);
     expect(dl.statusCode).toBe(200);
     expect(dl.headers['content-type']).toBe('application/pdf');
-    expect(String(dl.headers['content-disposition'])).toMatch(/^attachment; filename="handbuch.pdf"/);
+    expect(String(dl.headers['content-disposition'])).toMatch(
+      /^attachment; filename="handbuch.pdf"/,
+    );
     // Inline nur auf ausdrücklichen Wunsch und nur für echte PDFs
     const inline = await fetchFile(owner, `${res.body.url}?inline=1`);
     expect(String(inline.headers['content-disposition'])).toMatch(/^inline/);
@@ -304,7 +301,11 @@ describe('SSRF-Schutz', () => {
   });
 
   it('begrenzt Größe und Zeit', async () => {
-    const client = new SafeHttpClient({ allowlist: ['127.0.0.1'], maxBytes: 100_000, timeoutMs: 500 });
+    const client = new SafeHttpClient({
+      allowlist: ['127.0.0.1'],
+      maxBytes: 100_000,
+      timeoutMs: 500,
+    });
     const big = await client.get(`http://127.0.0.1:${sitePort}/big`);
     expect(big.truncated).toBe(true);
     expect(big.body.length).toBe(100_000);
@@ -317,7 +318,9 @@ describe('SSRF-Schutz', () => {
 describe('Link-Vorschau', () => {
   it('liest OpenGraph-Daten (über die Allowlist) und speichert sie zwischen', async () => {
     const url = `http://127.0.0.1:${sitePort}/artikel`;
-    const res = await owner.get(`/api/workspaces/${ws}/link-preview?url=${encodeURIComponent(url)}`);
+    const res = await owner.get(
+      `/api/workspaces/${ws}/link-preview?url=${encodeURIComponent(url)}`,
+    );
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       url,

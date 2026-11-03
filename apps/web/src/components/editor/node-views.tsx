@@ -13,16 +13,17 @@ import { cn } from '@jotion/ui';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { apiGet } from '@/lib/api-client';
 import { EMOJI_GROUPS } from '@/lib/emojis';
 import { pageHref } from '@/lib/format';
 import { PageIcon } from '../page/page-icon';
+import { contentNodeViewOverrides } from './content-views';
+import { useEditorPage } from './editor-context';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 function PageRefView({ node, selected, kind }: NodeViewProps & { kind: 'subpage' | 'pageLink' }) {
   const t = useTranslations('editor');
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaceId } = useEditorPage();
   const pageId = node.attrs.pageId as string | null;
   const summary = useQuery({
     queryKey: ['pageSummary', pageId],
@@ -127,4 +128,5 @@ export const nodeViewOverrides = [
       ReactNodeViewRenderer((p: NodeViewProps) => <PageRefView {...p} kind="pageLink" />),
   }),
   Callout.extend({ addNodeView: () => ReactNodeViewRenderer(CalloutView) }),
+  ...contentNodeViewOverrides,
 ];

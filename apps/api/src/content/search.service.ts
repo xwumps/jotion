@@ -27,11 +27,7 @@ interface Row {
 
 const SNIPPET_RADIUS = 80;
 
-const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Suchbegriffe ohne Operatoren (für Hervorhebung und Ausschnitt). */
 export function searchTerms(q: string): string[] {
@@ -115,8 +111,7 @@ export class SearchService {
       filters.push(Prisma.sql`p.scope = 'PRIVATE' AND p.owner_id = ${user.id}::uuid`);
     if (query.scope === 'team') filters.push(Prisma.sql`p.scope = 'TEAM'`);
     if (query.createdBy) filters.push(Prisma.sql`p.created_by_id = ${query.createdBy}::uuid`);
-    if (query.editedAfter)
-      filters.push(Prisma.sql`p.last_edited_at >= ${query.editedAfter}::date`);
+    if (query.editedAfter) filters.push(Prisma.sql`p.last_edited_at >= ${query.editedAfter}::date`);
     if (query.editedBefore)
       filters.push(Prisma.sql`p.last_edited_at < (${query.editedBefore}::date + 1)`);
     if (query.parentId)

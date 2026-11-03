@@ -1,0 +1,320 @@
+/* Phase 3: Medien, Einbettungen, Tabellen, Spalten, Formeln, Erwähnungen, Auswahl, Druck. */
+
+/* Große Dokumente: Blöcke außerhalb des sichtbaren Bereichs nicht layouten/zeichnen */
+.jt-editor > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 30px;
+}
+/* Blöcke mit Popovern/Menüs oder eigener Höhe nicht einschränken */
+.jt-editor > .is-empty,
+.jt-editor > [data-type='columnList'],
+.jt-editor > table,
+.jt-editor > .tableWrapper {
+  content-visibility: visible;
+}
+
+/* Medien */
+.jt-media.jt-align-left {
+  align-items: flex-start;
+}
+.jt-media.jt-align-center {
+  align-items: center;
+}
+.jt-media.jt-align-right {
+  align-items: flex-end;
+}
+.jt-media-selected,
+.jt-media-selected img,
+.jt-media-selected iframe {
+  outline: 2px solid rgba(35, 131, 226, 0.6);
+  outline-offset: 0;
+  border-radius: 3px;
+}
+.jt-resize {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 48px;
+  max-height: 50%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(15, 15, 15, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  cursor: col-resize;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.jt-resize-left {
+  left: 6px;
+}
+.jt-resize-right {
+  right: 6px;
+}
+.group\/media:hover .jt-resize {
+  opacity: 1;
+}
+.jt-resize-bottom {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 48px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(15, 15, 15, 0.55);
+  cursor: row-resize;
+}
+.jt-caption {
+  display: block;
+  padding: 6px 2px 2px;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+
+/* Tabellen */
+.jt-editor .tableWrapper {
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.jt-editor table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+.jt-editor td,
+.jt-editor th {
+  position: relative;
+  min-width: 80px;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  vertical-align: top;
+  text-align: left;
+}
+.jt-editor th {
+  font-weight: 600;
+  background: var(--bg-sidebar);
+}
+.jt-editor td > p,
+.jt-editor th > p {
+  padding: 2px 0;
+}
+.jt-editor .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(35, 131, 226, 0.14);
+  pointer-events: none;
+}
+.jt-editor .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.jt-editor.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Spalten */
+.jt-columns-content > [data-node-view-content-react] {
+  display: flex;
+  gap: 0;
+}
+.jt-columns-content {
+  display: flex;
+}
+.jt-columns-content > div {
+  display: flex;
+  width: 100%;
+  gap: 0;
+}
+.jt-column {
+  flex-basis: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  padding: 0 23px;
+}
+.jt-column:first-child {
+  padding-left: 0;
+}
+.jt-column:last-child {
+  padding-right: 0;
+}
+.jt-column-gutter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  margin-left: 16px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.jt-column-gutter::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+.jt-column-gutter:hover::after {
+  background: var(--active);
+}
+@media (max-width: 640px) {
+  .jt-columns-content > div {
+    flex-direction: column;
+  }
+  .jt-column {
+    padding: 0;
+  }
+  .jt-column-gutter {
+    display: none;
+  }
+}
+
+/* Erwähnungen und Formeln */
+.jt-mention {
+  color: var(--fg-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.jt-mention-date {
+  color: var(--fg-muted);
+}
+.jt-mention-page {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 500;
+  text-decoration: none !important;
+}
+.jt-mention-page:hover {
+  background: var(--hover);
+}
+.jt-mention-page > span:first-child {
+  align-self: center;
+}
+.jt-math-block .katex-display {
+  margin: 0;
+}
+.jt-math-inline .katex {
+  font-size: 1.05em;
+}
+
+/* Bookmark */
+.jt-bookmark {
+  text-decoration: none !important;
+  min-height: 90px;
+}
+
+/* Rechteckauswahl */
+.jt-editor .jt-block-selected {
+  background: rgba(35, 131, 226, 0.14);
+  border-radius: 4px;
+}
+.jt-select-rect {
+  position: fixed;
+  z-index: 70;
+  pointer-events: none;
+  background: rgba(35, 131, 226, 0.1);
+  border: 1px solid rgba(35, 131, 226, 0.35);
+  border-radius: 2px;
+}
+body.jt-selecting {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Druck */
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+}
+@media print {
+  /* Immer helles Erscheinungsbild */
+  .dark {
+    --bg: #ffffff;
+    --bg-sidebar: #f8f8f6;
+    --bg-elevated: #ffffff;
+    --fg: #2f2e2b;
+    --fg-muted: #78766f;
+    --fg-subtle: #a3a19a;
+    --border: #e9e8e4;
+    --hover: rgba(55, 53, 47, 0.06);
+    --active: rgba(55, 53, 47, 0.1);
+    --c-gray: #7d7a75;
+    --c-brown: #9f6b53;
+    --c-orange: #d9730d;
+    --c-yellow: #cb912f;
+    --c-green: #448361;
+    --c-blue: #337ea9;
+    --c-purple: #9065b0;
+    --c-pink: #c14c8a;
+    --c-red: #d44c47;
+    --cb-gray: #f1f1ef;
+    --cb-brown: #f4eeee;
+    --cb-orange: #fbecdd;
+    --cb-yellow: #fbf3db;
+    --cb-green: #edf3ec;
+    --cb-blue: #e7f3f8;
+    --cb-purple: #f4f0f7;
+    --cb-pink: #f9eef3;
+    --cb-red: #fdebec;
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #fff !important;
+    height: auto;
+  }
+  .jt-print,
+  .jt-print * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .jt-print-no-bg [data-bg],
+  .jt-print-no-bg [data-block-color$='_background'],
+  .jt-print-no-bg .jt-callout,
+  .jt-print-no-bg th {
+    background: transparent !important;
+  }
+  .jt-editor > * {
+    content-visibility: visible;
+  }
+  .jt-editor pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .jt-editor figure,
+  .jt-media,
+  .jt-editor table,
+  .jt-bookmark,
+  .jt-math-block,
+  [data-type='embed'] {
+    break-inside: avoid;
+  }
+  .jt-resize,
+  .jt-resize-bottom,
+  .jt-column-gutter,
+  [data-testid='media-placeholder'],
+  [data-testid='bookmark-placeholder'],
+  [data-testid='embed-placeholder'] {
+    display: none !important;
+  }
+  .jt-select-rect {
+    display: none;
+  }
+  .jt-editor .jt-block-selected,
+  .jt-editor .ProseMirror-selectednode {
+    background: transparent;
+  }
+}

@@ -192,7 +192,9 @@ export function docToJson(doc: Y.Doc): PMJson {
     if (Object.keys(attrs).length) node.attrs = attrs;
     const children = item
       .toArray()
-      .filter((c): c is Y.XmlElement | Y.XmlText => c instanceof Y.XmlElement || c instanceof Y.XmlText)
+      .filter(
+        (c): c is Y.XmlElement | Y.XmlText => c instanceof Y.XmlElement || c instanceof Y.XmlText,
+      )
       .flatMap(serialize);
     if (children.length) node.content = children;
     return [node];
@@ -202,7 +204,9 @@ export function docToJson(doc: Y.Doc): PMJson {
     type: 'doc',
     content: fragment
       .toArray()
-      .filter((c): c is Y.XmlElement | Y.XmlText => c instanceof Y.XmlElement || c instanceof Y.XmlText)
+      .filter(
+        (c): c is Y.XmlElement | Y.XmlText => c instanceof Y.XmlElement || c instanceof Y.XmlText,
+      )
       .flatMap(serialize),
   };
 }

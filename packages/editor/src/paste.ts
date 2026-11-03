@@ -8,7 +8,19 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { marked } from 'marked';
 
-const BLOCK_STYLE_TAGS = new Set(['P', 'DIV', 'LI', 'TD', 'TH', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+const BLOCK_STYLE_TAGS = new Set([
+  'P',
+  'DIV',
+  'LI',
+  'TD',
+  'TH',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+]);
 
 function wrap(doc: Document, el: Element, tag: string): void {
   const w = doc.createElement(tag);
@@ -73,7 +85,7 @@ function convertWordLists(doc: Document, root: Element): void {
         ign.remove();
       }
     }
-    marker = marker.replace(/ /g, ' ').trim();
+    marker = marker.replace(/\u00a0/g, ' ').trim();
     const ordered = /^(\d+|[a-z]|[ivxlc]+)[.)]$/i.test(marker);
     items.push({
       el: p,
@@ -170,7 +182,7 @@ function clampHeadings(doc: Document, root: Element): void {
 function dropEmptyParagraphs(root: Element): void {
   for (const p of Array.from(root.querySelectorAll('p'))) {
     if (p.querySelector('img, br')) continue;
-    if (!(p.textContent ?? '').replace(/ /g, '').trim()) p.remove();
+    if (!(p.textContent ?? '').replace(/\u00a0/g, '').trim()) p.remove();
   }
 }
 
@@ -199,7 +211,7 @@ export function normalizePastedHtml(html: string): string {
   // Absätze, die nur Bilder enthalten, durch die Bilder ersetzen (sonst bleibt ein leerer Absatz)
   for (const p of Array.from(root.querySelectorAll('p'))) {
     const imgs = Array.from(p.querySelectorAll('img'));
-    if (imgs.length && !(p.textContent ?? '').replace(/ /g, '').trim()) p.replaceWith(...imgs);
+    if (imgs.length && !(p.textContent ?? '').replace(/\u00a0/g, '').trim()) p.replaceWith(...imgs);
   }
   // Zeilenumbrüche direkt zwischen Blöcken (Google Docs) erzeugen sonst leere Absätze
   for (const br of Array.from(root.children)) if (br.tagName === 'BR') br.remove();

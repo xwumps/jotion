@@ -8,7 +8,7 @@ import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@jotion/ui';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { PageDto as CreatedPage } from '@jotion/shared';
@@ -22,6 +22,13 @@ import type { CommandContext } from './commands';
 import { nodeViewOverrides } from './node-views';
 import { useTrackSaveState } from './save-status';
 import { createSlashCommand, type SlashLabels } from './slash-menu';
+import { PasteHandler } from '@jotion/editor/paste';
+import { BlockSelectionLayer } from './block-selection-layer';
+import { formatMentionDate } from './content-views';
+import { EditorPageContext } from './editor-context';
+import { createMediaPaste } from './media-paste';
+import { createMentionSuggestion, type MentionLabels } from './mention-menu';
+import { TableMenu } from './table-menu';
 
 export interface PageEditorHandle {
   focusStart: () => void;
@@ -61,6 +68,8 @@ export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEdito
 const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession }>(
   function EditorInner({ page, editable, session }, ref) {
     const t = useTranslations('editor');
+    const tm = useTranslations('contentBlocks.mention');
+    const locale = useLocale();
     const qc = useQueryClient();
     const [scope, setScope] = useState<'read-write' | 'readonly' | null>(null);
     const canWrite = editable && scope !== 'readonly';
@@ -80,6 +89,18 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
       description: (id) => t(`commands.${id}.description`),
       empty: t('noCommands'),
       heading: t('blocks'),
+    };
+    const mentionLabelsRef = useRef<MentionLabels>(null!);
+    mentionLabelsRef.current = {
+      people: tm('people'),
+      pages: tm('pages'),
+      dates: tm('dates'),
+      empty: tm('empty'),
+      today: tm('today'),
+      tomorrow: tm('tomorrow'),
+      yesterday: tm('yesterday'),
+      untitled: t('untitled'),
+      formatDate: (iso) => formatMentionDate(iso, locale),
     };
     const ctxRef = useRef<CommandContext>(null!);
     ctxRef.current = {
@@ -117,6 +138,12 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
             createSlashCommand(
               () => labelsRef.current,
               () => ctxRef.current,
+            ),
+            PasteHandler,
+            createMediaPaste(() => page.workspaceId),
+            createMentionSuggestion(
+              () => page.workspaceId,
+              () => mentionLabelsRef.current,
             ),
           ],
         }),
@@ -162,17 +189,25 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
 
     useScrollToHashBlock(editor, session);
 
+    const pageCtx = useMemo(
+      () => ({ workspaceId: page.workspaceId, pageId: page.id }),
+      [page.workspaceId, page.id],
+    );
     const blockUrl = (id: string) =>
       `${window.location.origin}/w/${page.workspaceId}/p/${page.id}#${id}`;
 
     return (
-      <div className={cn('relative', !canWrite && 'jt-readonly')}>
-        {editor && canWrite && <EditorBubbleMenu editor={editor} />}
-        {editor && canWrite && (
-          <BlockHandle editor={editor} ctx={ctxRef.current} blockUrl={blockUrl} />
-        )}
-        <EditorContent editor={editor} />
-      </div>
+      <EditorPageContext.Provider value={pageCtx}>
+        <div className={cn('relative', !canWrite && 'jt-readonly')}>
+          {editor && canWrite && <EditorBubbleMenu editor={editor} />}
+          {editor && canWrite && (
+            <BlockHandle editor={editor} ctx={ctxRef.current} blockUrl={blockUrl} />
+          )}
+          {editor && canWrite && <TableMenu editor={editor} />}
+          {editor && canWrite && <BlockSelectionLayer editor={editor} />}
+          <EditorContent editor={editor} />
+        </div>
+      </EditorPageContext.Provider>
     );
   },
 );
