@@ -251,6 +251,7 @@ export function useDatabaseActions(db: DatabaseDto) {
     onError,
   });
   const updateView = useMutation({
+    mutationKey: ['updateView', db.id],
     mutationFn: ({ id, ...input }: UpdateViewInput & { id: string }) =>
       apiPatch<ViewDto>(`/databases/${db.id}/views/${id}`, input),
     onMutate: ({ id, config, name }) => {
@@ -272,6 +273,9 @@ export function useDatabaseActions(db: DatabaseDto) {
       );
     },
     onSuccess: (view) => {
+      // Sind schon neuere Änderungen unterwegs, nicht mit dieser (älteren) Antwort überschreiben;
+      // die zuletzt abgeschlossene Änderung setzt den endgültigen Stand.
+      if (qc.isMutating({ mutationKey: ['updateView', db.id] }) > 1) return;
       qc.setQueryData<DatabaseDto>(dbKeys.db(db.id), (old) =>
         old ? { ...old, views: old.views.map((v) => (v.id === view.id ? view : v)) } : old,
       );

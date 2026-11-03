@@ -301,6 +301,37 @@ describe('Abfragen, Ansichten, Berechnungen', () => {
     ).toBe(422);
   });
 
+  it('verliert bei gleichzeitigen Teil-Updates einer Ansicht keine Einstellung', async () => {
+    const d = await createDb(owner);
+    const num = await addProp(owner, d.id, { name: 'Betrag', type: 'number' });
+    const view = (await owner.post(`/api/databases/${d.id}/views`, { name: 'Parallel' })).body;
+    const url = `/api/databases/${d.id}/views/${view.id}`;
+    const results = await Promise.all([
+      owner.patch(url, { config: { sorts: [{ propertyId: num.id, direction: 'desc' }] } }),
+      owner.patch(url, { config: { wrapCells: true } }),
+      owner.patch(url, { config: { calculations: { [num.id]: 'sum' } } }),
+      owner.patch(url, {
+        config: {
+          filter: {
+            type: 'group',
+            op: 'and',
+            children: [{ type: 'condition', propertyId: num.id, operator: 'is_not_empty' }],
+          },
+        },
+      }),
+    ]);
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200, 200]);
+    const config = (await owner.get(`/api/databases/${d.id}`)).body.views.find(
+      (v: { id: string }) => v.id === view.id,
+    ).config;
+    expect(config).toMatchObject({
+      sorts: [{ propertyId: num.id, direction: 'desc' }],
+      wrapCells: true,
+      calculations: { [num.id]: 'sum' },
+      filter: { op: 'and' },
+    });
+  });
+
   it('nutzt gespeicherte Ansichten mit Filter, Sortierung und Spaltenberechnungen', async () => {
     const d = await createDb(owner);
     const num = await addProp(owner, d.id, { name: 'Betrag', type: 'number' });

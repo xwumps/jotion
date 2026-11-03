@@ -599,11 +599,16 @@ export class DatabasesService {
     input: z.output<typeof updateViewSchema>,
   ): Promise<ViewDto> {
     const a = await this.access.requireEditableStructure(user.id, databaseId);
-    const view = await this.requireView(databaseId, viewId);
-    const current = viewConfigSchema.parse(view.config ?? {});
-    const config = input.config ? viewConfigSchema.parse({ ...current, ...input.config }) : current;
+    await this.requireView(databaseId, viewId);
     const updated = await this.prisma.client.$transaction(async (tx) => {
       await this.lockSchema(tx, databaseId);
+      // Erst nach der Sperre lesen: sonst überschreiben sich gleichzeitige Teil-Updates
+      // (z. B. Filter und Sortierung) gegenseitig und eine Einstellung geht verloren.
+      const fresh = await tx.dbView.findUniqueOrThrow({ where: { id: viewId } });
+      const current = viewConfigSchema.parse(fresh.config ?? {});
+      const config = input.config
+        ? viewConfigSchema.parse({ ...current, ...input.config })
+        : current;
       const moving = input.afterId !== undefined || input.beforeId !== undefined;
       const v = await tx.dbView.update({
         where: { id: viewId },
