@@ -19,6 +19,7 @@ import { EMOJI_GROUPS } from '@/lib/emojis';
 import { pageHref } from '@/lib/format';
 import { PageIcon } from '../page/page-icon';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { DatabaseNode } from '../database/database-node-view';
 
 function PageRefView({ node, selected, kind }: NodeViewProps & { kind: 'subpage' | 'pageLink' }) {
   const t = useTranslations('editor');
@@ -127,4 +128,5 @@ export const nodeViewOverrides = [
       ReactNodeViewRenderer((p: NodeViewProps) => <PageRefView {...p} kind="pageLink" />),
   }),
   Callout.extend({ addNodeView: () => ReactNodeViewRenderer(CalloutView) }),
+  DatabaseNode,
 ];

@@ -459,10 +459,10 @@ describe('Query-Compiler gegen JS-Referenz (PostgreSQL)', () => {
         fc.option(filterArb(), { nil: null }),
         calcArb,
         tzArb,
-        async (filter, requests) => {
+        async (filter, requests, tz) => {
           // Je Property nur eine Berechnung (wie in der Ansicht)
           const unique = [...new Map(requests.map((r) => [r.propertyId, r])).values()];
-          const ctx = ctxOf(filter, [], 'UTC');
+          const ctx = ctxOf(filter, [], tz);
           const { query, requests: valid } = compileCalculationQuery(ctx, unique);
           const [res] = await db.$queryRawUnsafe<Record<string, number | null>[]>(
             query.sql,

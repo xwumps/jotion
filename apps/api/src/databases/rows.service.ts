@@ -341,6 +341,7 @@ export class RowsService {
     const byId = new Map(props.map((p) => [p.id, p]));
     const out = new Map<string, PropertyValue>();
     const people: string[] = [];
+    const files: string[] = [];
     for (const [pid, raw] of Object.entries(input)) {
       const prop = byId.get(pid.toLowerCase());
       if (!prop)
@@ -356,6 +357,9 @@ export class RowsService {
       try {
         const v = validatePropertyValue(prop, raw);
         if (prop.type === 'person') people.push(...(v as string[]));
+        if (prop.type === 'files')
+          for (const f of v as { type: string; fileId?: string }[])
+            if (f.type === 'file' && f.fileId) files.push(f.fileId);
         out.set(prop.id, v);
       } catch (err) {
         if (err instanceof PropertyValueError)
@@ -364,6 +368,15 @@ export class RowsService {
       }
     }
     await this.access.assertMembers(workspaceId, [...new Set(people)]);
+    // Hochgeladene Dateien müssen zum selben Workspace gehören
+    const fileIds = [...new Set(files)];
+    if (fileIds.length) {
+      const n = await this.prisma.client.file.count({
+        where: { id: { in: fileIds }, workspaceId },
+      });
+      if (n !== fileIds.length)
+        throw new AppError('validation_failed', 'Datei gehört nicht zu diesem Workspace');
+    }
     return out;
   }
 
