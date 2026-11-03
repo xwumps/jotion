@@ -22,6 +22,7 @@ export const BLOCK_NODE_TYPES = [
   'callout',
   'subpage',
   'pageLink',
+  'database',
 ] as const;
 
 /** Knoten mit Hintergrund-/Textfarbe auf Blockebene. */

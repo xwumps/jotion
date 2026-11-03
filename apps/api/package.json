@@ -17,6 +17,7 @@
     "@hocuspocus/server": "3.4.4",
     "@jotion/db": "workspace:*",
     "@jotion/editor": "workspace:*",
+    "@jotion/query": "workspace:*",
     "@jotion/shared": "workspace:*",
     "@nestjs/common": "11.2.8",
     "@nestjs/core": "11.2.8",

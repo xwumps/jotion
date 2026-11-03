@@ -367,7 +367,8 @@ function searchSql(ctx: QueryContext): Sql | null {
   const q = ctx.search?.trim();
   if (!q) return null;
   const pat = likePattern(q, 'contains');
-  return sql`(p.title ILIKE ${pat}::text OR EXISTS (SELECT 1 FROM property_values s WHERE s.row_id = p.id AND s.database_id = ${ctx.databaseId}::uuid AND s.v_text ILIKE ${pat}::text))`;
+  // IN statt EXISTS: PostgreSQL nutzt den Trigramm-Index auf v_text und hasht das Ergebnis
+  return sql`(p.title ILIKE ${pat}::text OR p.id IN (SELECT s.row_id FROM property_values s WHERE s.database_id = ${ctx.databaseId}::uuid AND s.v_text ILIKE ${pat}::text))`;
 }
 
 interface Prepared {

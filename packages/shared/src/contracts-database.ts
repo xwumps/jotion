@@ -775,7 +775,8 @@ export interface RowDto {
 export interface RowQueryResultDto {
   rows: RowDto[];
   nextCursor: string | null;
-  total: number;
+  /** Anzahl aller passenden Zeilen; nur auf der ersten Seite (sonst null) */
+  total: number | null;
 }
 
 export type CalculationResultDto = Record<string, number | string | null>;

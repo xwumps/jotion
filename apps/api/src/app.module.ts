@@ -3,6 +3,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
 import { CollabModule } from './collab/collab.module';
 import { CommonModule } from './common/common.module';
+import { DatabasesModule } from './databases/databases.module';
 import { ConfigModule } from './config/config.module';
 import { EventsModule } from './events/events.module';
 import { FilesModule } from './files/files.module';
@@ -25,6 +26,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     CollabModule,
     WorkspacesModule,
     PagesModule,
+    DatabasesModule,
     FilesModule,
     HealthModule,
   ],

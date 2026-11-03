@@ -12,6 +12,7 @@ import { BLOCK_NODE_TYPES } from './constants';
 import { BackgroundColor, BlockColor, TextColor } from './marks/colors';
 import { Callout } from './nodes/callout';
 import { PageLink, Subpage } from './nodes/page-ref';
+import { Database } from './nodes/database';
 
 export const lowlight = createLowlight(common);
 
@@ -83,6 +84,7 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
       // Fremde (Yjs-)Transaktionen nicht anfassen, sonst entstehen Endlosschleifen
       filterTransaction: (tr) => !tr.getMeta('y-sync$'),
     }),
+    Database,
   ];
   if (options.placeholder) {
     const ph = options.placeholder;
