@@ -2,14 +2,15 @@
 
 import type { PageDto } from '@jotion/shared';
 import { cn } from '@jotion/ui';
-import { FileText, ImageIcon, Plus, SmilePlus } from 'lucide-react';
+import { FileText, ImageIcon, SmilePlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { coverStyle } from '@/lib/covers';
-import { pageHref } from '@/lib/format';
-import { useChildren, usePage, usePageActions } from '@/lib/hooks';
+import { usePage, usePageActions } from '@/lib/hooks';
+import { PageEditor, type PageEditorHandle } from '../editor/page-editor';
+import { SaveStatusProvider } from '../editor/save-status';
+import { clearLocalCopy } from '../editor/collab-client';
 import { CoverPicker } from './cover-picker';
 import { IconPicker } from './icon-picker';
 import { PageIcon } from './page-icon';
@@ -37,7 +38,11 @@ export function PageView({ pageId }: { pageId: string }) {
     );
   }
   if (!query.data) return <div className="h-full" aria-busy="true" />;
-  return <PageBody key={query.data.id} page={query.data} />;
+  return (
+    <SaveStatusProvider>
+      <PageBody key={query.data.id} page={query.data} />
+    </SaveStatusProvider>
+  );
 }
 
 function PageBody({ page }: { page: PageDto }) {
@@ -48,9 +53,9 @@ function PageBody({ page }: { page: PageDto }) {
   const locked = !!page.settings.locked;
   const editable = !page.deletedAt && !locked;
   const font = page.settings.font ?? 'default';
-  const children = useChildren(page.id, true);
   const [coverHover, setCoverHover] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<PageEditorHandle>(null);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -73,7 +78,11 @@ function PageBody({ page }: { page: PageDto }) {
             type="button"
             onClick={() =>
               actions.deletePermanently.mutate(page.id, {
-                onSuccess: () => router.push(`/w/${ws}`),
+                onSuccess: () => {
+                  // Lokale Kopie im Browser mit entfernen
+                  void clearLocalCopy(page.id);
+                  router.push(`/w/${ws}`);
+                },
               })
             }
             className="rounded-md border border-white/60 px-2 py-0.5 hover:bg-white/15"
@@ -201,35 +210,13 @@ function PageBody({ page }: { page: PageDto }) {
             readOnly={!editable}
             placeholder={t('untitled')}
             onSave={(title) => actions.update.mutate({ id: page.id, title })}
+            onEnter={() => editorRef.current?.focusStart()}
           />
         </div>
 
-        <section className="mt-6" aria-label={t('subpages')}>
-          {children.data?.map((c) => (
-            <Link
-              key={c.id}
-              href={pageHref(ws, c.id)}
-              className="flex h-[30px] items-center gap-2 rounded-md px-1 text-fg underline decoration-border underline-offset-4 hover:bg-hover"
-              data-testid="subpage-link"
-            >
-              <PageIcon icon={c.icon} size={18} />
-              <span className="truncate">{c.title || t('untitled')}</span>
-            </Link>
-          ))}
-          {editable && (
-            <button
-              type="button"
-              onClick={() => actions.create.mutate({ parentId: page.id })}
-              className="mt-1 flex h-[30px] items-center gap-2 rounded-md px-1 text-[14px] text-fg-subtle hover:bg-hover"
-            >
-              <Plus className="size-4" />
-              {t('addSubpage')}
-            </button>
-          )}
-          <p className="mt-8 rounded-md border border-dashed border-border px-4 py-3 text-[14px] text-fg-subtle">
-            {t('editorComingSoon')}
-          </p>
-        </section>
+        <div className="mt-2">
+          <PageEditor ref={editorRef} page={page} editable={editable} />
+        </div>
       </div>
     </div>
   );

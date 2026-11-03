@@ -29,7 +29,8 @@ const Toggle = Details.extend({
       new InputRule({
         find: /^>\s$/,
         handler: ({ range, chain }) => {
-          chain().deleteRange(range).setDetails().run();
+          // Wie bei Notion: neuer Toggle startet aufgeklappt, Enter im Titel führt in den Inhalt
+          chain().deleteRange(range).setDetails().updateAttributes('details', { open: true }).run();
         },
       }),
     ];

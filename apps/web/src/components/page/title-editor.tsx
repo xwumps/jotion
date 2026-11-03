@@ -15,6 +15,8 @@ interface Props {
   readOnly: boolean;
   placeholder: string;
   onSave: (title: string) => void;
+  /** Enter bzw. Pfeil runter am Ende: in den Editor springen */
+  onEnter?: () => void;
 }
 
 const SAVE_DELAY_MS = 400;
@@ -24,7 +26,7 @@ const SAVE_DELAY_MS = 400;
  * Verlassen. Während der Fokus im Feld liegt, überschreiben Server-Updates die Eingabe nicht.
  */
 export const TitleEditor = forwardRef<HTMLTextAreaElement, Props>(function TitleEditor(
-  { value, readOnly, placeholder, onSave },
+  { value, readOnly, placeholder, onSave, onEnter },
   ref,
 ) {
   const [draft, setDraft] = useState(value);
@@ -91,9 +93,12 @@ export const TitleEditor = forwardRef<HTMLTextAreaElement, Props>(function Title
       }}
       onBlur={(e) => flush(e.target.value)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        const atEnd = e.currentTarget.selectionStart === e.currentTarget.value.length;
+        if (e.key === 'Enter' || (e.key === 'ArrowDown' && atEnd)) {
           e.preventDefault();
-          e.currentTarget.blur();
+          flush(e.currentTarget.value);
+          if (onEnter) onEnter();
+          else e.currentTarget.blur();
         }
       }}
       className="block w-full resize-none overflow-hidden bg-transparent text-[40px] font-bold leading-[1.2] tracking-[-0.01em] text-fg outline-none placeholder:text-fg-subtle/60"

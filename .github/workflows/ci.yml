@@ -72,6 +72,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
+        env:
+          JOTION_E2E_DOCKER: '1'
       - name: Logs bei Fehler
         if: failure()
         run: docker compose logs --tail 200

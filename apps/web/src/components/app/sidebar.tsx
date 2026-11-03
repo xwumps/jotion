@@ -7,11 +7,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ComponentType } from 'react';
 import { pageHref } from '@/lib/format';
+import { openQuickSearch } from '@/lib/quick-search-store';
 import { useFavorites, usePageActions, useRealtime, useSidebar } from '@/lib/hooks';
 import { LanguageSwitch } from '../language-switch';
 import { PageIcon } from '../page/page-icon';
 import { ThemeSwitch } from '../theme-switch';
 import { PageTreeDnd, TreeSection } from './page-tree';
+import { QuickSearch } from './quick-search';
+import { ShortcutsDialog } from './shortcuts-dialog';
 import { TrashDialog } from './trash-dialog';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
@@ -23,6 +26,7 @@ function NavItem({
   onClick,
   disabledHint,
   testId,
+  shortcut,
 }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
@@ -31,6 +35,7 @@ function NavItem({
   onClick?: () => void;
   disabledHint?: string;
   testId?: string;
+  shortcut?: string;
 }) {
   const className = cn(
     'flex h-[30px] w-full items-center gap-2 rounded-md px-2 text-[14px] text-fg-muted transition-colors',
@@ -41,6 +46,7 @@ function NavItem({
     <>
       <Icon className="size-[18px] shrink-0 opacity-80" />
       <span className="truncate">{label}</span>
+      {shortcut && <kbd className="ml-auto font-sans text-[11px] text-fg-subtle">{shortcut}</kbd>}
     </>
   );
   if (href)
@@ -88,7 +94,13 @@ export function Sidebar({ ws }: { ws: string }) {
       </div>
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
         <div className="mt-1 space-y-px">
-          <NavItem icon={Search} label={t('search')} disabledHint={t('comingSoon')} />
+          <NavItem
+            icon={Search}
+            label={t('search')}
+            onClick={openQuickSearch}
+            testId="nav-search"
+            shortcut="Strg K"
+          />
           <NavItem
             icon={Home}
             label={t('home')}
@@ -160,6 +172,8 @@ export function Sidebar({ ws }: { ws: string }) {
         <LanguageSwitch />
       </div>
       <TrashDialog ws={ws} open={trashOpen} onOpenChange={setTrashOpen} />
+      <QuickSearch ws={ws} />
+      <ShortcutsDialog />
     </aside>
   );
 }

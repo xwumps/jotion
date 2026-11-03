@@ -17,6 +17,8 @@
 
 ## Gemessener Speicherbedarf
 
+**Phase 2** (nach komplettem E2E-Lauf mit Editor, zwei Nutzern und offenen Dokumenten): caddy 24 MB, web 79 MB, api 67 MB, worker 30 MB, postgres 60 MB, redis 5 MB, **gesamt ca. 265 MB**.
+
 **Phase 1** (nach komplettem E2E-Lauf, zwei Nutzer): caddy 21 MB, web 80 MB, api 64 MB, worker 28 MB, postgres 55 MB, redis 5 MB, **gesamt ca. 255 MB**.
 
 ### Stand Phase 0

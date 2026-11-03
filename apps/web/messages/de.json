@@ -1,6 +1,10 @@
 {
-  "meta": { "description": "Dein Workspace für Notizen, Wissen und Projekte." },
-  "common": { "untitled": "Ohne Titel" },
+  "meta": {
+    "description": "Dein Workspace für Notizen, Wissen und Projekte."
+  },
+  "common": {
+    "untitled": "Ohne Titel"
+  },
   "auth": {
     "setupTitle": "Willkommen bei Jotion",
     "setupIntro": "Lege dein Konto und deinen ersten Workspace an. Du wirst automatisch Owner.",
@@ -95,7 +99,11 @@
     "unfavorite": "Aus Favoriten entfernen",
     "menu": "Seitenoptionen",
     "style": "Stil",
-    "font": { "default": "Standard", "serif": "Serif", "mono": "Mono" },
+    "font": {
+      "default": "Standard",
+      "serif": "Serif",
+      "mono": "Mono"
+    },
     "smallText": "Kleine Schrift",
     "fullWidth": "Volle Breite",
     "lock": "Seite sperren",
@@ -134,10 +142,7 @@
     "gradients": "Farbverläufe",
     "uploadImage": "Bild hochladen",
     "uploading": "Wird hochgeladen …",
-    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB",
-    "subpages": "Unterseiten",
-    "addSubpage": "Unterseite hinzufügen",
-    "editorComingSoon": "Der Block-Editor folgt in Phase 2. Bis dahin kannst du Seiten anlegen, strukturieren und benennen."
+    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB"
   },
   "home": {
     "greetingMorning": "Guten Morgen",
@@ -151,11 +156,19 @@
     "statusOk": "Alle Dienste laufen",
     "statusError": "Mindestens ein Dienst meldet einen Fehler",
     "statusUnreachable": "API nicht erreichbar",
-    "service": { "database": "Datenbank", "redis": "Redis", "worker": "Hintergrund-Worker" }
+    "service": {
+      "database": "Datenbank",
+      "redis": "Redis",
+      "worker": "Hintergrund-Worker"
+    }
   },
   "settings": {
     "title": "Einstellungen",
-    "tabs": { "account": "Mein Konto", "workspace": "Workspace", "members": "Mitglieder" },
+    "tabs": {
+      "account": "Mein Konto",
+      "workspace": "Workspace",
+      "members": "Mitglieder"
+    },
     "profile": "Profil",
     "name": "Name",
     "save": "Speichern",
@@ -185,7 +198,10 @@
     "inviteExpiresAt": "gültig bis {date}",
     "revoke": "Widerrufen",
     "membersTitle": "Mitglieder ({count})",
-    "role": { "OWNER": "Owner", "MEMBER": "Mitglied" },
+    "role": {
+      "OWNER": "Owner",
+      "MEMBER": "Mitglied"
+    },
     "you": "du",
     "resetLink": "Link zum Zurücksetzen des Passworts",
     "resetLinkCreated": "Link für {name} erstellt. 24 Stunden gültig, nur einmal verwendbar.",
@@ -194,6 +210,154 @@
     "confirmRemove": "{name} wirklich aus dem Workspace entfernen?",
     "confirmLeave": "Workspace wirklich verlassen? Du brauchst danach eine neue Einladung."
   },
-  "theme": { "label": "Darstellung", "light": "Hell", "dark": "Dunkel", "system": "System" },
-  "language": { "label": "Sprache" }
+  "theme": {
+    "label": "Darstellung",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "editor": {
+    "ariaLabel": "Seiteninhalt",
+    "placeholder": "Tippe „/“ für Befehle",
+    "placeholderHeading": "Überschrift {level}",
+    "placeholderToggle": "Toggle",
+    "blocks": "Blöcke",
+    "noCommands": "Keine passenden Blöcke",
+    "untitled": "Ohne Titel",
+    "noAccess": "Kein Zugriff auf diese Seite",
+    "inTrash": "im Papierkorb",
+    "archived": "archiviert",
+    "status": {
+      "connecting": "Verbinde …",
+      "saving": "Speichert …",
+      "saved": "Gespeichert",
+      "offline": "Offline, lokal gesichert",
+      "readonly": "Nur lesen"
+    },
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "underline": "Unterstrichen",
+    "strike": "Durchgestrichen",
+    "code": "Code",
+    "link": "Link",
+    "linkPlaceholder": "Link einfügen oder eingeben",
+    "apply": "Übernehmen",
+    "color": "Farbe",
+    "textColor": "Textfarbe",
+    "backgroundColor": "Hintergrund",
+    "colors": {
+      "default": "Standard",
+      "gray": "Grau",
+      "brown": "Braun",
+      "orange": "Orange",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "blue": "Blau",
+      "purple": "Lila",
+      "pink": "Rosa",
+      "red": "Rot"
+    },
+    "addBelow": "Block darunter einfügen",
+    "blockMenu": "Blockmenü",
+    "dragHint": "Ziehen zum Verschieben, klicken für das Menü",
+    "delete": "Löschen",
+    "duplicate": "Duplizieren",
+    "turnInto": "Umwandeln in",
+    "copyBlockLink": "Link zum Block kopieren",
+    "blockLinkCopied": "Link zum Block kopiert",
+    "commands": {
+      "text": {
+        "label": "Text",
+        "description": "Einfacher Textabsatz"
+      },
+      "h1": {
+        "label": "Überschrift 1",
+        "description": "Große Abschnittsüberschrift"
+      },
+      "h2": {
+        "label": "Überschrift 2",
+        "description": "Mittlere Abschnittsüberschrift"
+      },
+      "h3": {
+        "label": "Überschrift 3",
+        "description": "Kleine Abschnittsüberschrift"
+      },
+      "bullet": {
+        "label": "Aufzählung",
+        "description": "Einfache Liste mit Punkten"
+      },
+      "numbered": {
+        "label": "Nummerierte Liste",
+        "description": "Liste mit Nummerierung"
+      },
+      "todo": {
+        "label": "To-do-Liste",
+        "description": "Aufgaben zum Abhaken"
+      },
+      "toggle": {
+        "label": "Toggle",
+        "description": "Inhalt auf- und zuklappen"
+      },
+      "quote": {
+        "label": "Zitat",
+        "description": "Zitat hervorheben"
+      },
+      "callout": {
+        "label": "Callout",
+        "description": "Hinweis mit Symbol hervorheben"
+      },
+      "code": {
+        "label": "Code",
+        "description": "Codeblock mit Syntaxhervorhebung"
+      },
+      "divider": {
+        "label": "Trennlinie",
+        "description": "Abschnitte optisch trennen"
+      },
+      "page": {
+        "label": "Seite",
+        "description": "Unterseite in dieser Seite anlegen"
+      },
+      "pageLink": {
+        "label": "Link zu Seite",
+        "description": "Auf eine bestehende Seite verweisen"
+      }
+    }
+  },
+  "search": {
+    "title": "Suchen",
+    "pickTitle": "Seite auswählen",
+    "placeholder": "Seiten durchsuchen …",
+    "pickPlaceholder": "Seite zum Verlinken suchen …",
+    "results": "Treffer",
+    "recent": "Zuletzt bearbeitet",
+    "empty": "Keine passenden Seiten"
+  },
+  "shortcuts": {
+    "title": "Tastaturkürzel",
+    "search": "Suchen",
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "underline": "Unterstrichen",
+    "strike": "Durchgestrichen",
+    "code": "Inline-Code",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "heading": "Überschrift 1 bis 3",
+    "numbered": "Nummerierte Liste",
+    "bullet": "Aufzählung",
+    "todo": "To-do-Liste",
+    "slash": "Blockmenü öffnen",
+    "mdHeading": "Überschriften",
+    "mdBullet": "Aufzählung",
+    "mdNumbered": "Nummerierte Liste",
+    "mdTodo": "To-do",
+    "mdToggle": "Toggle",
+    "mdQuote": "Zitat",
+    "mdCode": "Codeblock",
+    "mdDivider": "Trennlinie"
+  }
 }
