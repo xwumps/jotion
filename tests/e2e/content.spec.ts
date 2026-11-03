@@ -426,12 +426,10 @@ test('Performance: Seite mit 5.000 Blöcken öffnen', async () => {
   console.log(
     `[perf] 5000 Blöcke öffnen: ${openMs} ms, Tippen p50 ${latency.p50.toFixed(1)} ms, p95 ${latency.p95.toFixed(1)} ms`,
   );
-  test
-    .info()
-    .annotations.push({
-      type: 'perf',
-      description: `open=${openMs}ms p95=${latency.p95.toFixed(1)}ms`,
-    });
+  test.info().annotations.push({
+    type: 'perf',
+    description: `open=${openMs}ms p95=${latency.p95.toFixed(1)}ms`,
+  });
   // Ziel 1,5 s auf einem Mittelklasse-Laptop; im Container-Testlauf mit Puffer
   expect(openMs).toBeLessThan(4000);
   // Regressionsschutz: Ziel p95 < 16 ms wird auf der Test-VM nicht erreicht (siehe Roadmap)

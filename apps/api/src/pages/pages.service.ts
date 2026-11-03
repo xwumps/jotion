@@ -26,6 +26,12 @@ import { PrismaService } from '../infra/prisma.service';
 import { CollabService } from '../collab/collab.service';
 import { PermissionService } from '../permissions/permission.service';
 import { computePosition } from './positions';
+import {
+  assertMovable,
+  assertPageParent,
+  assertRestorable,
+  wantsSubpageBlock,
+} from '../databases/page-rules';
 
 type Tx = Prisma.TransactionClient;
 
@@ -39,7 +45,8 @@ interface NodeRow {
   has_children: boolean;
 }
 
-const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL`;
+// Datenbankzeilen erscheinen nicht im Seitenbaum (Phase 4)
+const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind <> 'DATABASE_ROW'`;
 
 @Injectable()
 export class PagesService {
@@ -77,7 +84,7 @@ export class PagesService {
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
              EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
         FROM pages p
-       WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL
+       WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind <> 'DATABASE_ROW'
        ORDER BY p.position, p.id`;
     return rows.map(toNode);
   }
@@ -115,6 +122,7 @@ export class PagesService {
     if (input.parentId) {
       parent = (await this.perms.requireEditablePage(user.id, input.parentId)).page;
       if (parent.workspaceId !== workspaceId) throw notFound('Seite');
+      assertPageParent(parent);
     }
     if (input.icon?.type === 'file') await this.assertFile(workspaceId, input.icon.fileId);
     const scope = parent ? parent.scope : (input.scope ?? 'PRIVATE');
@@ -195,9 +203,11 @@ export class PagesService {
   ): Promise<PageDto> {
     const access = await this.perms.requireEditablePage(user.id, pageId);
     const { page } = access;
+    assertMovable(page);
     let parent: Page | null = null;
     if (input.parentId) {
       parent = (await this.perms.requireEditablePage(user.id, input.parentId)).page;
+      assertPageParent(parent);
       if (parent.workspaceId !== page.workspaceId)
         throw new AppError('bad_request', 'Verschieben in andere Workspaces folgt später');
     }
@@ -252,7 +262,8 @@ export class PagesService {
     });
     if (page.parentId !== moved.parentId) {
       if (page.parentId) await this.collab.removeSubpageBlock(page.parentId, page.id);
-      if (moved.parentId) await this.collab.addSubpageBlock(moved.parentId, page.id);
+      if (moved.parentId && (await wantsSubpageBlock(this.prisma.client, moved)))
+        await this.collab.addSubpageBlock(moved.parentId, page.id);
     }
     // Sichtbarkeit des Teilbaums kann sich geändert haben
     if (page.scope !== moved.scope || page.ownerId !== moved.ownerId) this.collab.revalidate();
@@ -281,7 +292,8 @@ export class PagesService {
          WHERE path <@ (SELECT path FROM pages WHERE id = ${page.id}::uuid) AND deleted_at IS NULL`;
       await this.event(tx, page, 'page.trashed', user.id, { parentId: page.parentId });
     });
-    if (page.parentId) await this.collab.removeSubpageBlock(page.parentId, page.id);
+    if (page.parentId && page.kind !== 'DATABASE_ROW')
+      await this.collab.removeSubpageBlock(page.parentId, page.id);
     // Seiten im Papierkorb sind schreibgeschützt: offene Editoren neu verbinden lassen
     this.collab.revalidate();
   }
@@ -299,6 +311,7 @@ export class PagesService {
       const parent = page.parentId
         ? await tx.page.findUnique({ where: { id: page.parentId } })
         : null;
+      assertRestorable(page, parent);
       // Elternseite selbst gelöscht: als Wurzelseite im ursprünglichen Bereich wiederherstellen
       if (parent?.deletedAt) {
         const position = await computePosition(
@@ -323,7 +336,8 @@ export class PagesService {
       await this.event(tx, u, 'page.restored', user.id, { parentId: u.parentId });
       return u;
     });
-    if (restored.parentId) await this.collab.addSubpageBlock(restored.parentId, restored.id);
+    if (restored.parentId && (await wantsSubpageBlock(this.prisma.client, restored)))
+      await this.collab.addSubpageBlock(restored.parentId, restored.id);
     this.collab.revalidate();
     return this.toDto(user, restored);
   }
@@ -569,7 +583,12 @@ export class PagesService {
         select: { id: true, name: true },
       }),
       this.prisma.client.page.count({
-        where: { parentId: page.id, deletedAt: null, archivedAt: null },
+        where: {
+          parentId: page.id,
+          deletedAt: null,
+          archivedAt: null,
+          kind: { not: 'DATABASE_ROW' },
+        },
       }),
     ]);
     const name = (id: string) => people.find((p) => p.id === id)?.name ?? '';
@@ -594,6 +613,8 @@ export class PagesService {
       isFavorite: fav !== null,
       breadcrumbs,
       canEdit: !page.deletedAt,
+      kind: page.kind,
+      databaseId: page.databaseId,
     };
   }
 }

@@ -303,10 +303,23 @@ test('Markdown-Kürzel erzeugen die passenden Blöcke und bleiben nach Neuladen 
   await k.press('Enter');
   await k.press('Enter');
   await k.press('Enter');
+  // Langsamen Rechner nachbilden: Tiptap klappt neue Toggles per setTimeout(…, 0) auf.
+  // Kommt Enter vorher, landete der Text früher hinter dem Toggle (so geschehen auf der CI).
+  await page.evaluate(() => {
+    const original = window.setTimeout;
+    (window as unknown as { __origSetTimeout: typeof setTimeout }).__origSetTimeout = original;
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...args: unknown[]) =>
+      original(fn, !ms ? 400 : ms, ...args)) as typeof setTimeout;
+  });
   await k.type('> Aufklappbar');
   // Enter im Toggle-Titel springt in den Inhalt
   await k.press('Enter');
   await k.type('Versteckter Inhalt');
+  await page.evaluate(() => {
+    window.setTimeout = (
+      window as unknown as { __origSetTimeout: typeof setTimeout }
+    ).__origSetTimeout;
+  });
   await expect(saveState()).toHaveAttribute('data-state', 'saved');
 
   await page.reload();
@@ -486,9 +499,8 @@ test('Server-Neustart: weiterschreiben ohne Verlust', async () => {
   await newTeamPage('Neustart');
   await page.keyboard.type('Vor dem Neustart.');
   await expect(saveState()).toHaveAttribute('data-state', 'saved');
-  // JOTION_COMPOSE_PROJECT: Projektname, wenn mehrere Stacks parallel laufen (docker compose -p)
-  const project = process.env.JOTION_COMPOSE_PROJECT;
-  execSync(`docker compose ${project ? `-p ${project} ` : ''}restart api`, {
+  const composeProject = process.env.JOTION_COMPOSE_PROJECT;
+  execSync(`docker compose ${composeProject ? `-p ${composeProject} ` : ''}restart api`, {
     stdio: 'ignore',
     timeout: 90_000,
   });

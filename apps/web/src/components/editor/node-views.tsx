@@ -20,6 +20,7 @@ import { PageIcon } from '../page/page-icon';
 import { contentNodeViewOverrides } from './content-views';
 import { useEditorPage } from './editor-context';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { DatabaseNode } from '../database/database-node-view';
 
 function PageRefView({ node, selected, kind }: NodeViewProps & { kind: 'subpage' | 'pageLink' }) {
   const t = useTranslations('editor');
@@ -129,4 +130,5 @@ export const nodeViewOverrides = [
   }),
   Callout.extend({ addNodeView: () => ReactNodeViewRenderer(CalloutView) }),
   ...contentNodeViewOverrides,
+  DatabaseNode,
 ];

@@ -1,5 +1,6 @@
 import type { AnyExtension } from '@tiptap/core';
-import { InputRule, wrappingInputRule } from '@tiptap/core';
+import { Extension, InputRule, wrappingInputRule } from '@tiptap/core';
+import { TextSelection } from '@tiptap/pm/state';
 import Blockquote from '@tiptap/extension-blockquote';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details';
@@ -17,6 +18,7 @@ import { BlockSelection } from './block-selection';
 import { MathBlock, MathInline, Mention } from './nodes/inline';
 import { Breadcrumb, Column, ColumnList, TableOfContents } from './nodes/layout';
 import { Audio, Bookmark, Embed, FileBlock, Image, Pdf, Video } from './nodes/media';
+import { Database } from './nodes/database';
 
 export const lowlight = createLowlight(common);
 
@@ -40,7 +42,94 @@ const Toggle = Details.extend({
       }),
     ];
   },
+  // Das Plugin "detailsSelection" schiebt den Cursor aus scheinbar verstecktem Inhalt. Beim
+  // Neuaufbau der Ansicht ist der Inhalt eines offenen Toggles kurz versteckt (setTimeout), dann
+  // sprang der Cursor beim Tippen und Buchstaben landeten vertauscht oder hinter dem Toggle.
+  addProseMirrorPlugins() {
+    return [];
+  },
 }).configure({ persist: true, HTMLAttributes: { class: 'jt-toggle' } });
+
+/**
+ * Toggle-Inhalt: Sichtbarkeit wird aus dem Dokumentzustand (open) gesetzt statt umgeschaltet.
+ * Das Original schaltet "hidden" bei jedem Ereignis um und startet immer versteckt.
+ */
+const ToggleContent = DetailsContent.extend({
+  addNodeView() {
+    return ({ HTMLAttributes, getPos, editor }) => {
+      const dom = document.createElement('div');
+      for (const [key, value] of Object.entries({
+        ...HTMLAttributes,
+        'data-type': 'detailsContent',
+      }))
+        dom.setAttribute(key, String(value));
+      const parentOpen = () => {
+        const pos = typeof getPos === 'function' ? getPos() : undefined;
+        if (pos === undefined) return false;
+        const parent = editor.state.doc.resolve(pos).parent;
+        return parent.type.name === 'details' && Boolean(parent.attrs.open);
+      };
+      const sync = () => {
+        // Nach dem Umschalten trägt das Toggle-Element die Klasse "is-open"
+        const details = dom.parentElement?.parentElement;
+        const open = details ? details.classList.contains('is-open') || parentOpen() : parentOpen();
+        dom.hidden = !open;
+      };
+      dom.hidden = !parentOpen();
+      dom.addEventListener('toggleDetailsContent', () => {
+        const details = dom.parentElement?.parentElement;
+        dom.hidden = details ? !details.classList.contains('is-open') : !parentOpen();
+      });
+      return {
+        dom,
+        contentDOM: dom,
+        ignoreMutation: (mutation) =>
+          mutation.type === 'selection'
+            ? false
+            : !dom.contains(mutation.target) || dom === mutation.target,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== 'detailsContent') return false;
+          sync();
+          return true;
+        },
+      };
+    };
+  },
+});
+
+/**
+ * Enter am Ende eines Toggle-Titels: in den Inhalt springen, entschieden nach dem Dokumentzustand.
+ * Die Tiptap-Erweiterung prüft stattdessen, ob der Inhalt im DOM schon sichtbar ist; der wird
+ * aber erst per setTimeout aufgeklappt. Auf langsamen Rechnern landete Text sonst hinter dem Toggle.
+ */
+const ToggleEnter = Extension.create({
+  name: 'toggleEnter',
+  priority: 1000,
+  addKeyboardShortcuts() {
+    return {
+      Enter: ({ editor }) => {
+        const { state } = editor;
+        const { $head, empty } = state.selection;
+        if (!empty || $head.parent.type.name !== 'detailsSummary') return false;
+        if ($head.parentOffset !== $head.parent.content.size) return false;
+        const details = $head.node(-1);
+        if (details.type.name !== 'details' || !details.attrs.open) return false;
+        const contentPos = $head.after();
+        const content = state.doc.nodeAt(contentPos);
+        if (!content || content.type.name !== 'detailsContent') return false;
+        const tr = state.tr;
+        const start = contentPos + 1;
+        const first = content.firstChild;
+        // Vorhandenen leeren Absatz nutzen, sonst einen neuen am Anfang einfügen
+        if (!(first && first.isTextblock && first.content.size === 0))
+          tr.insert(start, state.schema.nodes.paragraph!.create());
+        tr.setSelection(TextSelection.create(tr.doc, start + 1)).scrollIntoView();
+        editor.view.dispatch(tr);
+        return true;
+      },
+    };
+  },
+});
 
 export interface ExtensionOptions {
   /** Platzhaltertext je Knoten (leer = kein Platzhalter) */
@@ -74,8 +163,9 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
     TaskList,
     TaskItem.configure({ nested: true }),
     Toggle,
+    ToggleEnter,
     DetailsSummary,
-    DetailsContent,
+    ToggleContent,
     Callout,
     Subpage,
     PageLink,
@@ -107,6 +197,7 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
       // Fremde (Yjs-)Transaktionen nicht anfassen, sonst entstehen Endlosschleifen
       filterTransaction: (tr) => !tr.getMeta('y-sync$'),
     }),
+    Database,
   ];
   if (options.placeholder) {
     const ph = options.placeholder;

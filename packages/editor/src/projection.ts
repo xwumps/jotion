@@ -47,6 +47,8 @@ const PROP_KEYS = [
   'caption',
   'title',
   'latex',
+  // Phase 4: Inline-Datenbank
+  'databaseId',
 ];
 /** Attribute, deren Text bei Blöcken ohne eigenen Fließtext durchsuchbar sein soll */
 const ATOM_TEXT_KEYS: Record<string, string[]> = {
@@ -138,6 +140,14 @@ export function projectDoc(doc: Y.Doc): Projection {
           props[k] = typeof v === 'string' ? v.slice(0, MAX_PROP_STRING) : v;
         }
         blocks.push({ id, parentId, type, position: position++, text, props });
+        // Inline-Datenbank verweist auf die Datenbankseite (Phase 4)
+        if (
+          type === 'database' &&
+          typeof attrs.databaseId === 'string' &&
+          UUID_RE.test(attrs.databaseId)
+        ) {
+          addRef({ blockId: id, targetType: 'page', targetId: attrs.databaseId.toLowerCase() });
+        }
         if (
           (PAGE_REFERENCE_NODES as readonly string[]).includes(type) &&
           typeof attrs.pageId === 'string' &&

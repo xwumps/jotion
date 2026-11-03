@@ -16,6 +16,8 @@ import { IconPicker } from './icon-picker';
 import { PageIcon } from './page-icon';
 import { PageTopbar } from './page-topbar';
 import { TitleEditor } from './title-editor';
+import { DatabaseView } from '../database/database-view';
+import { RowProperties } from '../database/row-properties';
 
 export function PageView({ pageId }: { pageId: string }) {
   const t = useTranslations('page');
@@ -154,7 +156,7 @@ function PageBody({ page }: { page: PageDto }) {
         data-editor-area
         className={cn(
           'mx-auto w-full flex-1 px-6 pb-[30vh] sm:px-24',
-          page.settings.fullWidth ? 'max-w-none' : 'max-w-[900px]',
+          page.settings.fullWidth || page.kind === 'DATABASE' ? 'max-w-none' : 'max-w-[900px]',
           font === 'serif' && 'font-serif',
           font === 'mono' && 'font-mono',
           page.settings.smallText ? 'text-[14px]' : 'text-[16px]',
@@ -227,8 +229,15 @@ function PageBody({ page }: { page: PageDto }) {
           />
         </div>
 
+        {page.kind === 'DATABASE_ROW' && page.databaseId && (
+          <RowProperties databaseId={page.databaseId} rowId={page.id} editable={editable} />
+        )}
         <div className="mt-2">
-          <PageEditor ref={editorRef} page={page} editable={editable} />
+          {page.kind === 'DATABASE' ? (
+            <DatabaseView databaseId={page.id} mode="page" editable={!page.deletedAt} />
+          ) : (
+            <PageEditor ref={editorRef} page={page} editable={editable} />
+          )}
         </div>
       </div>
     </div>
