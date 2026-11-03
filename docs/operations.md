@@ -44,7 +44,7 @@ Fängt ein Proxy (Firma, Schule) TLS-Verbindungen ab, schlägt `pnpm install` im
 JOTION_BUILD_CA=./docker/data/extra-ca.pem
 ```
 
-Die Datei wird nur während des Builds als Secret genutzt und landet nicht im Image.
+Die Datei wird nur während des Builds als Secret genutzt und landet nicht im Image. Ohne Angabe nutzt der Build die leere Platzhalterdatei `docker/no-extra-ca.pem`, es ist also nichts zu tun.
 
 ## Eigene Domain mit HTTPS
 In `.env` `JOTION_SITE_ADDRESS=jotion.example.org`, `JOTION_PUBLIC_URL=https://jotion.example.org` sowie `JOTION_HTTP_PORT=80` und `JOTION_HTTPS_PORT=443` setzen. Caddy holt das Zertifikat automatisch. Für LAN oder VPN bleibt `JOTION_SITE_ADDRESS=:80`.
