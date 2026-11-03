@@ -145,7 +145,6 @@ export class SafeHttpClient {
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
     const hostAllowed = this.allow.host(hostname);
     const defaultPort = url.port === '' || url.port === '80' || url.port === '443';
-    if (!defaultPort && !hostAllowed) throw new SsrfError('Nur Standard-Ports sind erlaubt');
 
     let addresses: { address: string; family: number }[];
     if (isIP(hostname)) addresses = [{ address: hostname, family: isIP(hostname) }];
@@ -162,6 +161,9 @@ export class SafeHttpClient {
       if (isBlockedAddress(a.address) && !hostAllowed && !this.allow.ip(a.address))
         throw new SsrfError('Adresse nicht erlaubt');
     }
+    // Andere Ports nur für freigegebene Ziele (z. B. internes Wiki auf Port 8080)
+    if (!defaultPort && !hostAllowed && !addresses.every((a) => this.allow.ip(a.address)))
+      throw new SsrfError('Nur Standard-Ports sind erlaubt');
     const first = addresses[0]!;
     return { url, address: first.address, family: first.family === 6 ? 6 : 4 };
   }
