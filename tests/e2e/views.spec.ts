@@ -154,27 +154,32 @@ test('Board: Spalten nach Status, Ziehen zwischen Spalten, zweiter Client sieht 
   await other.getByRole('tab', { name: 'Board' }).click();
   await expect(column(s.todo.id, other).getByTestId('card')).toHaveCount(2);
 
-  // Karte nach "Erledigt" ziehen (Seite nach vorne holen: Hintergrundseiten werden gedrosselt)
-  await page.bringToFront();
-  await dragTo(column(s.todo.id).getByTestId('card').first(), column(s.done.id));
-  await expect(column(s.done.id).getByTestId('card')).toHaveText(['Einkaufen']);
-  await expect(head(s.done.id).getByTestId('column-count')).toHaveText('1');
-  await expect(head(s.todo.id).getByTestId('column-count')).toHaveText('1');
-  // Live beim anderen Client, ohne Neuladen
+  // Im zweiten Client (im Vordergrund) ziehen, der erste sieht es live ohne Neuladen
+  await dragTo(
+    column(s.todo.id, other).getByTestId('card').first(),
+    column(s.done.id, other),
+    0.5,
+    other,
+  );
   await expect(column(s.done.id, other).getByTestId('card')).toHaveText(['Einkaufen']);
-  await expect(column(s.todo.id, other).getByTestId('card')).toHaveText(['Steuer']);
+  await expect(head(s.done.id, other).getByTestId('column-count')).toHaveText('1');
+  await expect(head(s.todo.id, other).getByTestId('column-count')).toHaveText('1');
+  await expect(column(s.done.id).getByTestId('card')).toHaveText(['Einkaufen']);
+  await expect(column(s.todo.id).getByTestId('card')).toHaveText(['Steuer']);
+  await expect(head(s.done.id).getByTestId('column-count')).toHaveText('1');
 
   // Innerhalb einer Spalte umsortieren: Steuer über Urlaub planen in "In Bearbeitung"
   await dragTo(
-    column(s.todo.id).getByTestId('card').first(),
-    column(s.doing.id).getByTestId('card').first(),
+    column(s.todo.id, other).getByTestId('card').first(),
+    column(s.doing.id, other).getByTestId('card').first(),
     0.15,
+    other,
   );
-  await expect(column(s.doing.id).getByTestId('card')).toHaveText(['Steuer', 'Urlaub planen']);
   await expect(column(s.doing.id, other).getByTestId('card')).toHaveText([
     'Steuer',
     'Urlaub planen',
   ]);
+  await expect(column(s.doing.id).getByTestId('card')).toHaveText(['Steuer', 'Urlaub planen']);
 
   // Nach dem Neuladen gespeichert
   await page.reload();

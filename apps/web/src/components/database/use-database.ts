@@ -256,6 +256,9 @@ export function useDatabaseActions(db: DatabaseDto) {
   });
   const updateView = useMutation({
     mutationKey: ['updateView', db.id],
+    // Nacheinander senden: sonst können schnelle Teil-Updates (z. B. Sortierung hinzufügen und
+    // gleich die Richtung ändern) vertauscht beim Server ankommen und die ältere gewinnt
+    scope: { id: `updateView:${db.id}` },
     mutationFn: ({ id, ...input }: UpdateViewInput & { id: string }) =>
       apiPatch<ViewDto>(`/databases/${db.id}/views/${id}`, input),
     onMutate: ({ id, config, name, type }) => {
