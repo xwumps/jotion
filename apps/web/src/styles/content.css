@@ -1,18 +1,13 @@
 /* Phase 3: Medien, Einbettungen, Tabellen, Spalten, Formeln, Erwähnungen, Auswahl, Druck. */
 
-/* Große Dokumente: Blöcke außerhalb des sichtbaren Bereichs nicht layouten/zeichnen */
-.jt-editor > * {
+/*
+ * Große Dokumente (Klasse jt-large ab 200 Blöcken): einfache Textblöcke außerhalb des sichtbaren
+ * Bereichs nicht layouten/zeichnen. Nur dort, weil content-visibility das Setzen des Cursors in
+ * neu erzeugte, verschachtelte Blöcke (z. B. Toggles) stören kann.
+ */
+.jt-editor.jt-large > :is(p, h1, h2, h3, ul, ol, blockquote, pre):not(.is-empty) {
   content-visibility: auto;
   contain-intrinsic-size: auto 30px;
-}
-/* Blöcke mit Popovern/Menüs oder eigener Höhe nicht einschränken */
-.jt-editor > .is-empty,
-.jt-editor > .node-columnList,
-.jt-editor > .node-database,
-.jt-editor > .node-mathBlock,
-.jt-editor > table,
-.jt-editor > .tableWrapper {
-  content-visibility: visible;
 }
 
 /* Medien */
@@ -290,7 +285,7 @@ body.jt-selecting {
     background: transparent !important;
   }
   .jt-editor > * {
-    content-visibility: visible;
+    content-visibility: visible !important;
   }
   .jt-editor pre {
     white-space: pre-wrap;

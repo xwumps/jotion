@@ -175,12 +175,13 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
         editable: canWrite,
         immediatelyRender: false,
         editorProps: {
-          attributes: {
-            class: 'jt-editor',
+          // Große Dokumente: content-visibility für Blöcke außerhalb des Sichtbereichs (content.css)
+          attributes: (state) => ({
+            class: state.doc.childCount > LARGE_DOC_BLOCKS ? 'jt-editor jt-large' : 'jt-editor',
             'data-testid': 'editor',
             spellcheck: 'true',
             'aria-label': t('ariaLabel'),
-          },
+          }),
         },
       },
       [extensions],
@@ -253,6 +254,8 @@ function useScrollToHashBlock(editor: Editor | null, session: PageSession) {
     return () => void session.provider.off('synced', tryScroll);
   }, [editor, session]);
 }
+
+const LARGE_DOC_BLOCKS = 200;
 
 const OFFLINE_START_TIMEOUT_MS = 4000;
 
