@@ -2,7 +2,7 @@
 
 import { Extension, type Editor } from '@tiptap/core';
 import { Fragment, Slice, type Node as PMNode } from '@tiptap/pm/model';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { NodeSelection, Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { toast } from 'sonner';
 import { errorMessage } from '@/lib/api-client';
 import { dataUrlToBlob, uploadFile } from '@/lib/upload';
@@ -106,6 +106,24 @@ export function createMediaPaste(getWorkspaceId: () => string) {
       return [
         new Plugin({
           key: new PluginKey('jotion-media-paste'),
+          // Endet Eingefügtes mit einem Block wie einem Bild, ist danach der Block markiert und
+          // die nächste Eingabe würde ihn ersetzen. Stattdessen den Cursor dahinter setzen.
+          appendTransaction: (trs, _old, state) => {
+            if (!trs.some((tr) => tr.getMeta('uiEvent') === 'paste')) return null;
+            const sel = state.selection;
+            if (!(sel instanceof NodeSelection) || sel.node.isInline) return null;
+            const tr = state.tr;
+            const next = TextSelection.findFrom(state.doc.resolve(sel.to), 1, true);
+            if (next) return tr.setSelection(next);
+            const paragraph = state.schema.nodes.paragraph;
+            if (
+              !paragraph ||
+              !sel.$to.parent.canReplaceWith(sel.$to.index(), sel.$to.index(), paragraph)
+            )
+              return null;
+            tr.insert(sel.to, paragraph.create());
+            return tr.setSelection(TextSelection.create(tr.doc, sel.to + 1));
+          },
           props: {
             handlePaste: (_view, event) => {
               const files = Array.from(event.clipboardData?.files ?? []);

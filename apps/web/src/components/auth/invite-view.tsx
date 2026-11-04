@@ -63,6 +63,7 @@ export function InviteView({
         <LoginForm onSuccess={() => void accept()} />
       ) : (
         <form
+          method="post"
           className="space-y-3"
           onSubmit={async (e) => {
             e.preventDefault();

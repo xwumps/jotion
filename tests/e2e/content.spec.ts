@@ -125,7 +125,16 @@ test('Tabelle, Spalten, Inhaltsverzeichnis und Formeln bleiben nach Neuladen erh
   await expect(editor().locator('th').first()).toHaveText('Name');
 
   // Hinter die Tabelle und weiter
-  await editor().locator('h1').click();
+  // Direkt nach dem Tippen kann die Synchronisierung die Auswahl noch in die Zelle zurücksetzen
+  await expect(async () => {
+    await editor().locator('h1').click();
+    const inHeading = await page.evaluate(() => {
+      const n = window.getSelection()?.anchorNode;
+      const el = n instanceof Element ? n : n?.parentElement;
+      return !!el?.closest('h1');
+    });
+    expect(inHeading).toBe(true);
+  }).toPass({ timeout: 5000 });
   await k.press('End');
   await k.press('Enter');
   await k.type('## Kapitel zwei');
@@ -170,6 +179,8 @@ test('Tabelle, Spalten, Inhaltsverzeichnis und Formeln bleiben nach Neuladen erh
   await k.press('End');
   await k.type(' mit $$a^2$$');
   await expect(editor().locator('.jt-math-inline .katex')).toBeVisible();
+  // Tippen an anderer Stelle darf die Formel nicht ersetzen
+  await expect(page.getByTestId('math-block').locator('.katex')).toBeVisible();
   await saved();
   await snap('p3-01-blocks');
 
@@ -247,6 +258,8 @@ test('Einfügen aus Google Docs und Markdown, eingefügte Bilder werden hochgela
   await expect(editor().locator('h2', { hasText: 'Markdown' })).toBeVisible();
   await expect(editor().locator('ul[data-type="taskList"] li')).toHaveCount(2);
   await expect(editor().locator('code', { hasText: 'code' })).toBeVisible();
+  // Das zuvor eingefügte Bild darf durch das zweite Einfügen nicht ersetzt werden
+  await expect(page.getByTestId('image-block')).toHaveCount(1);
   await saved();
   // Kein data:-Bild im gespeicherten Dokument
   await page.reload();

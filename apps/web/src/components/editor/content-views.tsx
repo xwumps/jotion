@@ -33,6 +33,7 @@ import {
   ReactNodeViewRenderer,
   type NodeViewProps,
 } from '@tiptap/react';
+import { Selection } from '@tiptap/pm/state';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@jotion/ui';
 import katex from 'katex';
@@ -213,6 +214,7 @@ function UrlForm({
   const [url, setUrl] = useState('');
   return (
     <form
+      method="post"
       className="flex gap-2"
       onSubmit={(e) => {
         e.preventDefault();
@@ -797,6 +799,24 @@ function renderLatex(latex: string, displayMode: boolean): { html: string; error
   }
 }
 
+/**
+ * Nach dem Bearbeiten einer Formel den Cursor hinter den Knoten setzen und den Editor fokussieren.
+ * Sonst bleibt der Fokus im Formel-Knopf und die Auswahl am Formel-Knoten hängen: Tippen nach
+ * einem Klick an andere Stelle ersetzte dann die Formel.
+ */
+function focusAfterNode(
+  editor: NodeViewProps['editor'],
+  getPos: NodeViewProps['getPos'],
+  node: NodeViewProps['node'],
+) {
+  const pos = typeof getPos === 'function' ? getPos() : undefined;
+  if (pos === undefined) return;
+  const after = Math.min(pos + node.nodeSize, editor.state.doc.content.size);
+  const selection = Selection.near(editor.state.doc.resolve(after), 1);
+  editor.view.dispatch(editor.state.tr.setSelection(selection));
+  editor.view.focus();
+}
+
 function MathEditor({
   latex,
   onSave,
@@ -842,7 +862,7 @@ function MathEditor({
   );
 }
 
-function MathBlockView({ node, updateAttributes, editor, selected }: NodeViewProps) {
+function MathBlockView({ node, updateAttributes, editor, selected, getPos }: NodeViewProps) {
   const t = useTranslations('contentBlocks');
   const latex = String(node.attrs.latex ?? '');
   const [open, setOpen] = useState(!latex && editor.isEditable);
@@ -876,13 +896,19 @@ function MathBlockView({ node, updateAttributes, editor, selected }: NodeViewPro
               {body}
             </button>
           </PopoverTrigger>
-          <PopoverContent align="center" className="w-[460px] max-w-[calc(100vw-32px)] p-2">
+          <PopoverContent
+            align="center"
+            className="w-[460px] max-w-[calc(100vw-32px)] p-2"
+            // Fokus nicht in den Formel-Knopf zurückgeben (siehe focusAfterNode)
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             <MathEditor
               latex={latex}
               inline={false}
               onSave={(v) => {
                 updateAttributes({ latex: v });
                 setOpen(false);
+                requestAnimationFrame(() => focusAfterNode(editor, getPos, node));
               }}
             />
           </PopoverContent>
@@ -896,7 +922,7 @@ function MathBlockView({ node, updateAttributes, editor, selected }: NodeViewPro
   );
 }
 
-function MathInlineView({ node, updateAttributes, editor, selected }: NodeViewProps) {
+function MathInlineView({ node, updateAttributes, editor, selected, getPos }: NodeViewProps) {
   const latex = String(node.attrs.latex ?? '');
   const [open, setOpen] = useState(false);
   const out = renderLatex(latex, false);
@@ -925,13 +951,18 @@ function MathInlineView({ node, updateAttributes, editor, selected }: NodeViewPr
               {body}
             </span>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-[360px] max-w-[calc(100vw-32px)] p-2">
+          <PopoverContent
+            align="start"
+            className="w-[360px] max-w-[calc(100vw-32px)] p-2"
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             <MathEditor
               latex={latex}
               inline
               onSave={(v) => {
                 updateAttributes({ latex: v });
                 setOpen(false);
+                requestAnimationFrame(() => focusAfterNode(editor, getPos, node));
               }}
             />
           </PopoverContent>

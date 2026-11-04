@@ -179,6 +179,7 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
         </PopoverTrigger>
         <PopoverContent className="p-2" onOpenAutoFocus={(e) => e.preventDefault()}>
           <form
+            method="post"
             onSubmit={(e) => {
               e.preventDefault();
               applyLink();
