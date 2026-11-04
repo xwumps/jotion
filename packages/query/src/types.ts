@@ -1,3 +1,4 @@
+import type { GroupSpec } from './grouping';
 import type { FilterGroup, PropertyType, PropertyValue, SortSpec } from '@jotion/shared';
 
 /** Property, wie Compiler und Referenz sie brauchen (config bereits validiert). */
@@ -32,6 +33,10 @@ export interface QueryContext {
   timeZone?: string;
   /** Bezugszeitpunkt für relative Datumsangaben (Standard: jetzt) */
   now?: Date;
+  /** Nur Zeilen dieser Gruppen (Gruppe und Untergruppe einer Ansicht) */
+  groups?: { spec: GroupSpec; key: string }[];
+  /** Nur Zeilen, deren Datumsbereich [from, to] (Kalendertage) berührt */
+  dateRange?: { start: QueryProperty; end: QueryProperty | null; from: string; to: string };
   /** Namen von Nutzern für Sortierung nach Person (nur Referenz; SQL liest users) */
   userNames?: Record<string, string>;
 }

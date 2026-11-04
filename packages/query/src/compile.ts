@@ -11,6 +11,8 @@ import {
 } from 'kysely';
 import { decodeCursor, type CursorKey, type DecodedCursor } from './cursor';
 import { safeTimeZone } from './dates';
+import { EMPTY_GROUP } from '@jotion/shared';
+import type { GroupSpec } from './grouping';
 import {
   normalizeFilter,
   normalizeSorts,
@@ -123,6 +125,68 @@ function dayExpr(prop: QueryProperty, j: Joins, tz: string): Sql {
   if (prop.type === 'last_edited_time') return sql`(timezone(${tz}::text, p.last_edited_at))::date`;
   const start = j.col(prop, 'v_date_start');
   return sql`(CASE WHEN ${j.col(prop, 'v_date_has_time')} THEN timezone(${tz}::text, ${start}) ELSE timezone('UTC', ${start}) END)::date`;
+}
+
+/** Kalendertag eines Zeitstempels (mit Uhrzeit in tz, sonst UTC). */
+function dayOfTs(ts: Sql, hasTime: Sql, tz: string): Sql {
+  return sql`(CASE WHEN ${hasTime} THEN timezone(${tz}::text, ${ts}) ELSE timezone('UTC', ${ts}) END)::date`;
+}
+
+const ymd = (d: Sql) => sql`to_char(${d}, 'YYYY-MM-DD')`;
+
+/** Gruppenschlüssel einer Zeile als text[] (leer = EMPTY_GROUP), siehe grouping.ts. */
+function groupKeysSql(g: GroupSpec, j: Joins, tz: string): Sql {
+  const prop = g.prop;
+  const one = (x: Sql) => sql`ARRAY[COALESCE((${x})::text, ${EMPTY_GROUP}::text)]`;
+  switch (prop.type) {
+    case 'multi_select':
+    case 'person': {
+      const arr = scalarValue(prop, j);
+      return sql`(CASE WHEN cardinality(${arr}) > 0 THEN ${arr}::text[] ELSE ARRAY[${EMPTY_GROUP}::text] END)`;
+    }
+    case 'checkbox':
+      return sql`ARRAY[(${scalarValue(prop, j)})::text]`;
+    case 'number':
+    case 'unique_id': {
+      // Winzige Beträge als 0 (sonst Unterlauf bei der Division), wie numberKey
+      const raw = scalarValue(prop, j);
+      const v = sql`(CASE WHEN abs(${raw}) < 1e-300 THEN 0::float8 ELSE ${raw} END)`;
+      const iv = sql`${g.numberInterval}::float8`;
+      // + 0.0 macht aus -0 eine 0 (wie numberKey)
+      return one(sql`(floor(${v} / ${iv}) * ${iv} + 0.0::float8)`);
+    }
+    case 'date':
+    case 'created_time':
+    case 'last_edited_time': {
+      const d = dayExpr(prop, j, tz);
+      switch (g.dateBucket) {
+        case 'day':
+          return one(ymd(d));
+        case 'week':
+          return one(ymd(sql`(${d} - (extract(isodow from ${d})::int - 1))`));
+        case 'month':
+          return one(ymd(sql`date_trunc('month', ${d})`));
+        case 'year':
+          return one(ymd(sql`date_trunc('year', ${d})`));
+      }
+      break;
+    }
+    default:
+      return one(scalarValue(prop, j));
+  }
+  return one(sql`NULL`);
+}
+
+/** Datumsbereich einer Zeile berührt [from, to] (Kalendertage). */
+function dateRangeSql(r: NonNullable<QueryContext['dateRange']>, j: Joins, tz: string): Sql {
+  const start = dayExpr(r.start, j, tz);
+  let end: Sql;
+  if (r.end && r.end.id !== r.start.id) {
+    end = r.end.type === 'date' ? dayExpr(r.end, j, tz) : start;
+  } else if (r.start.type === 'date') {
+    end = dayOfTs(j.col(r.start, 'v_date_end'), j.col(r.start, 'v_date_has_time'), tz);
+  } else end = start;
+  return sql`(${start} IS NOT NULL AND ${start} <= ${r.to}::date AND COALESCE(GREATEST(${end}, ${start}), ${start}) >= ${r.from}::date)`;
 }
 
 /** LIKE-Muster mit maskierten Sonderzeichen (\ % _). */
@@ -387,6 +451,9 @@ function prepare(ctx: QueryContext, joins = new Joins()): Prepared {
   if (filter) parts.push(groupSql(filter, joins, tz));
   const search = searchSql(ctx);
   if (search) parts.push(search);
+  for (const g of ctx.groups ?? [])
+    parts.push(sql`(${g.key}::text = ANY(${groupKeysSql(g.spec, joins, tz)}))`);
+  if (ctx.dateRange) parts.push(dateRangeSql(ctx.dateRange, joins, tz));
   return { joins, where: sql.join(parts, sql` AND `), tz };
 }
 
@@ -442,7 +509,7 @@ export function compileRowQuery(
   order.push(sql`p.position ASC`, sql`p.id ASC`);
   const keyCols = keys.map((k, i) => sql`(${k.expr}) AS ${sql.raw(`k${i}`)}`);
   const query =
-    sql`SELECT p.id::text AS id, p.position, p.title, p.icon, p.created_at, p.created_by_id::text AS created_by_id, p.last_edited_at, p.last_edited_by_id::text AS last_edited_by_id${keyCols.length ? sql`, ${sql.join(keyCols, sql`, `)}` : sql``}
+    sql`SELECT p.id::text AS id, p.position, p.title, p.icon, p.cover, p.created_at, p.created_by_id::text AS created_by_id, p.last_edited_at, p.last_edited_by_id::text AS last_edited_by_id${keyCols.length ? sql`, ${sql.join(keyCols, sql`, `)}` : sql``}
     FROM pages p ${joins.sql()}
     WHERE ${sql.join(where, sql` AND `)}
     ORDER BY ${sql.join(order, sql`, `)}
@@ -456,6 +523,27 @@ export function compileCountQuery(ctx: QueryContext): CompiledQuery {
   return sql`SELECT count(*)::int AS total FROM pages p ${joins.sql()} WHERE ${where}`.compile(
     kysely,
   );
+}
+
+// ---------------------------------------------------------------- Gruppen
+
+/**
+ * Anzahl Zeilen je Gruppe (und Untergruppe) nach Filter und Suche.
+ * Spalten: key, sub_key (oder NULL), count. Zeilen mit mehreren Werten zählen in jeder Gruppe.
+ */
+export function compileGroupCountQuery(
+  ctx: QueryContext,
+  group: GroupSpec,
+  subGroup?: GroupSpec | null,
+): CompiledQuery {
+  const prepared = prepare(ctx);
+  const { joins, tz } = prepared;
+  const g = groupKeysSql(group, joins, tz);
+  const s = subGroup ? groupKeysSql(subGroup, joins, tz) : null;
+  return sql`SELECT g.k AS key, ${s ? sql`s.k` : sql`NULL::text`} AS sub_key, count(*)::int AS count
+    FROM pages p ${joins.sql()} CROSS JOIN LATERAL unnest(${g}) AS g(k)${s ? sql` CROSS JOIN LATERAL unnest(${s}) AS s(k)` : sql``}
+    WHERE ${prepared.where}
+    GROUP BY 1, 2`.compile(kysely);
 }
 
 // ---------------------------------------------------------------- Berechnungen

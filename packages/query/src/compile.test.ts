@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { createPrismaClient, Prisma, type PrismaClient } from '@jotion/db';
 import {
   calculationsFor,
+  DATE_BUCKETS,
   DATE_RANGES,
+  GROUPABLE_TYPES,
   keysBetween,
   operatorsFor,
   RELATIVE_DATES,
@@ -17,10 +19,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   compileCalculationQuery,
   compileCountQuery,
+  compileGroupCountQuery,
   compileRowQuery,
   CursorMismatchError,
 } from './compile';
 import { encodeCursor } from './cursor';
+import { rowGroupKeys, type GroupSpec } from './grouping';
 import { calculateAll, queryRows } from './reference';
 import { toStorage } from './storage';
 import type { QueryContext, QueryProperty, RowRecord } from './types';
@@ -178,6 +182,12 @@ beforeAll(async () => {
     date: fc.option(
       fc.oneof(
         dayArb.map((d) => ({ start: d, end: null, hasTime: false, timeZone: null })),
+        // Zeiträume (Kalender und Zeitleiste)
+        fc.tuple(dayArb, fc.integer({ min: 0, max: 20 })).map(([d, n]) => {
+          const e = new Date(`${d}T00:00:00Z`);
+          e.setUTCDate(e.getUTCDate() + n);
+          return { start: d, end: e.toISOString().slice(0, 10), hasTime: false, timeZone: null };
+        }),
         msArb.map((ms) => ({
           start: new Date(ms).toISOString(),
           end: null,
@@ -498,5 +508,92 @@ describe('Query-Compiler gegen JS-Referenz (PostgreSQL)', () => {
     const { query } = compileRowQuery(ctx, { limit: 10 });
     expect(query.sql).not.toContain('DROP TABLE');
     expect(query.parameters).toContain(`%${evil}%`);
+  });
+});
+
+// ---------------------------------------------------------------- Gruppierung (Phase 5)
+
+describe('Grouping-Engine gegen JS-Referenz (PostgreSQL)', () => {
+  const groupable = () => props.filter((p) => GROUPABLE_TYPES.includes(p.type));
+  const specArb = (): fc.Arbitrary<GroupSpec> =>
+    fc.record({
+      prop: fc.constantFrom(...groupable()),
+      dateBucket: fc.constantFrom(...DATE_BUCKETS),
+      numberInterval: fc.constantFrom(1, 10, 25, 0.5, 1000),
+    });
+
+  /** Erwartete Zähler key|subKey -> Anzahl aus der Referenz. */
+  function expectedCounts(ctx: QueryContext, g: GroupSpec, sub: GroupSpec | null, tz: string) {
+    const out = new Map<string, number>();
+    for (const r of queryRows(rows, ctx))
+      for (const k of rowGroupKeys(r, g, tz))
+        for (const sk of sub ? rowGroupKeys(r, sub, tz) : [null]) {
+          const id = `${k}|${sk}`;
+          out.set(id, (out.get(id) ?? 0) + 1);
+        }
+    return out;
+  }
+
+  it('zählt Gruppen und Untergruppen wie die Referenz', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        specArb(),
+        fc.option(specArb(), { nil: null }),
+        tzArb,
+        fc.option(
+          filterArb().filter((f) => depth(f) <= 3),
+          { nil: null },
+        ),
+        async (g, sub, tz, filter) => {
+          const ctx = ctxOf(filter, [], tz);
+          const q = compileGroupCountQuery(ctx, g, sub);
+          const got = await db.$queryRawUnsafe<
+            { key: string; sub_key: string | null; count: number }[]
+          >(q.sql, ...q.parameters);
+          const map = new Map(got.map((r) => [`${r.key}|${r.sub_key}`, r.count]));
+          expect(map).toEqual(expectedCounts(ctx, g, sub, tz));
+        },
+      ),
+      { numRuns: 120, seed: 11 },
+    );
+  });
+
+  it('liefert je Gruppe genau die Zeilen der Referenz', async () => {
+    await fc.assert(
+      fc.asyncProperty(specArb(), tzArb, async (g, tz) => {
+        const base = ctxOf(null, [], tz);
+        const keys = [...new Set(rows.flatMap((r) => rowGroupKeys(r, g, tz)))];
+        for (const key of keys.slice(0, 6)) {
+          const ctx: QueryContext = { ...base, groups: [{ spec: g, key }] };
+          const { result } = await runRows(ctx, 500);
+          expect(result.map((r) => r.id)).toEqual(queryRows(rows, ctx).map((r) => r.id));
+        }
+      }),
+      { numRuns: 40, seed: 12 },
+    );
+  });
+
+  it('findet Zeilen im Zeitraum wie die Referenz', async () => {
+    const dateProps = props.filter((p) =>
+      ['date', 'created_time', 'last_edited_time'].includes(p.type),
+    );
+    await fc.assert(
+      fc.asyncProperty(
+        fc.constantFrom(...dateProps),
+        fc.option(fc.constantFrom(...dateProps), { nil: null }),
+        dayArb,
+        fc.integer({ min: 0, max: 60 }),
+        tzArb,
+        async (start, end, from, len, tz) => {
+          const d = new Date(`${from}T00:00:00Z`);
+          d.setUTCDate(d.getUTCDate() + len);
+          const to = d.toISOString().slice(0, 10);
+          const ctx: QueryContext = { ...ctxOf(null, [], tz), dateRange: { start, end, from, to } };
+          const { result } = await runRows(ctx, 500);
+          expect(result.map((r) => r.id)).toEqual(queryRows(rows, ctx).map((r) => r.id));
+        },
+      ),
+      { numRuns: 80, seed: 13 },
+    );
   });
 });

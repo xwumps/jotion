@@ -8,6 +8,9 @@ import {
   keyBetween,
   parsePropertyConfig,
   viewConfigSchema,
+  calendarConfigSchema,
+  groupBySchema,
+  timelineConfigSchema,
   type createDatabaseSchema,
   type createPropertySchema,
   type createViewSchema,
@@ -186,6 +189,7 @@ export class DatabasesService {
       properties: properties.map(propertyDto),
       views: views.map(viewDto),
       canEdit: !a.page.deletedAt,
+      locked: Boolean((a.page.settings as { locked?: boolean } | null)?.locked),
       deleted: Boolean(a.page.deletedAt),
     };
   }
@@ -574,6 +578,8 @@ export class DatabasesService {
       const src = await this.requireView(databaseId, input.duplicateOf);
       config = viewConfigSchema.parse(src.config ?? {});
     }
+    if (a.data)
+      config = layoutDefaults(input.type, config, await this.access.properties(a.data.db.id));
     const view = await this.prisma.client.$transaction(async (tx) => {
       await this.lockSchema(tx, databaseId);
       const position = await this.viewPosition(tx, databaseId, input.afterId, input.beforeId);
@@ -606,14 +612,15 @@ export class DatabasesService {
       // (z. B. Filter und Sortierung) gegenseitig und eine Einstellung geht verloren.
       const fresh = await tx.dbView.findUniqueOrThrow({ where: { id: viewId } });
       const current = viewConfigSchema.parse(fresh.config ?? {});
-      const config = input.config
-        ? viewConfigSchema.parse({ ...current, ...input.config })
-        : current;
+      let config = input.config ? viewConfigSchema.parse({ ...current, ...input.config }) : current;
+      if (input.type && input.type !== fresh.type && a.data)
+        config = layoutDefaults(input.type, config, await this.access.properties(a.data.db.id, tx));
       const moving = input.afterId !== undefined || input.beforeId !== undefined;
       const v = await tx.dbView.update({
         where: { id: viewId },
         data: {
           ...(input.name ? { name: input.name } : {}),
+          ...(input.type ? { type: input.type as ViewType } : {}),
           config: config as Prisma.InputJsonValue,
           ...(moving
             ? {
@@ -679,6 +686,30 @@ export class DatabasesService {
       return keyBetween(views.at(-1)?.position ?? null, null);
     }
   }
+}
+
+/**
+ * Sinnvolle Standardwerte je Layout (wie Notion): Board gruppiert nach dem ersten Status- bzw.
+ * Auswahl-Property, Kalender und Zeitleiste nutzen das erste Datums-Property.
+ */
+export function layoutDefaults(
+  type: string,
+  config: ViewConfig,
+  props: LoadedProperty[],
+): ViewConfig {
+  const first = (...types: PropertyType[]) =>
+    types.map((t) => props.find((p) => p.type === t)).find(Boolean);
+  const next = { ...config };
+  if (type === 'board' && !next.groupBy) {
+    const p = first('status', 'select', 'multi_select', 'person', 'checkbox');
+    if (p) next.groupBy = groupBySchema.parse({ propertyId: p.id });
+  }
+  const date = first('date', 'created_time', 'last_edited_time');
+  if (type === 'calendar' && !next.calendar?.datePropertyId && date)
+    next.calendar = calendarConfigSchema.parse({ ...next.calendar, datePropertyId: date.id });
+  if (type === 'timeline' && !next.timeline?.startPropertyId && date)
+    next.timeline = timelineConfigSchema.parse({ ...next.timeline, startPropertyId: date.id });
+  return viewConfigSchema.parse(next);
 }
 
 export function isStored(type: PropertyType): boolean {

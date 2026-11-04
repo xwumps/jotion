@@ -8,6 +8,7 @@ import {
   type ResolvedSort,
 } from './normalize';
 import type { CalculationRequest } from './compile';
+import { matchesGroupsAndRange } from './grouping';
 import type { QueryContext, QueryProperty, RowRecord } from './types';
 
 /**
@@ -189,7 +190,12 @@ export function filterRows(rows: RowRecord[], ctx: QueryContext): RowRecord[] {
     now: ctx.now ?? new Date(),
     timeZone: tz,
   });
-  return rows.filter((r) => (!filter || evalGroup(filter, r, tz)) && matchesSearch(r, ctx));
+  return rows.filter(
+    (r) =>
+      (!filter || evalGroup(filter, r, tz)) &&
+      matchesSearch(r, ctx) &&
+      matchesGroupsAndRange(r, ctx, tz),
+  );
 }
 
 type Key = string | number | boolean | null;

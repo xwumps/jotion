@@ -62,11 +62,16 @@ export const useMembers = (ws: string) =>
   });
 
 /** Zeilen einer Ansicht, seitenweise per Cursor. */
-export function useRows(db: DatabaseDto, view: ViewDto | undefined, search: string) {
+export function useRows(
+  db: DatabaseDto,
+  view: ViewDto | undefined,
+  search: string,
+  opts: { preview?: boolean; enabled?: boolean } = {},
+) {
   const viewId = view?.id ?? '';
   return useInfiniteQuery({
-    queryKey: dbKeys.rowQuery(db.dataId, db.id, viewId, search),
-    enabled: Boolean(view) && !db.sourceMissing,
+    queryKey: [...dbKeys.rowQuery(db.dataId, db.id, viewId, search), Boolean(opts.preview)],
+    enabled: Boolean(view) && !db.sourceMissing && opts.enabled !== false,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       apiPost<RowQueryResultDto>(`/databases/${db.id}/query`, {
@@ -75,6 +80,7 @@ export function useRows(db: DatabaseDto, view: ViewDto | undefined, search: stri
         cursor: pageParam,
         limit: PAGE_SIZE,
         timeZone: timeZone(),
+        ...(opts.preview ? { preview: true } : {}),
       }),
     getNextPageParam: (last) => last.nextCursor,
     // Beim Neuladen nicht leeren, damit die Tabelle nicht springt
@@ -121,19 +127,25 @@ export function handleDatabaseEvent(qc: QueryClient, type: string, entityId: str
   }
 }
 
+/**
+ * Zeilen in allen geladenen Ansichten ändern. Unter dbKeys.rows liegen seitenweise Listen
+ * (Tabelle, Board-Spalten, Liste), einfache Arrays (Kalender, Zeitleiste) und Gruppenzähler;
+ * nur die ersten beiden enthalten Zeilen.
+ */
+function mapRowsInCache(qc: QueryClient, dataId: string, fn: (r: RowDto) => RowDto) {
+  qc.setQueriesData<unknown>({ queryKey: dbKeys.rows(dataId) }, (old: unknown) => {
+    if (Array.isArray(old)) return (old as RowDto[]).map(fn);
+    if (old && typeof old === 'object' && Array.isArray((old as { pages?: unknown }).pages)) {
+      const inf = old as InfiniteData<RowQueryResultDto>;
+      return { ...inf, pages: inf.pages.map((p) => ({ ...p, rows: p.rows.map(fn) })) };
+    }
+    return old;
+  });
+}
+
 /** Zeile in allen geladenen Ansichten ersetzen (sofortige Anzeige ohne Neuladen). */
 function patchRowInCache(qc: QueryClient, dataId: string, row: RowDto) {
-  qc.setQueriesData<InfiniteData<RowQueryResultDto>>({ queryKey: dbKeys.rows(dataId) }, (old) =>
-    old
-      ? {
-          ...old,
-          pages: old.pages.map((p) => ({
-            ...p,
-            rows: p.rows.map((r) => (r.id === row.id ? row : r)),
-          })),
-        }
-      : old,
-  );
+  mapRowsInCache(qc, dataId, (r) => (r.id === row.id ? { ...r, ...row, preview: r.preview } : r));
   qc.setQueryData(dbKeys.row(dataId, row.id), row);
 }
 
@@ -159,26 +171,14 @@ export function useDatabaseActions(db: DatabaseDto) {
     }) => apiPatch<RowDto>(`/databases/${db.id}/rows/${rowId}/properties`, input),
     onMutate: ({ rowId, title, values }) => {
       // Optimistisch: Wert sofort anzeigen, bei Fehler neu laden
-      qc.setQueriesData<InfiniteData<RowQueryResultDto>>(
-        { queryKey: dbKeys.rows(db.dataId) },
-        (old) =>
-          old
-            ? {
-                ...old,
-                pages: old.pages.map((p) => ({
-                  ...p,
-                  rows: p.rows.map((r) =>
-                    r.id === rowId
-                      ? {
-                          ...r,
-                          ...(title !== undefined ? { title } : {}),
-                          values: { ...r.values, ...(values as RowDto['values']) },
-                        }
-                      : r,
-                  ),
-                })),
-              }
-            : old,
+      mapRowsInCache(qc, db.dataId, (r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              ...(title !== undefined ? { title } : {}),
+              values: { ...r.values, ...(values as RowDto['values']) },
+            }
+          : r,
       );
     },
     onSuccess: (row, vars) => {
@@ -245,16 +245,23 @@ export function useDatabaseActions(db: DatabaseDto) {
     onError,
   });
   const createView = useMutation({
-    mutationFn: (input: { name: string; duplicateOf?: string; afterId?: string }) =>
-      apiPost<ViewDto>(`/databases/${db.id}/views`, input),
+    mutationFn: (input: {
+      name: string;
+      type?: ViewDto['type'];
+      duplicateOf?: string;
+      afterId?: string;
+    }) => apiPost<ViewDto>(`/databases/${db.id}/views`, input),
     onSuccess: refreshDb,
     onError,
   });
   const updateView = useMutation({
     mutationKey: ['updateView', db.id],
+    // Nacheinander senden: sonst können schnelle Teil-Updates (z. B. Sortierung hinzufügen und
+    // gleich die Richtung ändern) vertauscht beim Server ankommen und die ältere gewinnt
+    scope: { id: `updateView:${db.id}` },
     mutationFn: ({ id, ...input }: UpdateViewInput & { id: string }) =>
       apiPatch<ViewDto>(`/databases/${db.id}/views/${id}`, input),
-    onMutate: ({ id, config, name }) => {
+    onMutate: ({ id, config, name, type }) => {
       qc.setQueryData<DatabaseDto>(dbKeys.db(db.id), (old) =>
         old
           ? {
@@ -264,6 +271,7 @@ export function useDatabaseActions(db: DatabaseDto) {
                   ? {
                       ...v,
                       ...(name ? { name } : {}),
+                      ...(type ? { type } : {}),
                       config: { ...v.config, ...(config as Partial<ViewDto['config']>) },
                     }
                   : v,
@@ -292,6 +300,7 @@ export function useDatabaseActions(db: DatabaseDto) {
     onError,
   });
   return {
+    refreshDb: () => qc.invalidateQueries({ queryKey: ['db'] }),
     createRow,
     updateRow,
     trashRows,

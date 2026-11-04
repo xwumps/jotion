@@ -5,6 +5,7 @@ import {
   createPropertySchema,
   createRowSchema,
   createViewSchema,
+  groupsQuerySchema,
   moveRowSchema,
   queryRowsSchema,
   trashRowsSchema,
@@ -117,6 +118,12 @@ export class DatabasesController {
   @HttpCode(200)
   calculate(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
     return this.rows.calculate(u, id, parse(calculateSchema, body));
+  }
+
+  @Post('databases/:id/groups')
+  @HttpCode(200)
+  groups(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
+    return this.rows.groups(u, id, parse(groupsQuerySchema, body));
   }
 
   @Post('databases/:id/rows')

@@ -171,6 +171,7 @@ test('Filter mit Gruppe, Sortierung, Suche und Berechnung', async () => {
 
 test('Zweite Ansicht hat eigene Einstellungen', async () => {
   await db().getByTestId('add-view').click();
+  await page.locator('[data-testid="add-view-type"][data-layout="table"]').click();
   await expect(db().getByTestId('view-tab')).toHaveCount(2);
   await expect(db().getByTestId('view-tab').nth(1)).toHaveAttribute('aria-selected', 'true');
   await expect(db().getByTestId('filter-button')).not.toContainText('2');
