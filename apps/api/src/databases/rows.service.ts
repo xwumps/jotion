@@ -10,6 +10,8 @@ import {
   viewConfigSchema,
   type CalculationResultDto,
   type calculateSchema,
+  type GroupsResultDto,
+  type groupsQuerySchema,
   type createRowSchema,
   type moveRowSchema,
   type PageIcon,
@@ -24,12 +26,19 @@ import {
 import {
   compileCalculationQuery,
   compileCountQuery,
+  compileGroupCountQuery,
   compileRowQuery,
   CursorMismatchError,
   encodeCursor,
   fromStorage,
+  GroupMoveError,
+  groupSpec,
+  safeTimeZone,
   toStorage,
+  valueForGroupMove,
+  type GroupSpec,
   type QueryContext,
+  type RowRecord,
 } from '@jotion/query';
 import type { z } from 'zod';
 import { CollabService } from '../collab/collab.service';
@@ -94,6 +103,8 @@ export class RowsService {
       sorts: input.sorts ?? cfg?.sorts ?? [],
       search: input.search,
       timeZone: input.timeZone,
+      groups: this.groupFilters(cfg, props, input.group, input.subGroup),
+      dateRange: input.dateRange ? this.dateRange(props, input.dateRange) : undefined,
     };
     let compiled;
     try {
@@ -160,6 +171,74 @@ export class RowsService {
     const out: CalculationResultDto = {};
     valid.forEach((r, i) => (out[r.propertyId] = res?.[`r${i}`] ?? null));
     return out;
+  }
+
+  /** Anzahl Zeilen je Gruppe (und Untergruppe) der Ansicht nach Filter und Suche. */
+  async groups(
+    user: AuthUser,
+    databaseId: string,
+    input: z.output<typeof groupsQuerySchema>,
+  ): Promise<GroupsResultDto> {
+    const a = await this.access.require(user.id, databaseId, { includeTrashed: true });
+    const cfg = (await this.viewConfig(databaseId, input.viewId))!;
+    if (!a.data) return { counts: [], total: 0 };
+    const props = await this.access.properties(a.data.db.id);
+    const g = cfg.groupBy ? groupSpec(cfg.groupBy, props) : null;
+    if (!g) throw new AppError('bad_request', 'Ansicht ist nicht gruppiert');
+    const sub = cfg.subGroupBy ? groupSpec(cfg.subGroupBy, props) : null;
+    const ctx: QueryContext = {
+      databaseId: a.data.db.id,
+      viewerId: user.id,
+      properties: props,
+      filter: cfg.filter,
+      search: input.search,
+      timeZone: input.timeZone,
+    };
+    const q = compileGroupCountQuery(ctx, g, sub);
+    const count = compileCountQuery(ctx);
+    const [rows, totals] = await Promise.all([
+      this.prisma.client.$queryRawUnsafe<{ key: string; sub_key: string | null; count: number }[]>(
+        q.sql,
+        ...q.parameters,
+      ),
+      this.prisma.client.$queryRawUnsafe<{ total: number }[]>(count.sql, ...count.parameters),
+    ]);
+    return {
+      counts: rows.map((r) => ({ key: r.key, subKey: r.sub_key, count: r.count })),
+      total: totals[0]?.total ?? 0,
+    };
+  }
+
+  /** Gruppe und Untergruppe der Ansicht als Filter für die Zeilenabfrage. */
+  private groupFilters(
+    cfg: ViewConfig | null,
+    props: LoadedProperty[],
+    group?: string,
+    subGroup?: string,
+  ): QueryContext['groups'] {
+    const out: NonNullable<QueryContext['groups']> = [];
+    const add = (by: ViewConfig['groupBy'], key?: string) => {
+      if (key === undefined) return;
+      const spec = by ? groupSpec(by, props) : null;
+      if (!spec) throw new AppError('bad_request', 'Ansicht ist nicht gruppiert');
+      out.push({ spec, key });
+    };
+    add(cfg?.groupBy ?? null, group);
+    add(cfg?.subGroupBy ?? null, subGroup);
+    return out;
+  }
+
+  private dateRange(
+    props: LoadedProperty[],
+    r: NonNullable<z.output<typeof queryRowsSchema>['dateRange']>,
+  ): QueryContext['dateRange'] {
+    const isDate = (p?: LoadedProperty) =>
+      p && ['date', 'created_time', 'last_edited_time'].includes(p.type);
+    const start = props.find((p) => p.id === r.startPropertyId);
+    const end = r.endPropertyId ? props.find((p) => p.id === r.endPropertyId) : undefined;
+    if (!isDate(start) || (r.endPropertyId && !isDate(end)))
+      throw new AppError('bad_request', 'Kein Datums-Property');
+    return { start: start!, end: end ?? null, from: r.from, to: r.to };
   }
 
   async get(user: AuthUser, databaseId: string, rowId: string): Promise<RowDto> {
@@ -259,18 +338,65 @@ export class RowsService {
     const a = await this.access.requireData(user.id, databaseId);
     const row = await this.requireRow(user, a.data.db.id, rowId);
     const props = await this.access.properties(a.data.db.id);
+    const placement = input.afterId !== undefined || input.beforeId !== undefined;
     const moved = await this.prisma.client.$transaction(async (tx) => {
-      const position = await this.rowPosition(
-        tx,
-        a.data.db.id,
-        input.afterId,
-        input.beforeId,
-        row.id,
-      );
-      const u = await tx.page.update({ where: { id: row.id }, data: { position } });
+      // Gruppenwechsel und Position atomar: Zeile sperren, aktuellen Wert lesen, neu setzen
+      let title: string | undefined;
+      if (input.groups?.length) {
+        await tx.$queryRaw`SELECT id FROM pages WHERE id = ${row.id}::uuid FOR UPDATE`;
+        const current = await tx.page.findUniqueOrThrow({ where: { id: row.id } });
+        const [dto] = await this.pagesToDtos([current], props);
+        const record: RowRecord = { ...dto!, createdAt: dto!.createdAt, values: dto!.values };
+        const raw: Record<string, unknown> = {};
+        for (const g of input.groups) {
+          const prop = props.find((p) => p.id === g.propertyId);
+          if (!prop) throw new AppError('validation_failed', 'Unbekanntes Property');
+          const spec: GroupSpec = { prop, dateBucket: 'day', numberInterval: 1 };
+          let res;
+          try {
+            res = valueForGroupMove(record, spec, g.from, g.to, safeTimeZone(input.timeZone));
+          } catch (err) {
+            if (err instanceof GroupMoveError) throw new AppError('bad_request', err.message);
+            throw err;
+          }
+          if (res.kind === 'title') title = res.value.replace(/\s+/g, ' ').trim();
+          else if (res.kind === 'value') {
+            raw[prop.id] = res.value;
+            // Folgewechsel (Untergruppe) sieht den neuen Wert
+            record.values = { ...record.values, [prop.id]: res.value as never };
+          }
+        }
+        const values = await this.validateValues(a.data.page.workspaceId, props, raw);
+        await this.writeValues(tx, a.data.db.id, row.id, props, values);
+      }
+      const position = placement
+        ? await this.rowPosition(tx, a.data.db.id, input.afterId, input.beforeId, row.id)
+        : undefined;
+      const changed = !!input.groups?.length;
+      const u = await tx.page.update({
+        where: { id: row.id },
+        data: {
+          ...(position !== undefined ? { position } : {}),
+          ...(title !== undefined ? { title } : {}),
+          ...(changed ? { lastEditedAt: new Date(), lastEditedById: user.id } : {}),
+        },
+      });
       await this.access.event(tx, a.data.page, 'database.rows.changed', user.id, {
         rowIds: [row.id],
       });
+      if (title !== undefined) {
+        await this.access.event(tx, a.data.page, 'database.changed', user.id, {});
+        await tx.changeEvent.create({
+          data: {
+            workspaceId: row.workspaceId,
+            type: 'page.updated',
+            entityId: row.id,
+            actorId: user.id,
+            audienceUserId: row.scope === 'PRIVATE' ? row.ownerId : null,
+            payload: { title },
+          },
+        });
+      }
       return u;
     });
     return (await this.pagesToDtos([moved], props))[0]!;

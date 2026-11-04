@@ -5,6 +5,7 @@ export * from './normalize';
 export {
   compileCalculationQuery,
   compileCountQuery,
+  compileGroupCountQuery,
   compileRowQuery,
   CursorMismatchError,
   likePattern,
@@ -20,3 +21,4 @@ export {
   type ConversionInput,
 } from './convert';
 export { fromStorage, toStorage, type StoredColumns } from './storage';
+export * from './grouping';

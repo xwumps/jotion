@@ -682,8 +682,15 @@ export const VIEW_TYPES = [
   'chart',
 ] as const;
 export type ViewType = (typeof VIEW_TYPES)[number];
-/** In Phase 4 anlegbar. */
-export const CREATABLE_VIEW_TYPES = ['table'] as const satisfies readonly ViewType[];
+/** Anlegbar (Chart folgt in Phase 7). */
+export const CREATABLE_VIEW_TYPES = [
+  'table',
+  'board',
+  'list',
+  'gallery',
+  'calendar',
+  'timeline',
+] as const satisfies readonly ViewType[];
 
 export const viewPropertySchema = z
   .object({
@@ -694,6 +701,120 @@ export const viewPropertySchema = z
   })
   .strict();
 export type ViewProperty = z.output<typeof viewPropertySchema>;
+
+// ---------------------------------------------------------------- Gruppierung (Phase 5)
+
+/** Gruppenschlüssel für "leer" (keine Option, kein Datum, ...). */
+export const EMPTY_GROUP = '__empty__';
+export const DATE_BUCKETS = ['day', 'week', 'month', 'year'] as const;
+export type DateBucket = (typeof DATE_BUCKETS)[number];
+
+/** Typen, nach denen gruppiert werden kann. */
+export const GROUPABLE_TYPES: readonly PropertyType[] = [
+  'title',
+  'text',
+  'url',
+  'email',
+  'phone',
+  'number',
+  'select',
+  'multi_select',
+  'status',
+  'date',
+  'person',
+  'checkbox',
+  'created_time',
+  'created_by',
+  'last_edited_time',
+  'last_edited_by',
+];
+export const isGroupable = (t: PropertyType) => GROUPABLE_TYPES.includes(t);
+
+const groupKey = z.string().min(1).max(200);
+
+export const groupBySchema = z
+  .object({
+    propertyId: id,
+    hideEmpty: z.boolean().default(false),
+    /** Datum: Zeitraum je Gruppe */
+    dateBucket: z.enum(DATE_BUCKETS).default('month'),
+    /** Zahl: Breite der Bereiche */
+    numberInterval: z.number().positive().max(1e12).default(10),
+    /** Reihenfolge: manuell (Optionen bzw. order), auf- oder absteigend */
+    sort: z.enum(['manual', 'asc', 'desc']).default('manual'),
+    /** Manuelle Reihenfolge der Gruppenschlüssel (fehlende hinten) */
+    order: z.array(groupKey).max(1000).default([]),
+    /** Ausgeblendete Gruppen */
+    hidden: z.array(groupKey).max(1000).default([]),
+    /** Eingeklappte Gruppen (Liste, Tabelle, Swimlanes) */
+    collapsed: z.array(groupKey).max(1000).default([]),
+  })
+  .strict();
+export type GroupBy = z.output<typeof groupBySchema>;
+
+export const CARD_PREVIEWS = ['none', 'cover', 'content', 'files'] as const;
+export const CARD_SIZES = ['small', 'medium', 'large'] as const;
+
+export const boardConfigSchema = z
+  .object({
+    cardPreview: z.enum(CARD_PREVIEWS).default('none'),
+    /** Datei-Property als Vorschau (cardPreview = files) */
+    previewPropertyId: id.nullable().default(null),
+    cardSize: z.enum(CARD_SIZES).default('medium'),
+    fitImage: z.boolean().default(false),
+    /** Spaltenhintergrund in Optionsfarbe */
+    colorColumns: z.boolean().default(true),
+    /** Berechnung je Spalte (Standard: Anzahl) */
+    columnCalculation: z
+      .object({ propertyId: id.nullable(), fn: z.enum(CALCULATIONS) })
+      .strict()
+      .nullable()
+      .default(null),
+  })
+  .strict();
+export type BoardConfig = z.output<typeof boardConfigSchema>;
+
+export const galleryConfigSchema = z
+  .object({
+    cardPreview: z.enum(CARD_PREVIEWS).default('cover'),
+    previewPropertyId: id.nullable().default(null),
+    cardSize: z.enum(CARD_SIZES).default('medium'),
+    fitImage: z.boolean().default(false),
+  })
+  .strict();
+export type GalleryConfig = z.output<typeof galleryConfigSchema>;
+
+export const calendarConfigSchema = z
+  .object({
+    datePropertyId: id.nullable().default(null),
+    mode: z.enum(['month', 'week']).default('month'),
+    showWeekends: z.boolean().default(true),
+  })
+  .strict();
+export type CalendarConfig = z.output<typeof calendarConfigSchema>;
+
+export const TIMELINE_ZOOMS = [
+  'hours',
+  'day',
+  'week',
+  'bi_week',
+  'month',
+  'quarter',
+  'year',
+] as const;
+export type TimelineZoom = (typeof TIMELINE_ZOOMS)[number];
+
+export const timelineConfigSchema = z
+  .object({
+    startPropertyId: id.nullable().default(null),
+    /** Ende aus demselben Datums-Property (Bereich) oder einem zweiten Property */
+    endPropertyId: id.nullable().default(null),
+    zoom: z.enum(TIMELINE_ZOOMS).default('week'),
+    showTable: z.boolean().default(true),
+    tableWidth: z.number().int().min(160).max(800).default(280),
+  })
+  .strict();
+export type TimelineConfig = z.output<typeof timelineConfigSchema>;
 
 export const viewConfigSchema = z
   .object({
@@ -706,15 +827,15 @@ export const viewConfigSchema = z
     calculations: z.record(z.string(), z.enum(CALCULATIONS)).default({}),
     wrapCells: z.boolean().default(false),
     // Phase 5: Gruppierung und typspezifische Einstellungen
-    groupBy: z
-      .object({ propertyId: id, hideEmpty: z.boolean().default(false) })
-      .strict()
-      .nullable()
-      .default(null),
-    board: z.record(z.string(), z.unknown()).optional(),
-    calendar: z.record(z.string(), z.unknown()).optional(),
-    timeline: z.record(z.string(), z.unknown()).optional(),
-    gallery: z.record(z.string(), z.unknown()).optional(),
+    groupBy: groupBySchema.nullable().default(null),
+    /** Zweite Ebene (Swimlanes im Board, Untergruppen in Liste und Tabelle) */
+    subGroupBy: groupBySchema.nullable().default(null),
+    /** Property-Sichtbarkeit für Karten (Board, Gallery, List, Calendar, Timeline) */
+    cardProperties: z.array(id).max(500).optional(),
+    board: boardConfigSchema.optional(),
+    calendar: calendarConfigSchema.optional(),
+    timeline: timelineConfigSchema.optional(),
+    gallery: galleryConfigSchema.optional(),
     chart: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
@@ -756,6 +877,8 @@ export interface DatabaseDto {
   properties: PropertyDto[];
   views: ViewDto[];
   canEdit: boolean;
+  /** Gesperrt: Properties und Ansichten unveränderlich, Zeilen weiter bearbeitbar */
+  locked: boolean;
   deleted: boolean;
 }
 
@@ -838,7 +961,7 @@ export type UpdatePropertyInput = z.input<typeof updatePropertySchema>;
 export const createViewSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
-    type: z.enum(VIEW_TYPES).default('table'),
+    type: z.enum(CREATABLE_VIEW_TYPES).default('table'),
     /** Konfiguration einer bestehenden Ansicht übernehmen */
     duplicateOf: id.optional(),
     ...placement,
@@ -849,6 +972,8 @@ export type CreateViewInput = z.input<typeof createViewSchema>;
 export const updateViewSchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
+    /** Layout wechseln (Einstellungen der anderen Layouts bleiben erhalten) */
+    type: z.enum(CREATABLE_VIEW_TYPES).optional(),
     /** Teiländerung; wird mit der gespeicherten Konfiguration zusammengeführt und dann geprüft.
      *  (Kein viewConfigSchema.partial(): dessen Standardwerte würden fehlende Felder überschreiben.) */
     config: z.record(z.string(), z.unknown()).optional(),
@@ -872,6 +997,19 @@ export const queryRowsSchema = z
     limit: z.number().int().min(1).max(ROW_PAGE_MAX).default(100),
     /** IANA-Zeitzone für Datumsfilter */
     timeZone: z.string().max(64).optional(),
+    /** Nur Zeilen einer Gruppe (und Untergruppe) der Ansicht */
+    group: groupKey.optional(),
+    subGroup: groupKey.optional(),
+    /** Nur Zeilen, deren Datum den Zeitraum [from, to] berührt (Kalender, Zeitleiste) */
+    dateRange: z
+      .object({
+        startPropertyId: id,
+        endPropertyId: id.nullable().optional(),
+        from: z.string().regex(ISO_DATE),
+        to: z.string().regex(ISO_DATE),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type QueryRowsInput = z.input<typeof queryRowsSchema>;
@@ -901,6 +1039,38 @@ export const updateRowSchema = z
   .strict();
 export type UpdateRowInput = z.input<typeof updateRowSchema>;
 
-export const moveRowSchema = z.object(placement).strict();
+/** Gruppenwechsel beim Ziehen im Board: Wert des Gruppen-Properties wird mit gesetzt. */
+export const groupMoveSchema = z.object({ propertyId: id, from: groupKey, to: groupKey }).strict();
+export type GroupMove = z.output<typeof groupMoveSchema>;
+
+export const moveRowSchema = z
+  .object({
+    ...placement,
+    groups: z.array(groupMoveSchema).max(2).optional(),
+    /** Zeitzone für Datumsgruppen */
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict();
+export type MoveRowInput = z.input<typeof moveRowSchema>;
+
+export const groupsQuerySchema = z
+  .object({
+    viewId: id,
+    search: z.string().max(200).optional(),
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict();
+
+export interface GroupCountDto {
+  key: string;
+  subKey: string | null;
+  count: number;
+}
+
+export interface GroupsResultDto {
+  /** Anzahl je Gruppe (und Untergruppe), nur Gruppen mit Zeilen */
+  counts: GroupCountDto[];
+  total: number;
+}
 
 export const trashRowsSchema = z.object({ rowIds: z.array(id).min(1).max(500) }).strict();
