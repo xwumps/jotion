@@ -14,6 +14,7 @@ export function SetupForm() {
 
   return (
     <form
+      method="post"
       className="space-y-3"
       onSubmit={async (e) => {
         e.preventDefault();

@@ -2,6 +2,7 @@
 
 import type { Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { TextSelection } from '@tiptap/pm/state';
 import { CONTENT_COLOR_NAMES } from '@jotion/editor';
 import { cn } from '@jotion/ui';
 import { Bold, ChevronDown, Code, Italic, Link2, Strikethrough, Underline } from 'lucide-react';
@@ -110,6 +111,8 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
       shouldShow={({ editor: e, state }) =>
         e.isEditable &&
         !state.selection.empty &&
+        // Nicht bei ausgewählten Blöcken (Bild, Rechteckauswahl) oder Tabellenzellen
+        state.selection instanceof TextSelection &&
         !e.isActive('codeBlock') &&
         !e.isActive('subpage') &&
         !e.isActive('pageLink')
@@ -176,6 +179,7 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
         </PopoverTrigger>
         <PopoverContent className="p-2" onOpenAutoFocus={(e) => e.preventDefault()}>
           <form
+            method="post"
             onSubmit={(e) => {
               e.preventDefault();
               applyLink();

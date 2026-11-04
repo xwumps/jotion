@@ -20,6 +20,7 @@ export function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
 
   return (
     <form
+      method="post"
       className="space-y-3"
       onSubmit={async (e) => {
         e.preventDefault();

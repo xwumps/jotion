@@ -14,12 +14,20 @@
       "types": "./dist/cjs/projection.d.ts",
       "import": "./dist/esm/projection.js",
       "require": "./dist/cjs/projection.js"
+    },
+    "./paste": {
+      "types": "./dist/cjs/paste.d.ts",
+      "import": "./dist/esm/paste.js",
+      "require": "./dist/cjs/paste.js"
     }
   },
   "typesVersions": {
     "*": {
       "projection": [
         "./dist/cjs/projection.d.ts"
+      ],
+      "paste": [
+        "./dist/cjs/paste.d.ts"
       ]
     }
   },
@@ -38,17 +46,20 @@
     "@tiptap/extension-code-block-lowlight": "3.32.2",
     "@tiptap/extension-details": "3.32.2",
     "@tiptap/extension-list": "3.32.2",
+    "@tiptap/extension-table": "3.32.2",
     "@tiptap/extension-unique-id": "3.32.2",
     "@tiptap/extensions": "3.32.2",
     "@tiptap/pm": "3.32.2",
     "@tiptap/starter-kit": "3.32.2",
     "lowlight": "3.3.0",
+    "marked": "18.1.1",
     "yjs": "13.6.33"
   },
   "devDependencies": {
     "@jotion/config": "workspace:*",
-    "vitest": "3.2.7",
     "@tiptap/y-tiptap": "3.0.12",
+    "happy-dom": "21.0.4",
+    "vitest": "3.2.7",
     "y-prosemirror": "1.3.7"
   },
   "module": "./dist/esm/index.js"

@@ -24,7 +24,11 @@ export async function createApp(): Promise<NestFastifyApplication> {
   const fastify = app.getHttpAdapter().getInstance();
   await app.register(fastifyCookie as never);
   await app.register(fastifyMultipart as never, {
-    limits: { fileSize: MAX_IMAGE_UPLOAD_BYTES, files: 1 },
+    // Je Route enger begrenzt (Bilder 10 MB, allgemeine Dateien JOTION_MAX_UPLOAD_MB)
+    limits: {
+      fileSize: Math.max(MAX_IMAGE_UPLOAD_BYTES, env.JOTION_MAX_UPLOAD_MB * 1024 * 1024 + 1),
+      files: 1,
+    },
   });
   registerOriginCheck(fastify, [env.JOTION_PUBLIC_URL, ...env.JOTION_ALLOWED_ORIGINS]);
   app.enableShutdownHooks();

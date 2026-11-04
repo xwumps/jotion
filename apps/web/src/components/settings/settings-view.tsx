@@ -114,6 +114,7 @@ function AccountSettings() {
     <>
       <Section title={t('profile')}>
         <form
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             saveName.mutate();
@@ -141,6 +142,7 @@ function AccountSettings() {
       </Section>
       <Section title={t('changePassword')} description={t('changePasswordHint')}>
         <form
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             changePw.mutate();
@@ -222,6 +224,7 @@ function WorkspaceSettings({ ws }: { ws: string }) {
           </button>
         </IconPicker>
         <form
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             save.mutate({ name });

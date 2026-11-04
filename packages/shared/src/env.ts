@@ -41,6 +41,21 @@ export const serverEnvSchema = z.object({
         .map((o) => o.trim())
         .filter(Boolean),
     ),
+  /** Phase 3: Höchstgröße für allgemeine Datei-Uploads in MB (Bilder bleiben bei 10 MB) */
+  JOTION_MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(2048).default(100),
+  /**
+   * Phase 3: Hosts oder IP-Bereiche (CIDR), die serverseitige Abrufe trotz privater Adresse
+   * erreichen dürfen (kommagetrennt), z. B. ein intern gehostetes Wiki. Standard: keine.
+   */
+  JOTION_SSRF_ALLOWLIST: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim().toLowerCase())
+        .filter(Boolean),
+    ),
 });
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 

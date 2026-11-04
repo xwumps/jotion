@@ -333,6 +333,7 @@ function OptionsEditor({
         </div>
       ))}
       <form
+        method="post"
         className="flex gap-1"
         onSubmit={(e) => {
           e.preventDefault();

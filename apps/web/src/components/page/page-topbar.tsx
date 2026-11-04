@@ -2,9 +2,24 @@
 
 import type { PageDto, PageSettings } from '@jotion/shared';
 import { cn } from '@jotion/ui';
-import { Archive, Link2, Lock, MoreHorizontal, Star, Trash2, Type } from 'lucide-react';
+import {
+  Archive,
+  Copy,
+  Link2,
+  Lock,
+  MoreHorizontal,
+  Printer,
+  Star,
+  Trash2,
+  Type,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import type { DuplicateResultDto } from '@jotion/shared';
+import { apiPost, errorMessage } from '@/lib/api-client';
+import { invalidateTree } from '@/lib/hooks';
 import { toast } from 'sonner';
 import { pageHref, relativeTime } from '@/lib/format';
 import { usePageActions } from '@/lib/hooks';
@@ -27,6 +42,9 @@ const FONTS = ['default', 'serif', 'mono'] as const;
 export function PageTopbar({ page }: { page: PageDto }) {
   const t = useTranslations('page');
   const tc = useTranslations('common');
+  const tx = useTranslations('contentPage');
+  const router = useRouter();
+  const qc = useQueryClient();
   const locale = useLocale();
   const ws = page.workspaceId;
   const { update, favorite, archive, trash } = usePageActions(ws);
@@ -38,6 +56,18 @@ export function PageTopbar({ page }: { page: PageDto }) {
       new URL(pageHref(ws, page.id), window.location.origin).toString(),
     );
     toast.success(t('linkCopied'));
+  };
+
+  const duplicate = async () => {
+    const pending = toast.loading(tx('duplicating'));
+    try {
+      const res = await apiPost<DuplicateResultDto>(`/pages/${page.id}/duplicate`);
+      invalidateTree(qc, ws);
+      toast.success(tx('duplicated', { count: res.pages }), { id: pending });
+      router.push(pageHref(ws, res.id));
+    } catch (err) {
+      toast.error(errorMessage(err), { id: pending });
+    }
   };
 
   return (
@@ -141,6 +171,16 @@ export function PageTopbar({ page }: { page: PageDto }) {
               <MenuSeparator />
               <MenuItem icon={Link2} onSelect={() => void copyLink()}>
                 {t('copyLink')}
+              </MenuItem>
+              <MenuItem icon={Copy} onSelect={() => void duplicate()}>
+                {tx('duplicate')}
+              </MenuItem>
+              <MenuItem
+                icon={Printer}
+                shortcut="Strg+P"
+                onSelect={() => router.push(`/print/${page.id}`)}
+              >
+                {tx('print')}
               </MenuItem>
               <MenuItem
                 icon={Archive}

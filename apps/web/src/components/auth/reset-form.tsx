@@ -26,6 +26,7 @@ export function ResetForm({ token }: { token: string }) {
 
   return (
     <form
+      method="post"
       className="space-y-3"
       onSubmit={async (e) => {
         e.preventDefault();

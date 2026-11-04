@@ -317,6 +317,70 @@
         "label": "Trennlinie",
         "description": "Abschnitte optisch trennen"
       },
+      "image": {
+        "label": "Bild",
+        "description": "Bild hochladen oder per Link einbetten"
+      },
+      "video": {
+        "label": "Video",
+        "description": "Video hochladen oder per Link einbetten"
+      },
+      "audio": {
+        "label": "Audio",
+        "description": "Audiodatei hochladen oder verlinken"
+      },
+      "file": {
+        "label": "Datei",
+        "description": "Beliebige Datei anhängen"
+      },
+      "pdf": {
+        "label": "PDF",
+        "description": "PDF hochladen und anzeigen"
+      },
+      "bookmark": {
+        "label": "Lesezeichen",
+        "description": "Link mit Vorschau"
+      },
+      "embed": {
+        "label": "Einbetten",
+        "description": "YouTube, Vimeo, Figma, Google Maps und mehr"
+      },
+      "table": {
+        "label": "Tabelle",
+        "description": "Einfache Tabelle mit Kopfzeile"
+      },
+      "columns2": {
+        "label": "2 Spalten",
+        "description": "Inhalt in zwei Spalten"
+      },
+      "columns3": {
+        "label": "3 Spalten",
+        "description": "Inhalt in drei Spalten"
+      },
+      "columns4": {
+        "label": "4 Spalten",
+        "description": "Inhalt in vier Spalten"
+      },
+      "columns5": {
+        "label": "5 Spalten",
+        "description": "Inhalt in fünf Spalten"
+      },
+      "toc": {
+        "label": "Inhaltsverzeichnis",
+        "description": "Überschriften der Seite als Liste"
+      },
+      "breadcrumb": {
+        "label": "Breadcrumb",
+        "description": "Pfad zu dieser Seite"
+      },
+      "math": {
+        "label": "Formel",
+        "description": "Mathematische Formel als Block (KaTeX)"
+      },
+      "mathInline": {
+        "label": "Inline-Formel",
+        "description": "Formel im Text, auch mit $$…$$"
+      },
       "page": {
         "label": "Seite",
         "description": "Unterseite in dieser Seite anlegen"
@@ -330,7 +394,7 @@
   "search": {
     "title": "Suchen",
     "pickTitle": "Seite auswählen",
-    "placeholder": "Seiten durchsuchen …",
+    "placeholder": "Seiten und Inhalte durchsuchen …",
     "pickPlaceholder": "Seite zum Verlinken suchen …",
     "results": "Treffer",
     "recent": "Zuletzt bearbeitet",
@@ -359,6 +423,106 @@
     "mdQuote": "Zitat",
     "mdCode": "Codeblock",
     "mdDivider": "Trennlinie"
+  },
+  "contentBlocks": {
+    "storedAsFile": "Als Datei gespeichert, das Format wird hier nicht angezeigt",
+    "uploading": "Wird hochgeladen …",
+    "upload": "Datei hochladen",
+    "linkPlaceholder": "Link einfügen …",
+    "embedLink": "Einbetten",
+    "invalidUrl": "Ungültiger Link",
+    "dropHint": "Du kannst Dateien auch hierher ziehen oder einfügen.",
+    "captionPlaceholder": "Beschriftung hinzufügen …",
+    "open": "Original öffnen",
+    "loadingPreview": "Vorschau wird geladen …",
+    "createBookmark": "Lesezeichen erstellen",
+    "embedPlaceholder": "Link von YouTube, Vimeo, Figma, Google Maps …",
+    "embedUnsupported": "Dieser Anbieter kann nicht eingebettet werden",
+    "embedProviders": "Erlaubt: YouTube, Vimeo, Figma, Google Maps, Loom, CodePen, Spotify",
+    "toc": "Inhaltsverzeichnis",
+    "tocEmpty": "Füge Überschriften hinzu, um das Inhaltsverzeichnis zu füllen.",
+    "untitledHeading": "Überschrift ohne Text",
+    "mathError": "Die Formel enthält einen Fehler",
+    "done": "Fertig",
+    "mathPlaceholder": "Formel eingeben",
+    "unknownPerson": "Unbekannte Person",
+    "noAccess": "Kein Zugriff",
+    "untitled": "Ohne Titel",
+    "add": {
+      "image": "Bild hinzufügen",
+      "video": "Video hinzufügen",
+      "audio": "Audio hinzufügen",
+      "file": "Datei hinzufügen",
+      "pdf": "PDF hinzufügen",
+      "bookmark": "Lesezeichen hinzufügen",
+      "embed": "Inhalt einbetten"
+    },
+    "empty": {
+      "image": "Kein Bild",
+      "video": "Kein Video",
+      "audio": "Keine Audiodatei",
+      "file": "Keine Datei",
+      "pdf": "Kein PDF"
+    },
+    "align": {
+      "left": "Links",
+      "center": "Zentriert",
+      "right": "Rechts"
+    },
+    "table": {
+      "addRow": "Zeile darunter einfügen",
+      "addColumn": "Spalte rechts einfügen",
+      "deleteRow": "Zeile löschen",
+      "deleteColumn": "Spalte löschen",
+      "headerRow": "Kopfzeile ein/aus",
+      "headerColumn": "Kopfspalte ein/aus",
+      "delete": "Tabelle löschen"
+    },
+    "mention": {
+      "people": "Personen",
+      "pages": "Seiten",
+      "dates": "Datum",
+      "empty": "Keine Treffer",
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "yesterday": "Gestern"
+    }
+  },
+  "contentPrint": {
+    "notFound": "Seite nicht gefunden oder kein Zugriff",
+    "back": "Zurück",
+    "title": "Drucken / Als PDF",
+    "expandToggles": "Toggles aufklappen",
+    "backgrounds": "Hintergrundfarben",
+    "header": "Titel und Datum in der Kopfzeile",
+    "print": "Drucken"
+  },
+  "contentPage": {
+    "duplicate": "Duplizieren",
+    "duplicating": "Wird dupliziert …",
+    "duplicated": "{count, plural, one {Seite dupliziert} other {# Seiten dupliziert}}",
+    "print": "Drucken / Als PDF"
+  },
+  "contentSearch": {
+    "titleOnly": "Nur Titel",
+    "createdByMe": "Von mir erstellt",
+    "scope": "Bereich",
+    "scopes": {
+      "all": "Alle Bereiche",
+      "private": "Privat",
+      "team": "Team"
+    },
+    "edited": "Bearbeitet",
+    "editedRange": {
+      "any": "Jederzeit bearbeitet",
+      "7d": "Letzte 7 Tage",
+      "30d": "Letzte 30 Tage"
+    },
+    "sort": "Sortierung",
+    "sorts": {
+      "relevance": "Beste Treffer",
+      "edited": "Zuletzt bearbeitet"
+    }
   },
   "database": {
     "untitled": "Ohne Titel",

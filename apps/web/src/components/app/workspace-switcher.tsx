@@ -100,6 +100,7 @@ export function WorkspaceSwitcher({ ws }: { ws: string }) {
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent title={t('newWorkspace')} description={t('newWorkspaceHint')}>
           <form
+            method="post"
             onSubmit={(e) => {
               e.preventDefault();
               void create();

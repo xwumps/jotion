@@ -8,11 +8,16 @@ import { TaskItem, TaskList } from '@tiptap/extension-list';
 import UniqueID from '@tiptap/extension-unique-id';
 import { Placeholder } from '@tiptap/extensions';
 import StarterKit from '@tiptap/starter-kit';
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import { common, createLowlight } from 'lowlight';
 import { BLOCK_NODE_TYPES } from './constants';
 import { BackgroundColor, BlockColor, TextColor } from './marks/colors';
 import { Callout } from './nodes/callout';
 import { PageLink, Subpage } from './nodes/page-ref';
+import { BlockSelection } from './block-selection';
+import { MathBlock, MathInline, Mention } from './nodes/inline';
+import { Breadcrumb, Column, ColumnList, TableOfContents } from './nodes/layout';
+import { Audio, Bookmark, Embed, FileBlock, Image, Pdf, Video } from './nodes/media';
 import { Database } from './nodes/database';
 
 export const lowlight = createLowlight(common);
@@ -167,6 +172,25 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
     TextColor,
     BackgroundColor,
     BlockColor,
+    Image,
+    Video,
+    Audio,
+    FileBlock,
+    Pdf,
+    Bookmark,
+    Embed,
+    Table.configure({ resizable: true, HTMLAttributes: { class: 'jt-table' } }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    ColumnList,
+    Column,
+    TableOfContents,
+    Breadcrumb,
+    MathBlock,
+    MathInline,
+    Mention,
+    BlockSelection,
     UniqueID.configure({
       types: [...BLOCK_NODE_TYPES],
       attributeName: 'id',

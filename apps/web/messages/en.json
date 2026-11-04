@@ -317,6 +317,70 @@
         "label": "Divider",
         "description": "Visually separate sections"
       },
+      "image": {
+        "label": "Image",
+        "description": "Upload or embed with a link"
+      },
+      "video": {
+        "label": "Video",
+        "description": "Upload or embed with a link"
+      },
+      "audio": {
+        "label": "Audio",
+        "description": "Upload or link an audio file"
+      },
+      "file": {
+        "label": "File",
+        "description": "Attach any file"
+      },
+      "pdf": {
+        "label": "PDF",
+        "description": "Upload and view a PDF"
+      },
+      "bookmark": {
+        "label": "Web bookmark",
+        "description": "Link with a preview"
+      },
+      "embed": {
+        "label": "Embed",
+        "description": "YouTube, Vimeo, Figma, Google Maps and more"
+      },
+      "table": {
+        "label": "Table",
+        "description": "Simple table with a header row"
+      },
+      "columns2": {
+        "label": "2 columns",
+        "description": "Content in two columns"
+      },
+      "columns3": {
+        "label": "3 columns",
+        "description": "Content in three columns"
+      },
+      "columns4": {
+        "label": "4 columns",
+        "description": "Content in four columns"
+      },
+      "columns5": {
+        "label": "5 columns",
+        "description": "Content in five columns"
+      },
+      "toc": {
+        "label": "Table of contents",
+        "description": "Headings of this page as a list"
+      },
+      "breadcrumb": {
+        "label": "Breadcrumb",
+        "description": "Path to this page"
+      },
+      "math": {
+        "label": "Block equation",
+        "description": "Mathematical formula as a block (KaTeX)"
+      },
+      "mathInline": {
+        "label": "Inline equation",
+        "description": "Formula within text, also with $$…$$"
+      },
       "page": {
         "label": "Page",
         "description": "Create a subpage inside this page"
@@ -330,7 +394,7 @@
   "search": {
     "title": "Search",
     "pickTitle": "Choose a page",
-    "placeholder": "Search pages …",
+    "placeholder": "Search pages and content …",
     "pickPlaceholder": "Search a page to link …",
     "results": "Results",
     "recent": "Recently edited",
@@ -359,6 +423,106 @@
     "mdQuote": "Quote",
     "mdCode": "Code block",
     "mdDivider": "Divider"
+  },
+  "contentBlocks": {
+    "storedAsFile": "Saved as a file, this format cannot be shown here",
+    "uploading": "Uploading …",
+    "upload": "Upload file",
+    "linkPlaceholder": "Paste a link …",
+    "embedLink": "Embed",
+    "invalidUrl": "Invalid link",
+    "dropHint": "You can also drop or paste files here.",
+    "captionPlaceholder": "Add a caption …",
+    "open": "Open original",
+    "loadingPreview": "Loading preview …",
+    "createBookmark": "Create bookmark",
+    "embedPlaceholder": "Link from YouTube, Vimeo, Figma, Google Maps …",
+    "embedUnsupported": "This provider cannot be embedded",
+    "embedProviders": "Allowed: YouTube, Vimeo, Figma, Google Maps, Loom, CodePen, Spotify",
+    "toc": "Table of contents",
+    "tocEmpty": "Add headings to fill the table of contents.",
+    "untitledHeading": "Empty heading",
+    "mathError": "The formula contains an error",
+    "done": "Done",
+    "mathPlaceholder": "Enter a formula",
+    "unknownPerson": "Unknown person",
+    "noAccess": "No access",
+    "untitled": "Untitled",
+    "add": {
+      "image": "Add an image",
+      "video": "Add a video",
+      "audio": "Add audio",
+      "file": "Add a file",
+      "pdf": "Add a PDF",
+      "bookmark": "Add a web bookmark",
+      "embed": "Embed content"
+    },
+    "empty": {
+      "image": "No image",
+      "video": "No video",
+      "audio": "No audio file",
+      "file": "No file",
+      "pdf": "No PDF"
+    },
+    "align": {
+      "left": "Left",
+      "center": "Center",
+      "right": "Right"
+    },
+    "table": {
+      "addRow": "Insert row below",
+      "addColumn": "Insert column right",
+      "deleteRow": "Delete row",
+      "deleteColumn": "Delete column",
+      "headerRow": "Toggle header row",
+      "headerColumn": "Toggle header column",
+      "delete": "Delete table"
+    },
+    "mention": {
+      "people": "People",
+      "pages": "Pages",
+      "dates": "Date",
+      "empty": "No results",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday"
+    }
+  },
+  "contentPrint": {
+    "notFound": "Page not found or no access",
+    "back": "Back",
+    "title": "Print / Save as PDF",
+    "expandToggles": "Expand toggles",
+    "backgrounds": "Background colors",
+    "header": "Title and date in the header",
+    "print": "Print"
+  },
+  "contentPage": {
+    "duplicate": "Duplicate",
+    "duplicating": "Duplicating …",
+    "duplicated": "{count, plural, one {Page duplicated} other {# pages duplicated}}",
+    "print": "Print / Save as PDF"
+  },
+  "contentSearch": {
+    "titleOnly": "Titles only",
+    "createdByMe": "Created by me",
+    "scope": "Section",
+    "scopes": {
+      "all": "All sections",
+      "private": "Private",
+      "team": "Team"
+    },
+    "edited": "Edited",
+    "editedRange": {
+      "any": "Edited any time",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    },
+    "sort": "Sort",
+    "sorts": {
+      "relevance": "Best matches",
+      "edited": "Last edited"
+    }
   },
   "database": {
     "untitled": "Untitled",

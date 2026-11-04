@@ -59,6 +59,18 @@ function PageBody({ page }: { page: PageDto }) {
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<PageEditorHandle>(null);
 
+  // Strg/Cmd+P öffnet die Druckansicht (gleiche Daten, statisch, mit Druckoptionen)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        router.push(`/print/${page.id}`);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router, page.id]);
+
   return (
     <div className="flex min-h-full flex-col">
       <PageTopbar page={page} />
@@ -141,6 +153,7 @@ function PageBody({ page }: { page: PageDto }) {
       )}
 
       <div
+        data-editor-area
         className={cn(
           'mx-auto w-full flex-1 px-6 pb-[30vh] sm:px-24',
           page.settings.fullWidth || page.kind === 'DATABASE' ? 'max-w-none' : 'max-w-[900px]',

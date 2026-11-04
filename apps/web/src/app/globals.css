@@ -2,8 +2,10 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/source-serif-4';
 @import '@fontsource-variable/jetbrains-mono';
+@import 'katex/dist/katex.min.css';
 @import '@jotion/ui/styles/tokens.css';
 @import './../styles/editor.css';
+@import './../styles/content.css';
 
 @source '../../../../packages/ui/src';
 
