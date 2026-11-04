@@ -42,6 +42,7 @@ import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } fr
 import { OptionChip } from '../cells';
 import { formatInstant, optionsOf, optionStyle } from '../property-meta';
 import type { DatabaseActions } from '../use-database';
+import { AUTO_SCROLL } from './calendar-view';
 import { Card, cardProperties, type CardPreview, type CardSize } from './card';
 import {
   buildGroups,
@@ -139,7 +140,13 @@ export function BoardView(props: BoardProps) {
     subBy && subProp
       ? buildGroups(subProp, subBy, subCountMap, members, locale, labels).filter((g) => !g.hidden)
       : [null];
-  const groups = buildGroups(prop, by, countsByKey(counts.data), members, locale, labels);
+  // Zähler sofort an eine laufende Verschiebung anpassen
+  const countMap = countsByKey(counts.data);
+  if (pending && pending.fromKey !== pending.toKey) {
+    countMap.set(pending.fromKey, Math.max(0, (countMap.get(pending.fromKey) ?? 0) - 1));
+    countMap.set(pending.toKey, (countMap.get(pending.toKey) ?? 0) + 1);
+  }
+  const groups = buildGroups(prop, by, countMap, members, locale, labels);
   const visible = groups.filter((g) => !g.hidden);
   const hidden = groups.filter((g) => g.hidden && !(by.hideEmpty && g.count === 0));
   const board = {
@@ -179,7 +186,13 @@ export function BoardView(props: BoardProps) {
       saveGroupBy({ order: keys, sort: 'manual' });
       return;
     }
-    if (o.type === 'column-head') return;
+    // Karte auf einen Spaltenkopf: in diese Spalte (gleiche Swimlane), Platz bleibt
+    const target: DropData =
+      o.type === 'column-head' ? { type: 'column', key: o.key, sub: a.sub, lastId: null } : o;
+    return dropCard(e, a, target);
+  };
+
+  const dropCard = (e: DragEndEvent, a: DragData, o: DropData) => {
     const moves: GroupMove[] = [];
     if (o.key !== a.key) {
       if (!canDragBetweenGroups(prop)) return void toast.error(t('cannotMove'));
@@ -230,6 +243,7 @@ export function BoardView(props: BoardProps) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => setActive(null)}
+      autoScroll={AUTO_SCROLL}
     >
       <div className="overflow-x-auto pb-4" data-testid="board">
         <div className="flex min-w-max flex-col gap-2 pt-2">

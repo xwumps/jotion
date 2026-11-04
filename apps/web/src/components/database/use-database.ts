@@ -127,19 +127,25 @@ export function handleDatabaseEvent(qc: QueryClient, type: string, entityId: str
   }
 }
 
+/**
+ * Zeilen in allen geladenen Ansichten ändern. Unter dbKeys.rows liegen seitenweise Listen
+ * (Tabelle, Board-Spalten, Liste), einfache Arrays (Kalender, Zeitleiste) und Gruppenzähler;
+ * nur die ersten beiden enthalten Zeilen.
+ */
+function mapRowsInCache(qc: QueryClient, dataId: string, fn: (r: RowDto) => RowDto) {
+  qc.setQueriesData<unknown>({ queryKey: dbKeys.rows(dataId) }, (old: unknown) => {
+    if (Array.isArray(old)) return (old as RowDto[]).map(fn);
+    if (old && typeof old === 'object' && Array.isArray((old as { pages?: unknown }).pages)) {
+      const inf = old as InfiniteData<RowQueryResultDto>;
+      return { ...inf, pages: inf.pages.map((p) => ({ ...p, rows: p.rows.map(fn) })) };
+    }
+    return old;
+  });
+}
+
 /** Zeile in allen geladenen Ansichten ersetzen (sofortige Anzeige ohne Neuladen). */
 function patchRowInCache(qc: QueryClient, dataId: string, row: RowDto) {
-  qc.setQueriesData<InfiniteData<RowQueryResultDto>>({ queryKey: dbKeys.rows(dataId) }, (old) =>
-    old
-      ? {
-          ...old,
-          pages: old.pages.map((p) => ({
-            ...p,
-            rows: p.rows.map((r) => (r.id === row.id ? row : r)),
-          })),
-        }
-      : old,
-  );
+  mapRowsInCache(qc, dataId, (r) => (r.id === row.id ? { ...r, ...row, preview: r.preview } : r));
   qc.setQueryData(dbKeys.row(dataId, row.id), row);
 }
 
@@ -165,26 +171,14 @@ export function useDatabaseActions(db: DatabaseDto) {
     }) => apiPatch<RowDto>(`/databases/${db.id}/rows/${rowId}/properties`, input),
     onMutate: ({ rowId, title, values }) => {
       // Optimistisch: Wert sofort anzeigen, bei Fehler neu laden
-      qc.setQueriesData<InfiniteData<RowQueryResultDto>>(
-        { queryKey: dbKeys.rows(db.dataId) },
-        (old) =>
-          old
-            ? {
-                ...old,
-                pages: old.pages.map((p) => ({
-                  ...p,
-                  rows: p.rows.map((r) =>
-                    r.id === rowId
-                      ? {
-                          ...r,
-                          ...(title !== undefined ? { title } : {}),
-                          values: { ...r.values, ...(values as RowDto['values']) },
-                        }
-                      : r,
-                  ),
-                })),
-              }
-            : old,
+      mapRowsInCache(qc, db.dataId, (r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              ...(title !== undefined ? { title } : {}),
+              values: { ...r.values, ...(values as RowDto['values']) },
+            }
+          : r,
       );
     },
     onSuccess: (row, vars) => {

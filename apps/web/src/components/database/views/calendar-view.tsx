@@ -49,6 +49,8 @@ interface Props {
 }
 
 const LANE_H = 24;
+/** Nur ganz am Rand automatisch scrollen (Standard: 20 % der Höhe, springt beim Ziehen weg) */
+export const AUTO_SCROLL = { threshold: { x: 0.05, y: 0.05 }, acceleration: 6 };
 const MAX_LANES_MONTH = 4;
 
 interface Segment {
@@ -263,7 +265,7 @@ export function CalendarView({
           </div>
         ))}
       </div>
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={onDragEnd} autoScroll={AUTO_SCROLL}>
         <div className="overflow-hidden rounded-md border border-border">
           {weeks.map((days, w) => {
             const segs = layoutWeek(days, items);

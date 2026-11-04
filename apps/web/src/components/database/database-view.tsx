@@ -300,7 +300,12 @@ function DatabaseBody({
                 db={db}
                 view={view}
                 editable={canEditStructure}
-                onLayout={(type) => actions.updateView.mutate({ id: view.id, type: type as Exclude<ViewType, 'chart'> })}
+                onLayout={(type) =>
+                  actions.updateView.mutate({
+                    id: view.id,
+                    type: type as Exclude<ViewType, 'chart'>,
+                  })
+                }
                 saveConfig={saveConfig}
                 onLock={setLock}
               />
