@@ -3,7 +3,7 @@
  * Gleiche Schemas in API (Validierung) und Oberfläche (Typen, Editoren).
  */
 import { z } from 'zod';
-import type { PageIcon, PageScope } from './contracts';
+import type { PageCover, PageIcon, PageScope } from './contracts';
 
 const id = z.uuid();
 
@@ -886,6 +886,9 @@ export interface RowDto {
   id: string;
   title: string;
   icon: PageIcon | null;
+  cover?: PageCover | null;
+  /** Vorschau aus dem Seiteninhalt (nur mit preview: true abgefragt) */
+  preview?: { image: string | null; text: string };
   position: string;
   createdAt: string;
   createdById: string;
@@ -997,6 +1000,8 @@ export const queryRowsSchema = z
     limit: z.number().int().min(1).max(ROW_PAGE_MAX).default(100),
     /** IANA-Zeitzone für Datumsfilter */
     timeZone: z.string().max(64).optional(),
+    /** Vorschau aus dem Seiteninhalt mitliefern (Karten in Board und Gallery) */
+    preview: z.boolean().optional(),
     /** Nur Zeilen einer Gruppe (und Untergruppe) der Ansicht */
     group: groupKey.optional(),
     subGroup: groupKey.optional(),
@@ -1017,6 +1022,11 @@ export type QueryRowsInput = z.input<typeof queryRowsSchema>;
 export const calculateSchema = z
   .object({
     viewId: id,
+    /** Nur über eine Gruppe (Spaltenberechnung im Board) */
+    group: groupKey.optional(),
+    subGroup: groupKey.optional(),
+    /** Berechnungen statt der gespeicherten der Ansicht */
+    calculations: z.record(z.string(), z.enum(CALCULATIONS)).optional(),
     search: z.string().max(200).optional(),
     timeZone: z.string().max(64).optional(),
   })

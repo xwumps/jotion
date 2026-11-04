@@ -62,11 +62,16 @@ export const useMembers = (ws: string) =>
   });
 
 /** Zeilen einer Ansicht, seitenweise per Cursor. */
-export function useRows(db: DatabaseDto, view: ViewDto | undefined, search: string) {
+export function useRows(
+  db: DatabaseDto,
+  view: ViewDto | undefined,
+  search: string,
+  opts: { preview?: boolean; enabled?: boolean } = {},
+) {
   const viewId = view?.id ?? '';
   return useInfiniteQuery({
-    queryKey: dbKeys.rowQuery(db.dataId, db.id, viewId, search),
-    enabled: Boolean(view) && !db.sourceMissing,
+    queryKey: [...dbKeys.rowQuery(db.dataId, db.id, viewId, search), Boolean(opts.preview)],
+    enabled: Boolean(view) && !db.sourceMissing && opts.enabled !== false,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       apiPost<RowQueryResultDto>(`/databases/${db.id}/query`, {
@@ -75,6 +80,7 @@ export function useRows(db: DatabaseDto, view: ViewDto | undefined, search: stri
         cursor: pageParam,
         limit: PAGE_SIZE,
         timeZone: timeZone(),
+        ...(opts.preview ? { preview: true } : {}),
       }),
     getNextPageParam: (last) => last.nextCursor,
     // Beim Neuladen nicht leeren, damit die Tabelle nicht springt
@@ -245,8 +251,12 @@ export function useDatabaseActions(db: DatabaseDto) {
     onError,
   });
   const createView = useMutation({
-    mutationFn: (input: { name: string; duplicateOf?: string; afterId?: string }) =>
-      apiPost<ViewDto>(`/databases/${db.id}/views`, input),
+    mutationFn: (input: {
+      name: string;
+      type?: ViewDto['type'];
+      duplicateOf?: string;
+      afterId?: string;
+    }) => apiPost<ViewDto>(`/databases/${db.id}/views`, input),
     onSuccess: refreshDb,
     onError,
   });
@@ -254,7 +264,7 @@ export function useDatabaseActions(db: DatabaseDto) {
     mutationKey: ['updateView', db.id],
     mutationFn: ({ id, ...input }: UpdateViewInput & { id: string }) =>
       apiPatch<ViewDto>(`/databases/${db.id}/views/${id}`, input),
-    onMutate: ({ id, config, name }) => {
+    onMutate: ({ id, config, name, type }) => {
       qc.setQueryData<DatabaseDto>(dbKeys.db(db.id), (old) =>
         old
           ? {
@@ -264,6 +274,7 @@ export function useDatabaseActions(db: DatabaseDto) {
                   ? {
                       ...v,
                       ...(name ? { name } : {}),
+                      ...(type ? { type } : {}),
                       config: { ...v.config, ...(config as Partial<ViewDto['config']>) },
                     }
                   : v,
@@ -292,6 +303,7 @@ export function useDatabaseActions(db: DatabaseDto) {
     onError,
   });
   return {
+    refreshDb: () => qc.invalidateQueries({ queryKey: ['db'] }),
     createRow,
     updateRow,
     trashRows,

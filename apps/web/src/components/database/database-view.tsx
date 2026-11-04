@@ -1,6 +1,13 @@
 'use client';
 
-import { operatorsFor, type DatabaseDto, type FilterGroup, type ViewDto } from '@jotion/shared';
+import {
+  CREATABLE_VIEW_TYPES,
+  operatorsFor,
+  type DatabaseDto,
+  type FilterGroup,
+  type ViewDto,
+  type ViewType,
+} from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import {
   ArrowUpDown,
@@ -29,6 +36,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { countConditions, FilterEditor, SortEditor } from './filter-editor';
 import { RowPeek } from './row-peek';
 import { orderedProperties, TableView } from './table-view';
+import { BoardView } from './views/board-view';
+import { CalendarView } from './views/calendar-view';
+import { ListGalleryView } from './views/list-gallery';
+import { TimelineView } from './views/timeline-view';
+import { VIEW_ICONS, ViewSettings } from './views/view-settings';
 import {
   useCalculations,
   useDatabase,
@@ -97,6 +109,7 @@ function DatabaseBody({
     }
   };
 
+  const tv = useTranslations('views');
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   useEffect(() => {
@@ -109,7 +122,7 @@ function DatabaseBody({
 
   const members = useMembers(db.workspaceId);
   const actions = useDatabaseActions(db);
-  const rowsQ = useRows(db, view, debounced);
+  const rowsQ = useRows(db, view, debounced, { enabled: !view || view.type === 'table' });
   const { rows, total } = useFlatRows(rowsQ.data);
   const calc = useCalculations(db, view, debounced);
   const canEditStructure = editable;
@@ -142,6 +155,21 @@ function DatabaseBody({
     setFilterOpen(true);
   };
   const filterCount = countConditions(cfg.filter);
+  const viewProps = {
+    db,
+    view,
+    search: debounced,
+    members: members.data ?? [],
+    actions,
+    editable,
+    onOpenRow: setPeek,
+    saveConfig: (patch: Partial<typeof cfg>) => saveConfig(patch),
+  };
+  const setLock = (locked: boolean) =>
+    pageActions.update.mutate(
+      { id: db.id, settings: { locked } },
+      { onSuccess: () => void actions.refreshDb() },
+    );
 
   return (
     <div
@@ -258,65 +286,85 @@ function DatabaseBody({
                   <Search className="size-4" />
                 </button>
               )}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={t('toolbar.properties')}
-                    className="flex h-7 items-center rounded-md px-1.5 hover:bg-hover"
-                    data-testid="properties-button"
-                  >
-                    <MoreHorizontal className="size-4" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-[260px] p-1">
-                  <div className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-fg-subtle">
-                    {t('toolbar.properties')}
-                  </div>
-                  {props.map((p) => {
-                    const vis =
-                      p.type === 'title' ||
-                      cfg.properties.find((x) => x.id === p.id)?.visible !== false;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        disabled={p.type === 'title'}
-                        onClick={() =>
-                          saveConfig({
-                            properties: props.map((x) => {
-                              const cur = cfg.properties.find((c) => c.id === x.id);
-                              return {
-                                id: x.id,
-                                visible: x.id === p.id ? !vis : (cur?.visible ?? true),
-                                ...(cur?.width ? { width: cur.width } : {}),
-                              };
-                            }),
-                          })
-                        }
-                        className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[14px] hover:bg-hover disabled:opacity-60"
-                        data-testid="toggle-property"
-                        data-property={p.name}
-                      >
-                        <span className="flex-1 truncate">{p.name}</span>
-                        <Eye
-                          className={cn('size-4', vis ? 'text-fg' : 'text-fg-subtle opacity-40')}
-                        />
-                      </button>
-                    );
-                  })}
-                  <div className="my-1 h-px bg-border" />
-                  <button
-                    type="button"
-                    onClick={() => saveConfig({ wrapCells: !cfg.wrapCells })}
-                    className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[14px] hover:bg-hover"
-                  >
-                    <WrapText className="size-4" />
-                    <span className="flex-1">{t('toolbar.wrap')}</span>
-                    {cfg.wrapCells && <span className="text-fg-subtle">✓</span>}
-                  </button>
-                </PopoverContent>
-              </Popover>
+              {db.locked && (
+                <span
+                  className="flex h-7 items-center gap-1 px-1 text-[12px] text-fg-subtle"
+                  title={tv('lockedHint')}
+                  data-testid="database-locked"
+                >
+                  <Lock className="size-3.5" />
+                  <span className="hidden sm:inline">{tv('locked')}</span>
+                </span>
+              )}
+              <ViewSettings
+                db={db}
+                view={view}
+                editable={canEditStructure}
+                onLayout={(type) => actions.updateView.mutate({ id: view.id, type: type as Exclude<ViewType, 'chart'> })}
+                saveConfig={saveConfig}
+                onLock={setLock}
+              />
+              {view.type === 'table' && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={t('toolbar.properties')}
+                      className="flex h-7 items-center rounded-md px-1.5 hover:bg-hover"
+                      data-testid="properties-button"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-[260px] p-1">
+                    <div className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-fg-subtle">
+                      {t('toolbar.properties')}
+                    </div>
+                    {props.map((p) => {
+                      const vis =
+                        p.type === 'title' ||
+                        cfg.properties.find((x) => x.id === p.id)?.visible !== false;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          disabled={p.type === 'title'}
+                          onClick={() =>
+                            saveConfig({
+                              properties: props.map((x) => {
+                                const cur = cfg.properties.find((c) => c.id === x.id);
+                                return {
+                                  id: x.id,
+                                  visible: x.id === p.id ? !vis : (cur?.visible ?? true),
+                                  ...(cur?.width ? { width: cur.width } : {}),
+                                };
+                              }),
+                            })
+                          }
+                          className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[14px] hover:bg-hover disabled:opacity-60"
+                          data-testid="toggle-property"
+                          data-property={p.name}
+                        >
+                          <span className="flex-1 truncate">{p.name}</span>
+                          <Eye
+                            className={cn('size-4', vis ? 'text-fg' : 'text-fg-subtle opacity-40')}
+                          />
+                        </button>
+                      );
+                    })}
+                    <div className="my-1 h-px bg-border" />
+                    <button
+                      type="button"
+                      onClick={() => saveConfig({ wrapCells: !cfg.wrapCells })}
+                      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[14px] hover:bg-hover"
+                    >
+                      <WrapText className="size-4" />
+                      <span className="flex-1">{t('toolbar.wrap')}</span>
+                      {cfg.wrapCells && <span className="text-fg-subtle">✓</span>}
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              )}
               {editable && (
                 <button
                   type="button"
@@ -332,22 +380,32 @@ function DatabaseBody({
               )}
             </div>
           </div>
-          <TableView
-            db={db}
-            view={view}
-            rows={rows}
-            total={total}
-            hasNextPage={Boolean(rowsQ.hasNextPage)}
-            fetchNextPage={() => void rowsQ.fetchNextPage()}
-            loading={rowsQ.isFetching}
-            calculations={calc.data ?? {}}
-            ctx={{ workspaceId: db.workspaceId, members: members.data ?? [], actions, editable }}
-            actions={actions}
-            canEditSchema={canEditSchema}
-            onOpenRow={setPeek}
-            maxHeight={mode === 'page' ? 'calc(100vh - 220px)' : '520px'}
-            onFilterBy={filterBy}
-          />
+          {view.type === 'board' ? (
+            <BoardView {...viewProps} canEditSchema={canEditSchema} />
+          ) : view.type === 'list' || view.type === 'gallery' ? (
+            <ListGalleryView {...viewProps} layout={view.type} />
+          ) : view.type === 'calendar' ? (
+            <CalendarView {...viewProps} />
+          ) : view.type === 'timeline' ? (
+            <TimelineView {...viewProps} />
+          ) : (
+            <TableView
+              db={db}
+              view={view}
+              rows={rows}
+              total={total}
+              hasNextPage={Boolean(rowsQ.hasNextPage)}
+              fetchNextPage={() => void rowsQ.fetchNextPage()}
+              loading={rowsQ.isFetching}
+              calculations={calc.data ?? {}}
+              ctx={{ workspaceId: db.workspaceId, members: members.data ?? [], actions, editable }}
+              actions={actions}
+              canEditSchema={canEditSchema}
+              onOpenRow={setPeek}
+              maxHeight={mode === 'page' ? 'calc(100vh - 220px)' : '520px'}
+              onFilterBy={filterBy}
+            />
+          )}
         </>
       )}
       {peek && (
@@ -424,6 +482,7 @@ function ViewTabs({
   actions: ReturnType<typeof useDatabaseActions>;
 }) {
   const t = useTranslations('database');
+  const tv = useTranslations('views');
   const [renaming, setRenaming] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const views = useMemo(() => db.views, [db.views]);
@@ -475,10 +534,10 @@ function ViewTabs({
               )}
               data-testid="view-tab"
             >
-              <Table2 className="size-4" />
+              <ViewIcon type={v.type} />
               {v.name}
             </button>
-            {editable && active && (
+            {editable && active && !db.locked && (
               <Menu>
                 <MenuTrigger asChild>
                   <button
@@ -520,22 +579,43 @@ function ViewTabs({
           </div>
         );
       })}
-      {editable && (
-        <button
-          type="button"
-          onClick={() =>
-            actions.createView.mutate(
-              { name: t('views.defaultName', { n: views.length + 1 }) },
-              { onSuccess: (v) => onSelect(v.id) },
-            )
-          }
-          aria-label={t('views.add')}
-          className="ml-0.5 flex h-7 shrink-0 items-center rounded-md px-1 text-fg-subtle hover:bg-hover"
-          data-testid="add-view"
-        >
-          <Plus className="size-4" />
-        </button>
+      {editable && !db.locked && (
+        <Menu>
+          <MenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={t('views.add')}
+              className="ml-0.5 flex h-7 shrink-0 items-center rounded-md px-1 text-fg-subtle hover:bg-hover"
+              data-testid="add-view"
+            >
+              <Plus className="size-4" />
+            </button>
+          </MenuTrigger>
+          <MenuContent>
+            {CREATABLE_VIEW_TYPES.map((type) => (
+              <MenuItem
+                key={type}
+                icon={VIEW_ICONS[type]}
+                onSelect={() =>
+                  actions.createView.mutate(
+                    { name: tv(`layouts.${type}`), type },
+                    { onSuccess: (v) => onSelect(v.id) },
+                  )
+                }
+                data-testid="add-view-type"
+                data-layout={type}
+              >
+                {tv(`layouts.${type}`)}
+              </MenuItem>
+            ))}
+          </MenuContent>
+        </Menu>
       )}
     </div>
   );
+}
+
+function ViewIcon({ type }: { type: ViewType }) {
+  const Icon = VIEW_ICONS[type] ?? Table2;
+  return <Icon className="size-4" />;
 }

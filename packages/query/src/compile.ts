@@ -509,7 +509,7 @@ export function compileRowQuery(
   order.push(sql`p.position ASC`, sql`p.id ASC`);
   const keyCols = keys.map((k, i) => sql`(${k.expr}) AS ${sql.raw(`k${i}`)}`);
   const query =
-    sql`SELECT p.id::text AS id, p.position, p.title, p.icon, p.created_at, p.created_by_id::text AS created_by_id, p.last_edited_at, p.last_edited_by_id::text AS last_edited_by_id${keyCols.length ? sql`, ${sql.join(keyCols, sql`, `)}` : sql``}
+    sql`SELECT p.id::text AS id, p.position, p.title, p.icon, p.cover, p.created_at, p.created_by_id::text AS created_by_id, p.last_edited_at, p.last_edited_by_id::text AS last_edited_by_id${keyCols.length ? sql`, ${sql.join(keyCols, sql`, `)}` : sql``}
     FROM pages p ${joins.sql()}
     WHERE ${sql.join(where, sql` AND `)}
     ORDER BY ${sql.join(order, sql`, `)}

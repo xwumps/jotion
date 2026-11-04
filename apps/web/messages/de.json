@@ -794,5 +794,102 @@
       "label": "Verknüpfte Datenbank",
       "description": "Ansicht einer bestehenden Datenbank"
     }
+  },
+  "views": {
+    "layouts": {
+      "table": "Tabelle",
+      "board": "Board",
+      "list": "Liste",
+      "gallery": "Galerie",
+      "calendar": "Kalender",
+      "timeline": "Zeitleiste"
+    },
+    "settings": "Ansicht einrichten",
+    "layout": "Layout",
+    "grouping": "Gruppierung",
+    "groupBy": "Gruppieren nach",
+    "subGroupBy": "Untergruppen (Swimlanes)",
+    "dateBucket": "Zeitraum",
+    "buckets": {
+      "day": "Tag",
+      "week": "Woche",
+      "month": "Monat",
+      "year": "Jahr"
+    },
+    "numberInterval": "Bereichsgröße",
+    "groupSort": "Reihenfolge der Gruppen",
+    "groupSorts": {
+      "manual": "Manuell",
+      "asc": "Aufsteigend",
+      "desc": "Absteigend"
+    },
+    "hideEmpty": "Leere Gruppen ausblenden",
+    "none": "Keine",
+    "cards": "Karten",
+    "cardPreview": "Kartenvorschau",
+    "previews": {
+      "none": "Keine",
+      "cover": "Seiten-Cover",
+      "content": "Seiteninhalt",
+      "files": "Datei-Property"
+    },
+    "previewProperty": "Datei-Property",
+    "cardSize": "Kartengröße",
+    "sizes": {
+      "small": "Klein",
+      "medium": "Mittel",
+      "large": "Groß"
+    },
+    "fitImage": "Bild einpassen",
+    "colorColumns": "Spalten einfärben",
+    "columnCalculation": "Berechnung je Spalte",
+    "visibleProperties": "Sichtbare Properties",
+    "dateProperty": "Datum aus",
+    "showWeekends": "Wochenenden anzeigen",
+    "startProperty": "Beginn aus",
+    "endProperty": "Ende aus",
+    "sameProperty": "Gleiches Property (Zeitraum)",
+    "showTable": "Tabelle anzeigen",
+    "lock": "Datenbank sperren",
+    "unlock": "Sperre aufheben",
+    "locked": "Gesperrt",
+    "lockedHint": "Properties und Ansichten sind gesperrt, Einträge lassen sich weiter bearbeiten",
+    "chooseGroup": "Wähle in den Einstellungen der Ansicht ein Property zum Gruppieren.",
+    "chooseDate": "Wähle in den Einstellungen der Ansicht ein Datums-Property.",
+    "emptyGroup": "Kein Wert: {name}",
+    "checked": "Angehakt",
+    "unchecked": "Nicht angehakt",
+    "weekOf": "Woche ab {day}",
+    "cannotMove": "Nach diesem Property kann nicht per Ziehen umsortiert werden",
+    "groupMenu": "Gruppenoptionen",
+    "hideGroup": "Gruppe ausblenden",
+    "renameGroup": "Umbenennen",
+    "color": "Farbe",
+    "addGroup": "Gruppe hinzufügen",
+    "groupName": "Name der Gruppe",
+    "hiddenGroups": "Ausgeblendete Gruppen",
+    "showGroup": "{name} einblenden",
+    "loadMore": "Mehr laden",
+    "new": "Neu",
+    "untitled": "Ohne Titel",
+    "calendarModes": {
+      "month": "Monat",
+      "week": "Woche"
+    },
+    "previous": "Zurück",
+    "next": "Weiter",
+    "today": "Heute",
+    "more": "{count} weitere",
+    "newOn": "Neuer Eintrag am {day}",
+    "zoom": "Zoom",
+    "zooms": {
+      "hours": "Stunden",
+      "day": "Tag",
+      "week": "Woche",
+      "bi_week": "Zwei Wochen",
+      "month": "Monat",
+      "quarter": "Quartal",
+      "year": "Jahr"
+    }
   }
 }

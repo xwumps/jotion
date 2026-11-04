@@ -794,5 +794,102 @@
       "label": "Linked database",
       "description": "View of an existing database"
     }
+  },
+  "views": {
+    "layouts": {
+      "table": "Table",
+      "board": "Board",
+      "list": "List",
+      "gallery": "Gallery",
+      "calendar": "Calendar",
+      "timeline": "Timeline"
+    },
+    "settings": "View settings",
+    "layout": "Layout",
+    "grouping": "Grouping",
+    "groupBy": "Group by",
+    "subGroupBy": "Sub-group (swimlanes)",
+    "dateBucket": "Date range",
+    "buckets": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "numberInterval": "Range size",
+    "groupSort": "Group order",
+    "groupSorts": {
+      "manual": "Manual",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "hideEmpty": "Hide empty groups",
+    "none": "None",
+    "cards": "Cards",
+    "cardPreview": "Card preview",
+    "previews": {
+      "none": "None",
+      "cover": "Page cover",
+      "content": "Page content",
+      "files": "Files property"
+    },
+    "previewProperty": "Files property",
+    "cardSize": "Card size",
+    "sizes": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "fitImage": "Fit image",
+    "colorColumns": "Color columns",
+    "columnCalculation": "Column calculation",
+    "visibleProperties": "Visible properties",
+    "dateProperty": "Show calendar by",
+    "showWeekends": "Show weekends",
+    "startProperty": "Start from",
+    "endProperty": "End from",
+    "sameProperty": "Same property (range)",
+    "showTable": "Show table",
+    "lock": "Lock database",
+    "unlock": "Unlock",
+    "locked": "Locked",
+    "lockedHint": "Properties and views are locked, entries can still be edited",
+    "chooseGroup": "Choose a property to group by in the view settings.",
+    "chooseDate": "Choose a date property in the view settings.",
+    "emptyGroup": "No {name}",
+    "checked": "Checked",
+    "unchecked": "Unchecked",
+    "weekOf": "Week of {day}",
+    "cannotMove": "Cards cannot be moved by this property",
+    "groupMenu": "Group options",
+    "hideGroup": "Hide group",
+    "renameGroup": "Rename",
+    "color": "Color",
+    "addGroup": "Add group",
+    "groupName": "Group name",
+    "hiddenGroups": "Hidden groups",
+    "showGroup": "Show {name}",
+    "loadMore": "Load more",
+    "new": "New",
+    "untitled": "Untitled",
+    "calendarModes": {
+      "month": "Month",
+      "week": "Week"
+    },
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "more": "{count} more",
+    "newOn": "New entry on {day}",
+    "zoom": "Zoom",
+    "zooms": {
+      "hours": "Hours",
+      "day": "Day",
+      "week": "Week",
+      "bi_week": "Two weeks",
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    }
   }
 }
