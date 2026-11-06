@@ -275,7 +275,7 @@ export function ValueEditor({
 
   if (readonly) {
     return (
-      <div className={base}>
+      <div className={base} data-testid="cell" data-property={prop.name}>
         {display}
         {children}
       </div>

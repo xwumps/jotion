@@ -13,6 +13,7 @@ x-app-env: &app-env
   # Phase 3: Upload-Grenze (MB) und Freigaben für serverseitige Abrufe trotz privater Adresse
   JOTION_MAX_UPLOAD_MB: ${JOTION_MAX_UPLOAD_MB:-100}
   JOTION_SSRF_ALLOWLIST: ${JOTION_SSRF_ALLOWLIST:-}
+  JOTION_TIMEZONE: ${JOTION_TIMEZONE:-Europe/Berlin}
 
 services:
   postgres:

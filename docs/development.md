@@ -65,10 +65,13 @@ packages/db    Prisma-Schema, Migrationen, Client unter generated/client
 packages/ui    Design-Tokens, Logo, Basiskomponenten
 packages/config  TypeScript-Presets
 packages/query   Filter-/Sortier-AST nach SQL (Kysely), Cursor, JS-Referenz, Typwechsel-Regeln
+packages/formula Formelsprache: Lexer, Pratt-Parser, Typprüfer, Interpreter (Browser und Server)
+packages/compute Rollups und Formeln berechnen, speichern, über Relationen weiterreichen
 ```
 
 ## Datenbanken (Phase 4)
 - Abfragen auf Datenbankzeilen nur über `@jotion/query` (`compileRowQuery`, `compileCountQuery`, `compileCalculationQuery`). Werte aus Nutzereingaben gehen nur als Parameter ins SQL; `sql.raw` nur für feste Fragmente und intern erzeugte Aliase.
+- Neue Formelfunktionen kommen in `packages/formula/src/builtins.ts` (Typregel und Auswertung) und brauchen Fälle im Katalog `catalog.test.ts`. Ergebnisse von Formeln und Rollups schreibt nur `@jotion/compute`; nach Änderungen an Zeilen oder Schema ruft die API `ComputeService` auf (Abhängige im Worker, in API-Tests direkt über `JOTION_COMPUTE_INLINE`).
 - Jede neue Filter- oder Sortierregel braucht die gleiche Semantik in der JS-Referenz (`reference.ts`). Die Vergleichstests in `packages/query/src/compile.test.ts` laufen mit fast-check gegen PostgreSQL und vergleichen beide.
 - Der Leistungstest `apps/api/test/databases-perf.test.ts` legt 50.000 Zeilen an und prüft p95 unter 300 ms (dauert etwa 30 Sekunden).
 
