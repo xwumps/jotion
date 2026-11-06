@@ -388,8 +388,13 @@
       "pageLink": {
         "label": "Link zu Seite",
         "description": "Auf eine bestehende Seite verweisen"
+      },
+      "chart": {
+        "label": "Diagramm",
+        "description": "Diagramm aus einer Datenbank"
       }
-    }
+    },
+    "chartViewName": "Diagramm"
   },
   "search": {
     "title": "Suchen",
@@ -864,7 +869,8 @@
       "list": "Liste",
       "gallery": "Galerie",
       "calendar": "Kalender",
-      "timeline": "Zeitleiste"
+      "timeline": "Zeitleiste",
+      "chart": "Diagramm"
     },
     "settings": "Ansicht einrichten",
     "layout": "Layout",
@@ -876,7 +882,8 @@
       "day": "Tag",
       "week": "Woche",
       "month": "Monat",
-      "year": "Jahr"
+      "year": "Jahr",
+      "quarter": "Quartal"
     },
     "numberInterval": "Bereichsgröße",
     "groupSort": "Reihenfolge der Gruppen",
@@ -953,5 +960,107 @@
       "quarter": "Quartal",
       "year": "Jahr"
     }
+  },
+  "charts": {
+    "edit": "Diagramm bearbeiten",
+    "chooseX": "Wähle in „Diagramm bearbeiten“ eine X-Achse.",
+    "value": "Wert",
+    "type": "Typ",
+    "axes": "Achsen",
+    "xAxis": "X-Achse",
+    "series": "Gruppieren nach",
+    "bucket": "Zeitraum",
+    "interval": "Bereichsgröße",
+    "measure": "Berechnung",
+    "of": "Von",
+    "choose": "Wählen …",
+    "none": "Keine",
+    "stack": "Stapeln",
+    "sort": "Sortierung",
+    "topN": "Nur die größten",
+    "all": "alle",
+    "hideEmpty": "Leere Gruppen ausblenden",
+    "cumulative": "Kumulativ",
+    "target": "Zielwert",
+    "dateRange": "Zeitraum",
+    "dateProperty": "Datum aus",
+    "range": "Bereich",
+    "fromTo": "Von bis",
+    "compare": "Mit Vorzeitraum vergleichen",
+    "display": "Darstellung",
+    "palette": "Farben",
+    "optionColors": "Farben der Optionen übernehmen",
+    "legend": "Legende",
+    "dataLabels": "Werte anzeigen",
+    "grid": "Gitterlinien",
+    "smooth": "Linien glätten",
+    "xTitle": "Titel X-Achse",
+    "yTitle": "Titel Y-Achse",
+    "height": "Höhe",
+    "vsPrevious": "gegenüber {value} davor",
+    "progressLabel": "{pct} Prozent erreicht",
+    "drilldown": "Einträge",
+    "drillCount": "{count, plural, one {# Eintrag} other {# Einträge}}",
+    "types": {
+      "bar": "Balken",
+      "bar_horizontal": "Balken horizontal",
+      "line": "Linie",
+      "area": "Fläche",
+      "pie": "Kreis",
+      "donut": "Ring",
+      "scatter": "Punkte",
+      "progress_bar": "Fortschritt (Balken)",
+      "progress_ring": "Fortschritt (Ring)",
+      "kpi": "Kennzahl"
+    },
+    "buckets": {
+      "day": "Tag",
+      "week": "Woche",
+      "month": "Monat",
+      "quarter": "Quartal",
+      "year": "Jahr"
+    },
+    "measures": {
+      "count": "Anzahl",
+      "count_unique": "Anzahl eindeutiger Werte",
+      "sum": "Summe",
+      "average": "Durchschnitt",
+      "median": "Median",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "stacks": {
+      "none": "Nebeneinander",
+      "stacked": "Gestapelt",
+      "percent": "Gestapelt 100 %"
+    },
+    "sorts": {
+      "x_asc": "X aufsteigend",
+      "x_desc": "X absteigend",
+      "y_asc": "Wert aufsteigend",
+      "y_desc": "Wert absteigend"
+    },
+    "ranges": {
+      "all": "Alle",
+      "last_7_days": "Letzte 7 Tage",
+      "last_30_days": "Letzte 30 Tage",
+      "last_90_days": "Letzte 90 Tage",
+      "this_month": "Dieser Monat",
+      "this_year": "Dieses Jahr",
+      "fixed": "Fester Zeitraum"
+    },
+    "palettes": {
+      "jotion": "Jotion",
+      "pastel": "Pastell",
+      "vivid": "Kräftig",
+      "mono": "Grautöne"
+    },
+    "heights": {
+      "200": "Klein",
+      "320": "Mittel",
+      "480": "Groß",
+      "640": "Sehr groß"
+    },
+    "missing": "Diese Diagramm-Ansicht gibt es nicht mehr"
   }
 }

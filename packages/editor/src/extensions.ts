@@ -18,6 +18,7 @@ import { BlockSelection } from './block-selection';
 import { MathBlock, MathInline, Mention } from './nodes/inline';
 import { Breadcrumb, Column, ColumnList, TableOfContents } from './nodes/layout';
 import { Audio, Bookmark, Embed, FileBlock, Image, Pdf, Video } from './nodes/media';
+import { Chart } from './nodes/chart';
 import { Database } from './nodes/database';
 
 export const lowlight = createLowlight(common);
@@ -198,6 +199,7 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
       filterTransaction: (tr) => !tr.getMeta('y-sync$'),
     }),
     Database,
+    Chart,
   ];
   if (options.placeholder) {
     const ph = options.placeholder;

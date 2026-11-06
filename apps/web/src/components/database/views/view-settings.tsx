@@ -18,6 +18,7 @@ import {
 } from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import {
+  BarChart3,
   CalendarDays,
   Eye,
   GanttChart,
@@ -42,7 +43,7 @@ export const VIEW_ICONS: Record<ViewType, LucideIcon> = {
   gallery: LayoutGrid,
   calendar: CalendarDays,
   timeline: GanttChart,
-  chart: Table2,
+  chart: BarChart3,
 };
 
 const DATE_TYPES = ['date', 'created_time', 'last_edited_time'];
@@ -283,7 +284,7 @@ export function ViewSettings({
           })}
         </div>
         <fieldset disabled={!editable || db.locked} className="disabled:opacity-60">
-          {view.type !== 'calendar' && (
+          {view.type !== 'calendar' && view.type !== 'chart' && (
             <>
               <Heading>{t('grouping')}</Heading>
               {groupSelect(cfg.groupBy, 'groupBy', 'group-by')}

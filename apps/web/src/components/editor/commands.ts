@@ -1,5 +1,6 @@
 import type { Editor, Range } from '@tiptap/core';
 import {
+  BarChart3,
   CheckSquare,
   ChevronRight,
   Code,
@@ -39,6 +40,8 @@ export interface CommandContext {
   pickPage: () => Promise<string | null>;
   /** Phase 4: Datenbank unter der aktuellen Seite anlegen (inline, ganzseitig oder verknüpft) */
   createDatabase?: (opts: { inline: boolean; sourceDatabaseId?: string }) => Promise<string | null>;
+  /** Phase 7: Chart-Ansicht in einer Datenbank anlegen, liefert die ID der Ansicht */
+  createChart?: (databaseId: string) => Promise<string | null>;
 }
 
 export interface BlockCommand {
@@ -281,6 +284,18 @@ export const BLOCK_COMMANDS: BlockCommand[] = [
       if (!source) return;
       const id = await ctx.createDatabase?.({ inline: true, sourceDatabaseId: source });
       if (id) e.chain().focus().insertDatabase(id).run();
+    },
+  },
+  {
+    id: 'chart',
+    icon: BarChart3,
+    aliases: ['diagramm', 'chart', 'grafik', 'balken', 'kreisdiagramm', 'graph'],
+    run: async (e, r, ctx) => {
+      if (r) e.chain().focus().deleteRange(r).run();
+      const db = await ctx.pickPage();
+      if (!db) return;
+      const viewId = await ctx.createChart?.(db);
+      if (viewId) e.chain().focus().insertChart(db, viewId).run();
     },
   },
 ];
