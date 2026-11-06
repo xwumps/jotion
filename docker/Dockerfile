@@ -22,6 +22,8 @@ COPY packages/db/package.json packages/db/
 COPY packages/ui/package.json packages/ui/
 COPY packages/editor/package.json packages/editor/
 COPY packages/query/package.json packages/query/
+COPY packages/formula/package.json packages/formula/
+COPY packages/compute/package.json packages/compute/
 COPY apps/web/package.json apps/web/
 COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/

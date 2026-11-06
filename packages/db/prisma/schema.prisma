@@ -188,6 +188,8 @@ model Page {
   databaseInfo    Database?        @relation("DatabasePage")
   database        Database?        @relation("DatabaseRows", fields: [databaseId], references: [id], onDelete: Cascade)
   propertyValues  PropertyValue[]
+  relationsFrom   RelationLink[]   @relation("RelationFrom")
+  relationsTo     RelationLink[]   @relation("RelationTo")
 
   @@index([workspaceId, parentId, position])
   @@index([databaseId, position])
@@ -408,6 +410,7 @@ model DbProperty {
 
   database    Database               @relation(fields: [databaseId], references: [id], onDelete: Cascade)
   values      PropertyValue[]
+  links       RelationLink[]
   conversions DbPropertyConversion[]
 
   @@index([databaseId, position])
@@ -456,7 +459,10 @@ model RelationLink {
   position   String
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  database Database @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  database Database   @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  property DbProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  fromRow  Page       @relation("RelationFrom", fields: [fromRowId], references: [id], onDelete: Cascade)
+  toRow    Page       @relation("RelationTo", fields: [toRowId], references: [id], onDelete: Cascade)
 
   @@id([propertyId, fromRowId, toRowId])
   @@index([toRowId])

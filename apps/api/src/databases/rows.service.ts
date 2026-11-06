@@ -4,6 +4,7 @@ import {
   calculationsFor,
   isReadonlyType,
   keyBetween,
+  keysBetween,
   parsePropertyConfig,
   PropertyValueError,
   validatePropertyValue,
@@ -38,6 +39,7 @@ import {
   toStorage,
   valueForGroupMove,
   type GroupSpec,
+  queryProperties,
   type QueryContext,
   type RowRecord,
 } from '@jotion/query';
@@ -46,6 +48,7 @@ import { CollabService } from '../collab/collab.service';
 import { AppError, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { PrismaService } from '../infra/prisma.service';
+import { ComputeService } from './compute.service';
 import { DatabaseAccessService, type LoadedProperty } from './database-access';
 import { storedValueData } from './values';
 
@@ -75,6 +78,7 @@ export class RowsService {
     private readonly prisma: PrismaService,
     private readonly access: DatabaseAccessService,
     private readonly collab: CollabService,
+    private readonly compute: ComputeService,
   ) {}
 
   private async viewConfig(databaseId: string, viewId?: string): Promise<ViewConfig | null> {
@@ -96,7 +100,9 @@ export class RowsService {
     const a = await this.access.require(user.id, databaseId, { includeTrashed: true });
     const cfg = await this.viewConfig(databaseId, input.viewId);
     if (!a.data) return { rows: [], nextCursor: null, total: 0 };
-    const props = await this.access.properties(a.data.db.id);
+    const allProps = await this.access.properties(a.data.db.id);
+    // Formeln und Rollups filtern und sortieren nach ihrem Ergebnistyp
+    const props = queryProperties(allProps);
     const ctx: QueryContext = {
       databaseId: a.data.db.id,
       viewerId: user.id,
@@ -127,7 +133,7 @@ export class RowsService {
         : this.prisma.client.$queryRawUnsafe<{ total: number }[]>(count.sql, ...count.parameters),
     ]);
     const page = raw.slice(0, input.limit);
-    const rows = await this.toDtos(page, props);
+    const rows = await this.toDtos(page, allProps);
     if (input.preview) await this.attachPreviews(rows);
     return {
       rows,
@@ -147,7 +153,7 @@ export class RowsService {
     const a = await this.access.require(user.id, databaseId, { includeTrashed: true });
     const cfg = (await this.viewConfig(databaseId, input.viewId))!;
     if (!a.data) return {};
-    const props = await this.access.properties(a.data.db.id);
+    const props = queryProperties(await this.access.properties(a.data.db.id));
     const byId = new Map(props.map((p) => [p.id, p]));
     const requests = Object.entries(input.calculations ?? cfg.calculations)
       .filter(([pid, fn]) => {
@@ -186,7 +192,7 @@ export class RowsService {
     const a = await this.access.require(user.id, databaseId, { includeTrashed: true });
     const cfg = (await this.viewConfig(databaseId, input.viewId))!;
     if (!a.data) return { counts: [], total: 0 };
-    const props = await this.access.properties(a.data.db.id);
+    const props = queryProperties(await this.access.properties(a.data.db.id));
     const g = cfg.groupBy ? groupSpec(cfg.groupBy, props) : null;
     if (!g) throw new AppError('bad_request', 'Ansicht ist nicht gruppiert');
     const sub = cfg.subGroupBy ? groupSpec(cfg.subGroupBy, props) : null;
@@ -262,6 +268,7 @@ export class RowsService {
     const props = await this.access.properties(data.db.id);
     const values = await this.validateValues(data.page.workspaceId, props, input.values ?? {});
 
+    let extra: Record<string, string[]> = {};
     const row = await this.prisma.client.$transaction(async (tx) => {
       const position = await this.rowPosition(tx, data.db.id, input.afterId, input.beforeId);
       const page = await tx.page.create({
@@ -279,13 +286,14 @@ export class RowsService {
           lastEditedById: user.id,
         },
       });
-      await this.writeValues(tx, data.db.id, page.id, props, values);
+      extra = await this.writeValues(tx, data.db.id, page.id, props, values);
       await this.assignUniqueIds(tx, data.db.id, page.id, props);
       await this.access.event(tx, data.page, 'database.rows.changed', user.id, {
         rowIds: [page.id],
       });
       return page;
     });
+    await this.compute.rowsChanged(data.db.id, [row.id], user.id, extra);
     return (await this.pagesToDtos([row], props))[0]!;
   }
 
@@ -300,8 +308,9 @@ export class RowsService {
     const props = await this.access.properties(a.data.db.id);
     const values = await this.validateValues(a.data.page.workspaceId, props, input.values);
     const title = input.title !== undefined ? input.title.replace(/\s+/g, ' ').trim() : undefined;
+    let extra: Record<string, string[]> = {};
     const updated = await this.prisma.client.$transaction(async (tx) => {
-      await this.writeValues(tx, a.data.db.id, row.id, props, values);
+      extra = await this.writeValues(tx, a.data.db.id, row.id, props, values);
       const u = await tx.page.update({
         where: { id: row.id },
         data: {
@@ -330,6 +339,7 @@ export class RowsService {
         },
       });
     }
+    await this.compute.rowsChanged(a.data.db.id, [row.id], user.id, extra);
     return (await this.pagesToDtos([updated], props))[0]!;
   }
 
@@ -343,6 +353,7 @@ export class RowsService {
     const row = await this.requireRow(user, a.data.db.id, rowId);
     const props = await this.access.properties(a.data.db.id);
     const placement = input.afterId !== undefined || input.beforeId !== undefined;
+    let extra: Record<string, string[]> = {};
     const moved = await this.prisma.client.$transaction(async (tx) => {
       // Gruppenwechsel und Position atomar: Zeile sperren, aktuellen Wert lesen, neu setzen
       let title: string | undefined;
@@ -371,7 +382,7 @@ export class RowsService {
           }
         }
         const values = await this.validateValues(a.data.page.workspaceId, props, raw);
-        await this.writeValues(tx, a.data.db.id, row.id, props, values);
+        extra = await this.writeValues(tx, a.data.db.id, row.id, props, values);
       }
       const position = placement
         ? await this.rowPosition(tx, a.data.db.id, input.afterId, input.beforeId, row.id)
@@ -403,6 +414,8 @@ export class RowsService {
       }
       return u;
     });
+    if (input.groups?.length)
+      await this.compute.rowsChanged(a.data.db.id, [row.id], user.id, extra);
     return (await this.pagesToDtos([moved], props))[0]!;
   }
 
@@ -438,7 +451,15 @@ export class RowsService {
           },
         });
     });
-    if (visible.length) this.collab.revalidate();
+    if (visible.length) {
+      this.collab.revalidate();
+      // Rollups und Formeln, die auf diese Zeilen zeigen
+      await this.compute.rowsChanged(
+        a.data.db.id,
+        visible.map((r) => r.id),
+        user.id,
+      );
+    }
     return { trashed: visible.length };
   }
 
@@ -498,6 +519,30 @@ export class RowsService {
       }
     }
     await this.access.assertMembers(workspaceId, [...new Set(people)]);
+    // Relationen: Zeilen der Zieldatenbank, nicht im Papierkorb, Limit "eine"
+    for (const [pid, v] of out) {
+      const prop = byId.get(pid)!;
+      if (prop.type !== 'relation') continue;
+      const cfg = prop.config as { targetDatabaseId: string; limit: 'one' | 'many' };
+      const ids = v as string[];
+      if (cfg.limit === 'one' && ids.length > 1)
+        throw new AppError('validation_failed', 'Diese Relation erlaubt nur eine Zeile', {
+          propertyId: pid,
+        });
+      if (!ids.length) continue;
+      const n = await this.prisma.client.page.count({
+        where: {
+          id: { in: ids },
+          databaseId: cfg.targetDatabaseId,
+          kind: 'DATABASE_ROW',
+          deletedAt: null,
+        },
+      });
+      if (n !== ids.length)
+        throw new AppError('validation_failed', 'Zeile der verknüpften Datenbank nicht gefunden', {
+          propertyId: pid,
+        });
+    }
     // Hochgeladene Dateien müssen zum selben Workspace gehören
     const fileIds = [...new Set(files)];
     if (fileIds.length) {
@@ -510,16 +555,34 @@ export class RowsService {
     return out;
   }
 
+  /**
+   * Schreibt Werte. Relationen landen in relation_links (zweiseitige auch gespiegelt).
+   * Liefert die Zeilen anderer Datenbanken, deren Gegen-Relation sich änderte (je Datenbank).
+   */
   private async writeValues(
     tx: Tx,
     dataId: string,
     rowId: string,
     props: LoadedProperty[],
     values: Map<string, PropertyValue>,
-  ): Promise<void> {
+  ): Promise<Record<string, string[]>> {
     const byId = new Map(props.map((p) => [p.id, p]));
+    const extra: Record<string, string[]> = {};
     for (const [pid, v] of values) {
-      const cols = toStorage(byId.get(pid)!.type, v);
+      const prop = byId.get(pid)!;
+      if (prop.type === 'relation') {
+        const changed = await this.writeRelation(
+          tx,
+          dataId,
+          rowId,
+          prop,
+          (v as string[] | null) ?? [],
+        );
+        const target = String((prop.config as { targetDatabaseId: string }).targetDatabaseId);
+        if (changed.length) extra[target] = [...new Set([...(extra[target] ?? []), ...changed])];
+        continue;
+      }
+      const cols = toStorage(prop.type, v);
       if (!cols) {
         await tx.propertyValue.deleteMany({ where: { rowId, propertyId: pid } });
         continue;
@@ -532,6 +595,49 @@ export class RowsService {
         update,
       });
     }
+    return extra;
+  }
+
+  /** Verknüpfungen einer Relation ersetzen; Gegen-Relation nachziehen. Liefert geänderte Ziele. */
+  private async writeRelation(
+    tx: Tx,
+    dataId: string,
+    rowId: string,
+    prop: LoadedProperty,
+    ids: string[],
+  ): Promise<string[]> {
+    const cfg = prop.config as { targetDatabaseId: string; reversePropertyId: string | null };
+    const old = (
+      await tx.$queryRaw<{ id: string }[]>`
+        SELECT to_row_id::text AS id FROM relation_links WHERE property_id = ${prop.id}::uuid AND from_row_id = ${rowId}::uuid`
+    ).map((r) => r.id);
+    await tx.$executeRaw`DELETE FROM relation_links WHERE property_id = ${prop.id}::uuid AND from_row_id = ${rowId}::uuid`;
+    if (ids.length) {
+      const positions = keysBetween(null, null, ids.length);
+      await tx.$executeRaw`
+        INSERT INTO relation_links (database_id, property_id, from_row_id, to_row_id, position)
+        SELECT ${dataId}::uuid, ${prop.id}::uuid, ${rowId}::uuid, t.id, t.pos
+          FROM unnest(${ids}::uuid[], ${positions}::text[]) AS t(id, pos)`;
+    }
+    const removed = old.filter((id) => !ids.includes(id));
+    const added = ids.filter((id) => !old.includes(id));
+    if (cfg.reversePropertyId) {
+      if (removed.length)
+        await tx.$executeRaw`
+          DELETE FROM relation_links WHERE property_id = ${cfg.reversePropertyId}::uuid
+             AND from_row_id = ANY(${removed}::uuid[]) AND to_row_id = ${rowId}::uuid`;
+      for (const target of added) {
+        const [last] = await tx.$queryRaw<{ position: string }[]>`
+          SELECT position FROM relation_links WHERE property_id = ${cfg.reversePropertyId}::uuid AND from_row_id = ${target}::uuid
+           ORDER BY position DESC LIMIT 1`;
+        await tx.$executeRaw`
+          INSERT INTO relation_links (database_id, property_id, from_row_id, to_row_id, position)
+          VALUES (${cfg.targetDatabaseId}::uuid, ${cfg.reversePropertyId}::uuid, ${target}::uuid, ${rowId}::uuid,
+                  ${keyBetween(last?.position ?? null, null)})
+          ON CONFLICT DO NOTHING`;
+      }
+    }
+    return [...removed, ...added];
   }
 
   /** Neue Zeile bekommt die nächste fortlaufende ID je Unique-ID-Property. */
@@ -604,7 +710,7 @@ export class RowsService {
       raw.map((r) => r.id),
       props,
     );
-    return raw.map((r) => ({
+    const dtos: RowDto[] = raw.map((r) => ({
       id: r.id,
       title: r.title,
       icon: r.icon,
@@ -616,6 +722,8 @@ export class RowsService {
       lastEditedById: r.last_edited_by_id,
       values: values.get(r.id) ?? {},
     }));
+    await this.attachRefs(dtos, props);
+    return dtos;
   }
 
   async pagesToDtos(pages: Page[], props: LoadedProperty[]): Promise<RowDto[]> {
@@ -676,6 +784,51 @@ export class RowsService {
       if (!rec) out.set(v.rowId, (rec = {}));
       rec[v.propertyId] = fromStorage(prop.type, v);
     }
+    // Relationen: IDs in Reihenfolge, nur nicht gelöschte Zeilen
+    const relIds = props.filter((p) => p.type === 'relation').map((p) => p.id);
+    if (relIds.length) {
+      const links = await this.prisma.client.$queryRaw<
+        { from_row_id: string; property_id: string; to_row_id: string }[]
+      >`
+        SELECT l.from_row_id::text, l.property_id::text, l.to_row_id::text
+          FROM relation_links l JOIN pages tp ON tp.id = l.to_row_id AND tp.deleted_at IS NULL
+         WHERE l.from_row_id = ANY(${ids}::uuid[]) AND l.property_id = ANY(${relIds}::uuid[])
+         ORDER BY l.position, l.to_row_id`;
+      for (const l of links) {
+        let rec = out.get(l.from_row_id);
+        if (!rec) out.set(l.from_row_id, (rec = {}));
+        const list = (rec[l.property_id] as string[] | undefined) ?? [];
+        list.push(l.to_row_id);
+        rec[l.property_id] = list;
+      }
+    }
     return out;
+  }
+
+  /** Titel und Icons der verknüpften Zeilen (Anzeige von Relationen). */
+  private async attachRefs(rows: RowDto[], props: LoadedProperty[]): Promise<void> {
+    const rel = props.filter((p) => p.type === 'relation').map((p) => p.id);
+    const ids = [
+      ...new Set(
+        rows.flatMap((r) => rel.flatMap((pid) => (r.values[pid] as string[] | undefined) ?? [])),
+      ),
+    ];
+    if (!ids.length) return;
+    const pages = await this.prisma.client.page.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, title: true, icon: true },
+    });
+    const byId = new Map(
+      pages.map((p) => [p.id, { title: p.title, icon: (p.icon as PageIcon | null) ?? null }]),
+    );
+    for (const r of rows) {
+      const refs: NonNullable<RowDto['refs']> = {};
+      for (const pid of rel)
+        for (const id of (r.values[pid] as string[] | undefined) ?? []) {
+          const p = byId.get(id);
+          if (p) refs[id] = p;
+        }
+      if (Object.keys(refs).length) r.refs = refs;
+    }
   }
 }

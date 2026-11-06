@@ -113,6 +113,10 @@ export function fromStorage(type: PropertyType, c: StoredColumns): PropertyValue
     }
     case 'files':
       return Array.isArray(c.vJson) ? (c.vJson as FileValue[]) : [];
+    // Berechnete Werte (Formel, Rollup) liegen vollständig in v_json
+    case 'formula':
+    case 'rollup':
+      return (c.vJson ?? null) as PropertyValue;
     default:
       return null;
   }

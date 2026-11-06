@@ -1,4 +1,5 @@
 import type { GroupSpec } from './grouping';
+import { effectiveType } from '@jotion/shared';
 import type { FilterGroup, PropertyType, PropertyValue, SortSpec } from '@jotion/shared';
 
 /** Property, wie Compiler und Referenz sie brauchen (config bereits validiert). */
@@ -39,4 +40,16 @@ export interface QueryContext {
   dateRange?: { start: QueryProperty; end: QueryProperty | null; from: string; to: string };
   /** Namen von Nutzern für Sortierung nach Person (nur Referenz; SQL liest users) */
   userNames?: Record<string, string>;
+}
+
+/**
+ * Properties für Abfragen: Formeln und Rollups werden wie ihr Ergebnistyp behandelt
+ * (ihre Werte stehen in denselben Spalten von property_values, Listen als Text).
+ */
+export function queryProperties<T extends QueryProperty>(props: T[]): T[] {
+  return props.map((p) =>
+    p.type === 'formula' || p.type === 'rollup'
+      ? { ...p, type: effectiveType(p.type, p.config) }
+      : p,
+  );
 }

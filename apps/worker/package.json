@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@jotion/compute": "workspace:*",
     "@jotion/db": "workspace:*",
     "@jotion/editor": "workspace:*",
     "@jotion/shared": "workspace:*",

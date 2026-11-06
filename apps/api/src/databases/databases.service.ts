@@ -35,6 +35,8 @@ import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
 import { computePosition } from '../pages/positions';
 import { PermissionService } from '../permissions/permission.service';
+import { ComputeService } from './compute.service';
+import { COMPUTED_TYPES, ComputedSchemaService } from './computed-schema';
 import { DatabaseAccessService, safeConfig, type LoadedProperty } from './database-access';
 import { storedValueData } from './values';
 
@@ -66,6 +68,8 @@ export class DatabasesService {
     private readonly perms: PermissionService,
     private readonly access: DatabaseAccessService,
     private readonly collab: CollabService,
+    private readonly computed: ComputedSchemaService,
+    private readonly compute: ComputeService,
   ) {}
 
   // ---------------------------------------------------------------- Datenbank
@@ -227,7 +231,13 @@ export class DatabasesService {
     if (input.type === 'status' && !(config as { options?: unknown[] }).options?.length)
       config = { options: defaultStatusOptions(randomUUID, l.status) };
     if (input.type === 'unique_id') config = { ...(config as object), nextValue: 1 };
-    const parsed = parsePropertyConfig(input.type, config);
+    const isComputed = COMPUTED_TYPES.includes(input.type);
+    const prepared = isComputed
+      ? await this.computed.prepare(user, a.data, input.type, config as Record<string, unknown>, {
+          name: input.name,
+        })
+      : null;
+    const parsed = parsePropertyConfig(input.type, prepared ? prepared.config : config);
     if (input.viewId) await this.requireView(databaseId, input.viewId);
 
     const created = await this.prisma.client.$transaction(async (tx) => {
@@ -246,6 +256,24 @@ export class DatabasesService {
         },
       });
       if (input.type === 'unique_id') await this.assignUniqueIds(tx, dataId, prop.id);
+      if (prepared?.reverse) {
+        const reverseId = await this.computed.createReverse(
+          tx,
+          { id: prop.id, databaseId: dataId },
+          prepared.reverse,
+        );
+        await tx.dbProperty.update({
+          where: { id: prop.id },
+          data: {
+            config: {
+              ...(parsed as object),
+              reversePropertyId: reverseId,
+            } as Prisma.InputJsonValue,
+          },
+        });
+        await this.dataEvent(tx, prepared.reverse.databaseId, user.id);
+      }
+      if (isComputed) await this.computed.reanalyzeFormulas(tx, dataId);
       if (input.viewId && input.afterPropertyId !== undefined) {
         const view = await tx.dbView.findUniqueOrThrow({ where: { id: input.viewId } });
         const cfg = viewConfigSchema.parse(view.config ?? {});
@@ -265,6 +293,7 @@ export class DatabasesService {
         await this.access.event(tx, a.page, 'database.changed', user.id);
       return tx.dbProperty.findUniqueOrThrow({ where: { id: prop.id } });
     });
+    if (isComputed) await this.compute.databaseChanged(dataId, user.id);
     return propertyDto({
       id: created.id,
       name: created.name,
@@ -286,7 +315,15 @@ export class DatabasesService {
     if (!prop || prop.databaseId !== dataId) throw notFound('Property');
     const type = prop.type as PropertyType;
 
+    const involvesComputed =
+      COMPUTED_TYPES.includes(type) ||
+      (input.type !== undefined && COMPUTED_TYPES.includes(input.type));
     if (input.type && input.type !== type) {
+      if (involvesComputed)
+        throw new AppError(
+          'validation_failed',
+          'Relationen, Rollups und Formeln lassen sich nicht in andere Typen umwandeln',
+        );
       await this.convert(user, a.data.page, prop.id, type, prop.config, input.type, input.config);
       if (input.name)
         await this.prisma.client.dbProperty.update({
@@ -295,13 +332,22 @@ export class DatabasesService {
         });
     } else {
       let config: unknown = undefined;
-      if (input.config) {
+      let prepared: Awaited<ReturnType<ComputedSchemaService['prepare']>> | null = null;
+      if (input.config && COMPUTED_TYPES.includes(type)) {
+        prepared = await this.computed.prepare(user, a.data, type, input.config, {
+          selfId: prop.id,
+          existing: (prop.config ?? {}) as Record<string, unknown>,
+        });
+        config = parsePropertyConfig(type, prepared.config);
+      } else if (input.config) {
         const merged =
           type === 'unique_id'
             ? { ...input.config, nextValue: (prop.config as { nextValue?: number }).nextValue ?? 1 }
             : input.config;
         config = parsePropertyConfig(type, merged);
       }
+      const oldRelation =
+        type === 'relation' ? (prop.config as { reversePropertyId?: string | null }) : null;
       await this.prisma.client.$transaction(async (tx) => {
         await this.lockSchema(tx, dataId);
         await tx.dbProperty.update({
@@ -311,6 +357,42 @@ export class DatabasesService {
             ...(config ? { config: config as Prisma.InputJsonValue } : {}),
           },
         });
+        if (input.name && input.name !== prop.name)
+          await this.computed.renameReferences(tx, dataId, prop.name, input.name);
+        if (prepared?.reverse) {
+          // "Zweiseitig" eingeschaltet
+          const reverseId = await this.computed.createReverse(
+            tx,
+            { id: prop.id, databaseId: dataId },
+            prepared.reverse,
+          );
+          await tx.dbProperty.update({
+            where: { id: prop.id },
+            data: {
+              config: {
+                ...(config as object),
+                reversePropertyId: reverseId,
+              } as Prisma.InputJsonValue,
+            },
+          });
+          await this.dataEvent(tx, prepared.reverse.databaseId, user.id);
+        } else if (
+          type === 'relation' &&
+          config &&
+          oldRelation?.reversePropertyId &&
+          !(config as { twoWay: boolean }).twoWay
+        ) {
+          // "Zweiseitig" ausgeschaltet: Gegen-Relation entfernen
+          const rev = await tx.dbProperty.findUnique({
+            where: { id: oldRelation.reversePropertyId },
+          });
+          if (rev) {
+            await tx.dbProperty.delete({ where: { id: rev.id } });
+            await this.computed.reanalyzeFormulas(tx, rev.databaseId);
+            await this.dataEvent(tx, rev.databaseId, user.id);
+          }
+        }
+        if (involvesComputed || input.name) await this.computed.reanalyzeFormulas(tx, dataId);
         // Gelöschte Optionen aus allen Werten entfernen
         if (config && (type === 'select' || type === 'multi_select' || type === 'status')) {
           const keep = (config as { options: { id: string }[] }).options.map((o) => o.id);
@@ -323,6 +405,7 @@ export class DatabasesService {
         }
         await this.access.event(tx, a.data.page, 'database.changed', user.id);
       });
+      if (involvesComputed || input.name) await this.compute.databaseChanged(dataId, user.id);
     }
     const p = await this.prisma.client.dbProperty.findUniqueOrThrow({ where: { id: prop.id } });
     return propertyDto({
@@ -340,12 +423,38 @@ export class DatabasesService {
     if (!prop || prop.databaseId !== a.data.db.id) throw notFound('Property');
     if (prop.type === 'title')
       throw new AppError('bad_request', 'Die Titel-Spalte kann nicht gelöscht werden');
+    const reverseId =
+      prop.type === 'relation'
+        ? (prop.config as { reversePropertyId?: string | null }).reversePropertyId
+        : null;
+    let reverseDb: string | null = null;
     await this.prisma.client.$transaction(async (tx) => {
       await this.lockSchema(tx, a.data.db.id);
       await tx.dbProperty.delete({ where: { id: prop.id } });
+      // Zweiseitige Relation: Gegen-Property mit entfernen (wie Notion)
+      if (reverseId) {
+        const rev = await tx.dbProperty.findUnique({ where: { id: reverseId } });
+        if (rev) {
+          await tx.dbProperty.delete({ where: { id: rev.id } });
+          reverseDb = rev.databaseId;
+          if (rev.databaseId !== a.data.db.id)
+            await this.computed.reanalyzeFormulas(tx, rev.databaseId);
+          await this.dataEvent(tx, rev.databaseId, user.id);
+        }
+      }
+      await this.computed.reanalyzeFormulas(tx, a.data.db.id);
       await this.access.event(tx, a.data.page, 'database.changed', user.id);
       await this.access.event(tx, a.data.page, 'database.rows.changed', user.id);
     });
+    await this.compute.databaseChanged(a.data.db.id, user.id);
+    if (reverseDb && reverseDb !== a.data.db.id)
+      await this.compute.databaseChanged(reverseDb, user.id);
+  }
+
+  /** Ereignis "Schema geändert" für eine andere Datenbank (Gegen-Relation). */
+  private async dataEvent(tx: Tx, databaseId: string, actorId: string) {
+    const page = await tx.page.findUnique({ where: { id: databaseId } });
+    if (page) await this.access.event(tx, page, 'database.changed', actorId);
   }
 
   /**

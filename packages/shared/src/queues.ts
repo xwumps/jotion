@@ -3,7 +3,31 @@ export const QUEUE_PREFIX = 'jotion';
 
 export const QUEUES = {
   system: 'system',
+  compute: 'compute',
 } as const;
+
+/** Phase 6: Berechnete Properties (Rollups, Formeln) */
+export const COMPUTE_JOBS = {
+  /** Abhängige Zeilen über Relationen neu berechnen */
+  propagate: 'propagate',
+  /** Alle Zeilen einer Datenbank neu berechnen (geändertes Schema) */
+  recomputeDatabase: 'recompute-database',
+  /** Formeln mit now()/today() regelmäßig auffrischen */
+  refreshVolatile: 'refresh-volatile',
+} as const;
+
+export interface PropagateJob {
+  databaseId: string;
+  rowIds: string[];
+  /** Zusätzlich betroffene Zeilen je Datenbank (z. B. alte und neue Ziele einer Relation) */
+  extra?: Record<string, string[]>;
+  actorId?: string | null;
+}
+export interface RecomputeDatabaseJob {
+  databaseId: string;
+  actorId?: string | null;
+}
+export const VOLATILE_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 export const SYSTEM_JOBS = {
   heartbeat: 'heartbeat',

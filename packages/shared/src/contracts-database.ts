@@ -34,7 +34,7 @@ export const PROPERTY_TYPES = [
 ] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
-/** In Phase 4 anlegbar (relation, rollup, formula folgen in Phase 6, title gibt es genau einmal). */
+/** Anlegbare Typen (title gibt es genau einmal). */
 export const CREATABLE_PROPERTY_TYPES = [
   'text',
   'number',
@@ -53,6 +53,9 @@ export const CREATABLE_PROPERTY_TYPES = [
   'last_edited_time',
   'last_edited_by',
   'unique_id',
+  'relation',
+  'rollup',
+  'formula',
 ] as const satisfies readonly PropertyType[];
 export type CreatablePropertyType = (typeof CREATABLE_PROPERTY_TYPES)[number];
 
@@ -141,6 +144,48 @@ function uniqueOptions<T extends { id: string; name: string }>(options: T[], ctx
   }
 }
 
+/** Ergebnistyp berechneter Properties (Formel, Rollup). */
+export const RESULT_TYPES = [
+  'number',
+  'text',
+  'boolean',
+  'date',
+  'list',
+  'person',
+  'page',
+  'empty',
+] as const;
+export type ResultType = (typeof RESULT_TYPES)[number];
+
+export const ROLLUP_AGGREGATIONS = [
+  'show_original',
+  'show_unique',
+  'count_all',
+  'count_values',
+  'count_unique',
+  'count_empty',
+  'count_not_empty',
+  'percent_empty',
+  'percent_not_empty',
+  'sum',
+  'average',
+  'median',
+  'min',
+  'max',
+  'range',
+  'earliest_date',
+  'latest_date',
+  'date_range',
+  'checked',
+  'unchecked',
+  'percent_checked',
+  'percent_unchecked',
+] as const;
+export type RollupAggregation = (typeof ROLLUP_AGGREGATIONS)[number];
+
+/** Höchstzahl verknüpfter Zeilen je Relation und Zeile */
+export const MAX_RELATION_LINKS = 1000;
+
 export const propertyConfigSchemas = {
   title: z.object({}).strict(),
   text: z.object({}).strict(),
@@ -191,10 +236,11 @@ export const propertyConfigSchemas = {
       nextValue: z.number().int().min(1).default(1),
     })
     .strict(),
-  // Phase 6: Schema vorgesehen, Anlegen in Phase 4 nicht möglich
+  // Phase 6: Relation, Rollup, Formel
   relation: z
     .object({
       targetDatabaseId: id,
+      /** Zweiseitig: Gegen-Property in der Zieldatenbank (vom Server gepflegt) */
       twoWay: z.boolean().default(false),
       reversePropertyId: id.nullable().default(null),
       limit: z.enum(['one', 'many']).default('many'),
@@ -204,10 +250,20 @@ export const propertyConfigSchemas = {
     .object({
       relationPropertyId: id,
       targetPropertyId: id,
-      aggregation: z.string().max(40),
+      aggregation: z.enum(ROLLUP_AGGREGATIONS).default('show_original'),
+      /** vom Server ermittelt */
+      resultType: z.enum(RESULT_TYPES).default('empty'),
     })
     .strict(),
-  formula: z.object({ expression: z.string().max(10_000) }).strict(),
+  formula: z
+    .object({
+      expression: z.string().max(10_000),
+      /** vom Server ermittelt: Ergebnistyp, Fehler der letzten Prüfung, now()/today() */
+      resultType: z.enum(RESULT_TYPES).default('empty'),
+      error: z.string().max(500).nullable().default(null),
+      volatile: z.boolean().default(false),
+    })
+    .strict(),
 } satisfies Record<PropertyType, z.ZodType>;
 
 export type PropertyConfig<T extends PropertyType = PropertyType> = z.output<
@@ -316,10 +372,23 @@ export interface PropertyValueMap {
   last_edited_by: string;
   unique_id: number | null;
   relation: string[];
-  rollup: unknown;
-  formula: unknown;
+  rollup: ComputedValue;
+  formula: ComputedValue;
 }
 export type PropertyValue = PropertyValueMap[PropertyType] | null;
+
+/**
+ * Ergebnis einer Formel oder eines Rollups im API-Format: Zahl, Text, Wahrheitswert, Datum
+ * (wie das Datums-Property), Person { id, name }, Seite { id, title } oder Liste davon.
+ */
+export type ComputedItem =
+  | number
+  | string
+  | boolean
+  | DateValue
+  | { kind: 'person'; id: string; name: string }
+  | { kind: 'page'; id: string; title: string };
+export type ComputedValue = ComputedItem | ComputedItem[] | null;
 
 const optionalText = (max: number) =>
   z
@@ -352,7 +421,7 @@ export const propertyValueSchemas = {
   last_edited_time: z.never(),
   last_edited_by: z.never(),
   unique_id: z.never(),
-  relation: z.never(),
+  relation: z.array(id).max(MAX_RELATION_LINKS),
   rollup: z.never(),
   formula: z.never(),
 } satisfies Record<PropertyType, z.ZodType>;
@@ -515,8 +584,29 @@ export function operatorsFor(type: PropertyType): readonly FilterOperator[] {
       return CHECKBOX_OPERATORS;
     case 'files':
       return EMPTY_OPERATORS;
+    case 'relation':
+      return MULTI_OPERATORS;
     default:
       return [];
+  }
+}
+
+/**
+ * Wie ein Property in Filtern, Sortierung, Gruppen und Berechnungen behandelt wird:
+ * Formeln und Rollups nach ihrem Ergebnistyp (Listen als Text), alle anderen nach ihrem Typ.
+ */
+export function effectiveType(type: PropertyType, config: unknown): PropertyType {
+  if (type !== 'formula' && type !== 'rollup') return type;
+  const rt = (config as { resultType?: ResultType } | null)?.resultType ?? 'empty';
+  switch (rt) {
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'checkbox';
+    case 'date':
+      return 'date';
+    default:
+      return 'text';
   }
 }
 
@@ -610,7 +700,7 @@ export const MAX_SORTS = 10;
 
 /** Typen, nach denen sortiert werden kann. */
 export function isSortable(type: PropertyType): boolean {
-  return !['files', 'relation', 'rollup', 'formula'].includes(type);
+  return !['files', 'relation'].includes(type);
 }
 
 // ---------------------------------------------------------------- Berechnungen
@@ -662,6 +752,7 @@ export function calculationsFor(type: PropertyType): CalculationFn[] {
     case 'checkbox':
       return ['count_all', 'checked', 'unchecked', 'percent_checked', 'percent_unchecked'];
     case 'relation':
+      return ['count_all', 'count_empty', 'count_not_empty', 'percent_empty', 'percent_not_empty'];
     case 'rollup':
     case 'formula':
       return ['count_all'];
@@ -887,6 +978,8 @@ export interface RowDto {
   title: string;
   icon: PageIcon | null;
   cover?: PageCover | null;
+  /** Titel und Icons verknüpfter Zeilen (Relationen) nach Zeilen-ID */
+  refs?: Record<string, { title: string; icon: PageIcon | null }>;
   /** Vorschau aus dem Seiteninhalt (nur mit preview: true abgefragt) */
   preview?: { image: string | null; text: string };
   position: string;

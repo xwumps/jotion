@@ -56,6 +56,26 @@ export const serverEnvSchema = z.object({
         .map((o) => o.trim().toLowerCase())
         .filter(Boolean),
     ),
+  /** Phase 6: Zeitzone für Datumsfunktionen in Formeln (now(), today(), formatDate) */
+  JOTION_TIMEZONE: z
+    .string()
+    .default('Europe/Berlin')
+    .refine((tz) => {
+      try {
+        new Intl.DateTimeFormat('en', { timeZone: tz });
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'muss eine IANA-Zeitzone sein'),
+  /**
+   * Phase 6: Abhängige Berechnungen direkt in der API statt im Worker weiterreichen
+   * (für Tests ohne Worker). Standard: Worker.
+   */
+  JOTION_COMPUTE_INLINE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
