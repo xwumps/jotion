@@ -7,6 +7,7 @@ import {
   CARD_SIZES,
   CREATABLE_VIEW_TYPES,
   DATE_BUCKETS,
+  effectiveType,
   isGroupable,
   type DatabaseDto,
   type GroupBy,
@@ -126,7 +127,7 @@ export function ViewSettings({
   const td = useTranslations('database');
   const cfg = view.config;
   const props = orderedProperties(db, cfg);
-  const groupable = props.filter((p) => isGroupable(p.type));
+  const groupable = props.filter((p) => isGroupable(effectiveType(p.type, p.config)));
   const dates = props.filter((p) => DATE_TYPES.includes(p.type));
   const none = { value: '', label: t('none') };
   const nameOf = (p: PropertyDto) => ({ value: p.id, label: p.name });
@@ -243,7 +244,7 @@ export function ViewSettings({
       : saveConfig({ gallery: { ...gallery, ...patch } as ViewConfig['gallery'] });
   const cardLayout = view.type !== 'table';
   const shown = new Set(cfg.cardProperties ?? []);
-  const numeric = props.filter((p) => calculationsFor(p.type).length > 1);
+  const numeric = props.filter((p) => calculationsFor(effectiveType(p.type, p.config)).length > 1);
 
   return (
     <Popover>
@@ -415,7 +416,7 @@ export function ViewSettings({
                       options={[
                         none,
                         ...numeric.flatMap((p) =>
-                          calculationsFor(p.type)
+                          calculationsFor(effectiveType(p.type, p.config))
                             .filter(
                               (fn) =>
                                 fn !== 'count_all' &&

@@ -51,6 +51,7 @@ export const useDatabase = (id: string) =>
   useQuery({
     queryKey: dbKeys.db(id),
     queryFn: () => apiGet<DatabaseDto>(`/databases/${id}`),
+    enabled: Boolean(id),
     retry: false,
   });
 

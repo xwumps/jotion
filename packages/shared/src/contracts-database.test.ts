@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   calculationsFor,
+  effectiveType,
   CREATABLE_PROPERTY_TYPES,
   filterSchema,
   isEmptyValue,
@@ -51,8 +52,13 @@ describe('Property-Konfiguration', () => {
   it('hat für jeden Typ ein Schema und Operatoren bzw. Berechnungen', () => {
     for (const t of PROPERTY_TYPES) {
       expect(calculationsFor(t)).toContain('count_all');
-      if (CREATABLE_PROPERTY_TYPES.includes(t as never))
+      // Formeln und Rollups filtern über ihren Ergebnistyp (effectiveType)
+      if (CREATABLE_PROPERTY_TYPES.includes(t as never) && t !== 'formula' && t !== 'rollup')
         expect(operatorsFor(t).length).toBeGreaterThan(0);
+    }
+    for (const rt of ['number', 'text', 'boolean', 'date', 'list'] as const) {
+      expect(operatorsFor(effectiveType('formula', { resultType: rt })).length).toBeGreaterThan(0);
+      expect(operatorsFor(effectiveType('rollup', { resultType: rt })).length).toBeGreaterThan(0);
     }
   });
 });

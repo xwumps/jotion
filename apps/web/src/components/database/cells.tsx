@@ -25,6 +25,7 @@ import {
   optionStyle,
   uniqueIdLabel,
 } from './property-meta';
+import { ComputedDisplay, RelationDisplay, RelationEditor } from './computed-cells';
 import type { DatabaseActions } from './use-database';
 
 export interface CellContext {
@@ -90,6 +91,9 @@ export function ValueDisplay({
   wrap?: boolean;
 }) {
   const locale = useLocale();
+  if (prop.type === 'relation') return <RelationDisplay prop={prop} row={row} wrap={wrap} />;
+  if (prop.type === 'formula' || prop.type === 'rollup')
+    return <ComputedDisplay prop={prop} value={row.values[prop.id] as never} wrap={wrap} />;
   const v = cellValue(row, prop);
   const cfg = prop.config as Record<string, unknown>;
   const textCls = cn('min-w-0', wrap ? 'whitespace-pre-wrap break-words' : 'truncate');
@@ -271,7 +275,7 @@ export function ValueEditor({
 
   if (readonly) {
     return (
-      <div className={base}>
+      <div className={base} data-testid="cell" data-property={prop.name}>
         {display}
         {children}
       </div>
@@ -323,6 +327,9 @@ export function ValueEditor({
         onOpenAutoFocus={(e) => e.preventDefault()}
         data-testid="cell-popover"
       >
+        {prop.type === 'relation' && (
+          <RelationEditor prop={prop} row={row} onSave={(ids) => save(ids)} />
+        )}
         {(prop.type === 'select' || prop.type === 'multi_select' || prop.type === 'status') && (
           <SelectEditor prop={prop} row={row} ctx={ctx} onClose={() => setEditing(false)} />
         )}

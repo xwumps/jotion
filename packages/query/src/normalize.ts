@@ -77,6 +77,7 @@ function resolveCondition(
     case 'person':
     case 'created_by':
     case 'last_edited_by':
+    case 'relation':
       return typeof v === 'string' && UUID.test(v) ? { ...base, value: v.toLowerCase() } : null;
     case 'checkbox':
       return typeof v === 'boolean' ? { ...base, value: v } : null;

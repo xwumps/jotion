@@ -71,7 +71,9 @@ export function TypeList({
   const t = useTranslations('database');
   return (
     <div className="max-h-[320px] overflow-y-auto p-1" data-testid="type-list">
-      {CREATABLE_PROPERTY_TYPES.map((type) => (
+      {CREATABLE_PROPERTY_TYPES.filter(
+        (type) => !current || !['relation', 'rollup', 'formula'].includes(type),
+      ).map((type) => (
         <Item
           key={type}
           icon={PROPERTY_ICONS[type]}
@@ -97,6 +99,8 @@ export interface PropertyMenuActions {
   insert: (side: 'left' | 'right') => void;
   remove: () => void;
   undoConversion: () => void;
+  /** Relation, Rollup oder Formel bearbeiten */
+  configure?: () => void;
 }
 
 /** Menü einer Spalte (Kopfzeile der Tabelle). */
@@ -159,7 +163,7 @@ export function PropertyMenu({
           data-testid="property-name"
         />
       )}
-      {canEditSchema && !isTitle && (
+      {canEditSchema && !isTitle && !['relation', 'rollup', 'formula'].includes(prop.type) && (
         <Item
           icon={PROPERTY_ICONS[prop.type]}
           onClick={() => setPage('type')}
@@ -169,6 +173,17 @@ export function PropertyMenu({
           {t('propertyMenu.type')}: {t(`types.${prop.type}`)}
         </Item>
       )}
+      {canEditSchema &&
+        actions.configure &&
+        ['relation', 'rollup', 'formula'].includes(prop.type) && (
+          <Item
+            icon={PROPERTY_ICONS[prop.type]}
+            onClick={actions.configure}
+            testId="property-configure"
+          >
+            {t(`setup.edit.${prop.type}`)}
+          </Item>
+        )}
       {canEditSchema && hasOptions && (
         <Item
           icon={Plus}

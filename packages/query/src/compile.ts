@@ -49,7 +49,11 @@ const PAGE_DERIVED: PropertyType[] = [
   'last_edited_by',
 ];
 const TEXT_TYPES: PropertyType[] = ['title', 'text', 'url', 'email', 'phone'];
-const ARRAY_TYPES: PropertyType[] = ['multi_select', 'person'];
+const ARRAY_TYPES: PropertyType[] = ['multi_select', 'person', 'relation'];
+
+/** Verknüpfte, nicht gelöschte Zeilen einer Relation als uuid[] (NULL ohne Verknüpfung). */
+const relationIds = (prop: QueryProperty) =>
+  sql`(SELECT array_agg(l.to_row_id ORDER BY l.position) FROM relation_links l JOIN pages tp ON tp.id = l.to_row_id AND tp.deleted_at IS NULL WHERE l.property_id = ${prop.id}::uuid AND l.from_row_id = p.id)`;
 
 /** Ordnet jedem benötigten Property einen LEFT JOIN auf property_values zu. */
 class Joins {
@@ -114,6 +118,8 @@ function scalarValue(prop: QueryProperty, j: Joins): Sql {
       return j.col(prop, 'v_date_start');
     case 'files':
       return j.col(prop, 'v_json');
+    case 'relation':
+      return relationIds(prop);
     default:
       return sql`NULL`;
   }
@@ -262,6 +268,20 @@ function conditionSql(c: ResolvedCondition, j: Joins, tz: string): Sql {
       case 'is_not':
       case 'does_not_contain':
         return sql`(NOT ${ANY_UUID(s, arr)})`;
+    }
+  }
+
+  if (t === 'relation') {
+    const arr = relationIds(prop);
+    switch (op) {
+      case 'is_empty':
+        return sql`(COALESCE(cardinality(${arr}), 0) = 0)`;
+      case 'is_not_empty':
+        return sql`(COALESCE(cardinality(${arr}), 0) > 0)`;
+      case 'contains':
+        return ANY_UUID(String(v ?? ''), arr);
+      case 'does_not_contain':
+        return sql`(NOT ${ANY_UUID(String(v ?? ''), arr)})`;
     }
   }
 

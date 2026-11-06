@@ -2,7 +2,10 @@
 
 import {
   DATE_RANGES,
+  effectiveType,
   isSortable,
+  MAX_FILTER_DEPTH,
+  type RowQueryResultDto,
   operatorsFor,
   RELATIVE_DATES,
   type DateOperand,
@@ -18,6 +21,8 @@ import {
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiPost } from '@/lib/api-client';
 import { optionsOf } from './property-meta';
 
 const selectCls =
@@ -42,10 +47,14 @@ export function countConditions(g: FilterGroup | null | undefined): number {
   return g.children.reduce((n, c) => n + (c.type === 'group' ? countConditions(c) : 1), 0);
 }
 
-const filterable = (props: PropertyDto[]) => props.filter((p) => operatorsFor(p.type).length > 0);
+/** Formeln und Rollups filtern wie ihr Ergebnistyp (Zahl, Text, Datum, Wahrheitswert). */
+const filterable = (props: PropertyDto[]) =>
+  props
+    .map((p) => ({ ...p, type: effectiveType(p.type, p.config) }))
+    .filter((p) => operatorsFor(p.type).length > 0);
 
 /**
- * Filter mit UND/ODER: Bedingungen auf oberster Ebene und Filtergruppen (eine Ebene tiefer).
+ * Filter mit UND/ODER: Bedingungen und Filtergruppen bis zur Tiefe 3 (wie Notion).
  * Jede Änderung wird sofort in der Ansicht gespeichert.
  */
 export function FilterEditor({
@@ -166,20 +175,42 @@ function GroupRows({
                 depth={depth + 1}
                 onChange={(g) => replace(i, g.children.length ? g : null)}
               />
-              {depth < 2 && props[0] && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    replace(i, {
-                      ...child,
-                      children: [...child.children, defaultCondition(props[0]!)],
-                    })
-                  }
-                  className="flex h-7 w-fit items-center gap-1 rounded-md px-2 text-[13px] text-fg-muted hover:bg-active"
-                >
-                  <Plus className="size-3.5" />
-                  {t('filter.add')}
-                </button>
+              {props[0] && (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      replace(i, {
+                        ...child,
+                        children: [...child.children, defaultCondition(props[0]!)],
+                      })
+                    }
+                    className="flex h-7 w-fit items-center gap-1 rounded-md px-2 text-[13px] text-fg-muted hover:bg-active"
+                    data-testid="add-nested-filter"
+                  >
+                    <Plus className="size-3.5" />
+                    {t('filter.add')}
+                  </button>
+                  {depth + 2 <= MAX_FILTER_DEPTH && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        replace(i, {
+                          ...child,
+                          children: [
+                            ...child.children,
+                            { type: 'group', op: 'and', children: [defaultCondition(props[0]!)] },
+                          ],
+                        })
+                      }
+                      className="flex h-7 w-fit items-center gap-1 rounded-md px-2 text-[13px] text-fg-muted hover:bg-active"
+                      data-testid="add-nested-group"
+                    >
+                      <Plus className="size-3.5" />
+                      {t('filter.addGroup')}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -289,6 +320,7 @@ function ValueInput({
 }) {
   const t = useTranslations('database');
   const set = (value: FilterCondition['value']) => onChange({ ...cond, value });
+  if (prop.type === 'relation') return <RelationValue prop={prop} cond={cond} onChange={set} />;
   switch (prop.type) {
     case 'select':
     case 'status':
@@ -554,5 +586,40 @@ export function SortEditor({
         </button>
       )}
     </div>
+  );
+}
+
+/** Auswahl einer Zeile der verknüpften Datenbank (Filter "enthält"). */
+function RelationValue({
+  prop,
+  cond,
+  onChange,
+}: {
+  prop: PropertyDto;
+  cond: FilterCondition;
+  onChange: (v: FilterCondition['value']) => void;
+}) {
+  const t = useTranslations('database');
+  const target = (prop.config as { targetDatabaseId?: string }).targetDatabaseId ?? '';
+  const rows = useQuery({
+    queryKey: ['relationFilterRows', target],
+    queryFn: () => apiPost<RowQueryResultDto>(`/databases/${target}/query`, { limit: 200 }),
+    enabled: Boolean(target),
+  });
+  return (
+    <select
+      value={typeof cond.value === 'string' ? cond.value : ''}
+      onChange={(e) => onChange(e.target.value || undefined)}
+      className={selectCls}
+      aria-label={t('filter.value')}
+      data-testid="filter-value"
+    >
+      <option value="">{t('filter.choose')}</option>
+      {(rows.data?.rows ?? []).map((r) => (
+        <option key={r.id} value={r.id}>
+          {r.title || t('untitled')}
+        </option>
+      ))}
+    </select>
   );
 }

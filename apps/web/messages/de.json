@@ -779,6 +779,68 @@
     "peek": {
       "close": "Schließen",
       "openPage": "Als Seite öffnen"
+    },
+    "relation": {
+      "title": "Relation",
+      "target": "Verknüpfte Datenbank",
+      "searchDatabase": "Datenbank suchen …",
+      "self": "diese Datenbank",
+      "limit": "Anzahl",
+      "many": "Beliebig viele Seiten",
+      "one": "Eine Seite",
+      "twoWay": "Auch in der verknüpften Datenbank anzeigen (zweiseitig)",
+      "reverseName": "Name in der verknüpften Datenbank",
+      "search": "Seite suchen …",
+      "none": "Keine Seiten gefunden",
+      "remove": "{title} entfernen"
+    },
+    "rollup": {
+      "title": "Rollup",
+      "noRelation": "Lege zuerst eine Relation an.",
+      "relation": "Relation",
+      "property": "Property",
+      "calculate": "Berechnen"
+    },
+    "formula": {
+      "title": "Formel",
+      "label": "Formel",
+      "placeholder": "z. B. prop(\"Preis\") * prop(\"Menge\")",
+      "resultType": "Ergebnis: {type}",
+      "hint": "Tippe prop( für Properties, Funktionen werden vorgeschlagen",
+      "preview": "Vorschau für „{title}“:"
+    },
+    "setup": {
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "edit": {
+        "relation": "Relation bearbeiten",
+        "rollup": "Rollup bearbeiten",
+        "formula": "Formel bearbeiten"
+      }
+    },
+    "aggregations": {
+      "show_original": "Original anzeigen",
+      "show_unique": "Eindeutige Werte anzeigen",
+      "count_all": "Alle zählen",
+      "count_values": "Werte zählen",
+      "count_unique": "Eindeutige Werte zählen",
+      "count_empty": "Leere zählen",
+      "count_not_empty": "Nicht leere zählen",
+      "percent_empty": "Prozent leer",
+      "percent_not_empty": "Prozent nicht leer",
+      "sum": "Summe",
+      "average": "Durchschnitt",
+      "median": "Median",
+      "min": "Minimum",
+      "max": "Maximum",
+      "range": "Spannweite",
+      "earliest_date": "Frühestes Datum",
+      "latest_date": "Spätestes Datum",
+      "date_range": "Datumsbereich",
+      "checked": "Angehakt",
+      "unchecked": "Nicht angehakt",
+      "percent_checked": "Prozent angehakt",
+      "percent_unchecked": "Prozent nicht angehakt"
     }
   },
   "databaseCommands": {
