@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, type Page } from '@jotion/db';
 import {
   calculationsFor,
+  chartConfigSchema,
   isReadonlyType,
   keyBetween,
   keysBetween,
@@ -31,6 +32,7 @@ import {
   compileGroupCountQuery,
   compileRowQuery,
   CursorMismatchError,
+  dayInZone,
   encodeCursor,
   fromStorage,
   GroupMoveError,
@@ -48,6 +50,7 @@ import { CollabService } from '../collab/collab.service';
 import { AppError, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { PrismaService } from '../infra/prisma.service';
+import { ChartsService } from './charts.service';
 import { ComputeService } from './compute.service';
 import { DatabaseAccessService, type LoadedProperty } from './database-access';
 import { storedValueData } from './values';
@@ -79,6 +82,7 @@ export class RowsService {
     private readonly access: DatabaseAccessService,
     private readonly collab: CollabService,
     private readonly compute: ComputeService,
+    private readonly charts: ChartsService,
   ) {}
 
   private async viewConfig(databaseId: string, viewId?: string): Promise<ViewConfig | null> {
@@ -114,6 +118,20 @@ export class RowsService {
       groups: this.groupFilters(cfg, props, input.group, input.subGroup),
       dateRange: input.dateRange ? this.dateRange(props, input.dateRange) : undefined,
     };
+    if (input.chartPoint && cfg?.chart) {
+      // Drilldown: Zeilen eines Diagrammpunkts (gleicher Zeitraum und gleiche Gruppen wie im Diagramm)
+      const tz = safeTimeZone(input.timeZone);
+      const chart = chartConfigSchema.parse(cfg.chart);
+      const extra = this.charts.chartContext(
+        chart,
+        props,
+        tz,
+        dayInZone(Date.now(), tz),
+        input.chartPoint,
+      );
+      ctx.groups = [...(ctx.groups ?? []), ...(extra.groups ?? [])];
+      if (extra.dateRange) ctx.dateRange = extra.dateRange;
+    }
     let compiled;
     try {
       compiled = compileRowQuery(ctx, { limit: input.limit, cursor: input.cursor });

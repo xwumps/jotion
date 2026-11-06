@@ -40,6 +40,9 @@ describe('Grouping-Engine', () => {
     expect(bucketStart('2026-11-09', 'week')).toBe('2026-11-09'); // Montag
     expect(bucketStart('2027-01-01', 'week')).toBe('2026-12-28');
     expect(bucketStart('2026-11-04', 'month')).toBe('2026-11-01');
+    expect(bucketStart('2026-11-04', 'quarter')).toBe('2026-10-01');
+    expect(bucketStart('2026-03-31', 'quarter')).toBe('2026-01-01');
+    expect(bucketStart('2026-04-01', 'quarter')).toBe('2026-04-01');
     expect(bucketStart('2026-11-04', 'year')).toBe('2026-01-01');
   });
 

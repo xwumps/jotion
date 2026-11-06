@@ -5,6 +5,7 @@ import type { QueryProperty } from '@jotion/query';
 import { AppError, forbidden, notFound } from '../common/errors';
 import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
+import { RedisService } from '../infra/redis.service';
 import { PermissionService } from '../permissions/permission.service';
 
 export interface DatabaseAccess {
@@ -32,6 +33,7 @@ export class DatabaseAccessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly perms: PermissionService,
+    private readonly redis: RedisService,
   ) {}
 
   async require(
@@ -114,6 +116,8 @@ export class DatabaseAccessService {
     actorId: string,
     payload: Prisma.InputJsonValue = {},
   ) {
+    // Diagramm-Cache sofort ungültig machen (der Relay erhöht nach dem Veröffentlichen erneut)
+    void this.redis.client.incr(`jotion:chartv:${page.id}`).catch(() => undefined);
     return recordEvent(tx, {
       workspaceId: page.workspaceId,
       type,

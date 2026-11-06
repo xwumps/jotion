@@ -62,7 +62,7 @@ export class Client {
   constructor(private readonly app: NestFastifyApplication) {}
 
   async request(
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     url: string,
     body?: unknown,
     headers: Record<string, string> = {},
@@ -93,6 +93,7 @@ export class Client {
   post = (url: string, body: unknown = {}, headers?: Record<string, string>) =>
     this.request('POST', url, body, headers);
   patch = (url: string, body: unknown = {}) => this.request('PATCH', url, body);
+  put = (url: string, body: unknown = {}) => this.request('PUT', url, body);
   del = (url: string) => this.request('DELETE', url);
 }
 

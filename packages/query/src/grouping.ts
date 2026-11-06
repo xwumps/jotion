@@ -47,6 +47,10 @@ export function bucketStart(day: string, bucket: DateBucket): string {
     }
     case 'month':
       return `${day.slice(0, 7)}-01`;
+    case 'quarter': {
+      const m = Number(day.slice(5, 7));
+      return `${day.slice(0, 4)}-${String(m - ((m - 1) % 3)).padStart(2, '0')}-01`;
+    }
     case 'year':
       return `${day.slice(0, 4)}-01-01`;
   }
