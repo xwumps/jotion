@@ -2,6 +2,7 @@
 
 import {
   EMPTY_GROUP,
+  effectiveType,
   type CalculationFn,
   type CalculationResultDto,
   type DatabaseDto,
@@ -192,14 +193,16 @@ interface Labels {
 const OPTION_TYPES = ['select', 'status', 'multi_select'];
 
 export function groupLabel(
-  prop: PropertyDto,
+  original: PropertyDto,
   by: GroupBy,
   key: string,
   members: MemberDto[],
   locale: string,
   l: Labels,
 ): string {
-  if (key === EMPTY_GROUP) return l.empty(prop);
+  if (key === EMPTY_GROUP) return l.empty(original);
+  // Formeln und Rollups gruppieren nach ihrem Ergebnistyp
+  const prop = { ...original, type: effectiveType(original.type, original.config) };
   switch (prop.type) {
     case 'select':
     case 'status':
@@ -241,13 +244,14 @@ export function groupLabel(
  * vorhandenen Schlüssel sortiert; manuelle Reihenfolge und Ausblenden aus der Ansicht.
  */
 export function buildGroups(
-  prop: PropertyDto,
+  original: PropertyDto,
   by: GroupBy,
   counts: Map<string, number>,
   members: MemberDto[],
   locale: string,
   labels: Labels,
 ): GroupInfo[] {
+  const prop = { ...original, type: effectiveType(original.type, original.config) };
   const options = OPTION_TYPES.includes(prop.type) ? optionsOf(prop) : [];
   let keys: string[];
   if (options.length || OPTION_TYPES.includes(prop.type))
@@ -263,7 +267,7 @@ export function buildGroups(
     const opt = options.find((o) => o.id === key);
     return {
       key,
-      label: groupLabel(prop, by, key, members, locale, labels),
+      label: groupLabel(original, by, key, members, locale, labels),
       color: opt?.color ?? null,
       count: counts.get(key) ?? 0,
       hidden: by.hidden.includes(key) || (by.hideEmpty && (counts.get(key) ?? 0) === 0),
@@ -329,6 +333,12 @@ export function valueForGroup(prop: PropertyDto, key: string): unknown {
 
 /** Kann eine Karte durch Ziehen in eine andere Gruppe dieses Properties wechseln? */
 export const canDragBetweenGroups = (prop: PropertyDto) =>
-  !['created_time', 'created_by', 'last_edited_time', 'last_edited_by', 'unique_id'].includes(
-    prop.type,
-  );
+  ![
+    'created_time',
+    'created_by',
+    'last_edited_time',
+    'last_edited_by',
+    'unique_id',
+    'formula',
+    'rollup',
+  ].includes(prop.type);

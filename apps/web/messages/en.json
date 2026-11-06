@@ -779,6 +779,68 @@
     "peek": {
       "close": "Close",
       "openPage": "Open as page"
+    },
+    "relation": {
+      "title": "Relation",
+      "target": "Related database",
+      "searchDatabase": "Search databases …",
+      "self": "this database",
+      "limit": "Limit",
+      "many": "No limit",
+      "one": "One page",
+      "twoWay": "Show on related database (two-way)",
+      "reverseName": "Name on related database",
+      "search": "Search pages …",
+      "none": "No pages found",
+      "remove": "Remove {title}"
+    },
+    "rollup": {
+      "title": "Rollup",
+      "noRelation": "Add a relation first.",
+      "relation": "Relation",
+      "property": "Property",
+      "calculate": "Calculate"
+    },
+    "formula": {
+      "title": "Formula",
+      "label": "Formula",
+      "placeholder": "e.g. prop(\"Price\") * prop(\"Quantity\")",
+      "resultType": "Result: {type}",
+      "hint": "Type prop( for properties, functions are suggested",
+      "preview": "Preview for “{title}”:"
+    },
+    "setup": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": {
+        "relation": "Edit relation",
+        "rollup": "Edit rollup",
+        "formula": "Edit formula"
+      }
+    },
+    "aggregations": {
+      "show_original": "Show original",
+      "show_unique": "Show unique values",
+      "count_all": "Count all",
+      "count_values": "Count values",
+      "count_unique": "Count unique values",
+      "count_empty": "Count empty",
+      "count_not_empty": "Count not empty",
+      "percent_empty": "Percent empty",
+      "percent_not_empty": "Percent not empty",
+      "sum": "Sum",
+      "average": "Average",
+      "median": "Median",
+      "min": "Min",
+      "max": "Max",
+      "range": "Range",
+      "earliest_date": "Earliest date",
+      "latest_date": "Latest date",
+      "date_range": "Date range",
+      "checked": "Checked",
+      "unchecked": "Unchecked",
+      "percent_checked": "Percent checked",
+      "percent_unchecked": "Percent unchecked"
     }
   },
   "databaseCommands": {

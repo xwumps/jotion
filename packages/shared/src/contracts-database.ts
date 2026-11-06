@@ -183,6 +183,36 @@ export const ROLLUP_AGGREGATIONS = [
 ] as const;
 export type RollupAggregation = (typeof ROLLUP_AGGREGATIONS)[number];
 
+/** Welche Aggregationen zu welchem Ziel-Typ passen (für die Oberfläche und die Prüfung). */
+export function rollupAggregationsFor(type: PropertyType): RollupAggregation[] {
+  const base: RollupAggregation[] = [
+    'show_original',
+    'show_unique',
+    'count_all',
+    'count_values',
+    'count_unique',
+    'count_empty',
+    'count_not_empty',
+    'percent_empty',
+    'percent_not_empty',
+  ];
+  switch (type) {
+    case 'number':
+    case 'unique_id':
+    case 'formula':
+    case 'rollup':
+      return [...base, 'sum', 'average', 'median', 'min', 'max', 'range'];
+    case 'date':
+    case 'created_time':
+    case 'last_edited_time':
+      return [...base, 'earliest_date', 'latest_date', 'date_range'];
+    case 'checkbox':
+      return [...base, 'checked', 'unchecked', 'percent_checked', 'percent_unchecked'];
+    default:
+      return base;
+  }
+}
+
 /** Höchstzahl verknüpfter Zeilen je Relation und Zeile */
 export const MAX_RELATION_LINKS = 1000;
 

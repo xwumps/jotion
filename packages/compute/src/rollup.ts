@@ -1,5 +1,6 @@
 import { compare, equal, isEmpty, type DateVal, type Value } from '@jotion/formula';
 import type { PropertyType, ResultType, RollupAggregation } from '@jotion/shared';
+export { rollupAggregationsFor } from '@jotion/shared';
 
 /** Ergebnistyp eines Rollups aus Aggregation und Typ des Ziel-Properties. */
 export function rollupResultType(agg: RollupAggregation, _targetType: PropertyType): ResultType {
@@ -13,36 +14,6 @@ export function rollupResultType(agg: RollupAggregation, _targetType: PropertyTy
       return 'date';
     default:
       return 'number';
-  }
-}
-
-/** Welche Aggregationen zu welchem Ziel-Typ passen (für die Oberfläche und die Prüfung). */
-export function rollupAggregationsFor(type: PropertyType): RollupAggregation[] {
-  const base: RollupAggregation[] = [
-    'show_original',
-    'show_unique',
-    'count_all',
-    'count_values',
-    'count_unique',
-    'count_empty',
-    'count_not_empty',
-    'percent_empty',
-    'percent_not_empty',
-  ];
-  switch (type) {
-    case 'number':
-    case 'unique_id':
-    case 'formula':
-    case 'rollup':
-      return [...base, 'sum', 'average', 'median', 'min', 'max', 'range'];
-    case 'date':
-    case 'created_time':
-    case 'last_edited_time':
-      return [...base, 'earliest_date', 'latest_date', 'date_range'];
-    case 'checkbox':
-      return [...base, 'checked', 'unchecked', 'percent_checked', 'percent_unchecked'];
-    default:
-      return base;
   }
 }
 

@@ -2,6 +2,7 @@
 
 import {
   calculationsFor,
+  effectiveType,
   type CalculationFn,
   type CreatablePropertyType,
   type DatabaseDto,
@@ -24,6 +25,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ValueEditor, type CellContext } from './cells';
 import { formatInstant, formatNumber, PROPERTY_ICONS } from './property-meta';
+import { ComputedSetupDialog, type ComputedType } from './computed-setup';
 import { PropertyMenu, TypeList } from './property-menu';
 import type { DatabaseActions } from './use-database';
 
@@ -207,18 +209,54 @@ export function TableView({
     );
   };
 
-  const addColumn = (type: CreatablePropertyType, afterPropertyId?: string | null) =>
+  const [setup, setSetup] = useState<{
+    type: ComputedType;
+    prop?: PropertyDto;
+    after?: string | null;
+  } | null>(null);
+  const addColumn = (type: CreatablePropertyType, afterPropertyId?: string | null) => {
+    // Relation, Rollup und Formel brauchen erst Einstellungen
+    if (type === 'relation' || type === 'rollup' || type === 'formula')
+      return setSetup({ type, after: afterPropertyId ?? props.at(-1)?.id ?? null });
     actions.createProperty.mutate({
       name: t(`types.${type}`),
       type,
       viewId: view.id,
       afterPropertyId: afterPropertyId ?? props.at(-1)?.id ?? null,
     });
+  };
+  const submitSetup = (config: Record<string, unknown>) => {
+    if (!setup) return;
+    const done = { onSuccess: () => setSetup(null) };
+    if (setup.prop) actions.updateProperty.mutate({ id: setup.prop.id, config }, done);
+    else
+      actions.createProperty.mutate(
+        {
+          name: t(`types.${setup.type}`),
+          type: setup.type,
+          config,
+          viewId: view.id,
+          afterPropertyId: setup.after ?? null,
+        },
+        done,
+      );
+  };
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
 
   return (
     <div className="flex min-w-0 flex-col" data-testid="table-view">
+      {setup && (
+        <ComputedSetupDialog
+          db={db}
+          type={setup.type}
+          prop={setup.prop}
+          members={ctx.members}
+          sampleRows={rows.slice(0, 1)}
+          onClose={() => setSetup(null)}
+          onSubmit={submitSetup}
+        />
+      )}
       {selected.size > 0 && (
         <div
           className="mb-1 flex h-8 items-center gap-2 rounded-md bg-hover px-2 text-[13px]"
@@ -355,6 +393,7 @@ export function TableView({
                               actions.deleteProperty.mutate(prop.id);
                           },
                           undoConversion: () => actions.undoConversion.mutate(prop.id),
+                          configure: () => setSetup({ type: prop.type as ComputedType, prop }),
                         }}
                       />
                     </PopoverContent>
@@ -582,7 +621,8 @@ function CalculationCell({
   const t = useTranslations('database');
   const locale = useLocale();
   const [open, setOpen] = useState(false);
-  const valid = fn && calculationsFor(prop.type).includes(fn) ? fn : undefined;
+  const valid =
+    fn && calculationsFor(effectiveType(prop.type, prop.config)).includes(fn) ? fn : undefined;
   const display = (() => {
     if (!valid || value === undefined) return null;
     if (value === null) return '';
@@ -629,7 +669,7 @@ function CalculationCell({
         >
           {t('calc.none')}
         </button>
-        {calculationsFor(prop.type).map((c) => (
+        {calculationsFor(effectiveType(prop.type, prop.config)).map((c) => (
           <button
             key={c}
             type="button"
