@@ -53,7 +53,12 @@ describe('Property-Konfiguration', () => {
     for (const t of PROPERTY_TYPES) {
       expect(calculationsFor(t)).toContain('count_all');
       // Formeln und Rollups filtern über ihren Ergebnistyp (effectiveType); Buttons haben keinen Wert
-      if (CREATABLE_PROPERTY_TYPES.includes(t as never) && t !== 'formula' && t !== 'rollup' && t !== 'button')
+      if (
+        CREATABLE_PROPERTY_TYPES.includes(t as never) &&
+        t !== 'formula' &&
+        t !== 'rollup' &&
+        t !== 'button'
+      )
         expect(operatorsFor(t).length).toBeGreaterThan(0);
     }
     for (const rt of ['number', 'text', 'boolean', 'date', 'list'] as const) {
