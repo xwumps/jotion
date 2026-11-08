@@ -30,6 +30,41 @@ export function dayInZone(ms: number, timeZone: string): string {
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+function zoneOffset(ms: number, timeZone: string): number {
+  let f = offsetFormatters.get(timeZone);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    offsetFormatters.set(timeZone, f);
+  }
+  const p: Record<string, number> = {};
+  for (const part of f.formatToParts(new Date(ms))) p[part.type] = Number(part.value);
+  return (
+    Date.UTC(p.year!, p.month! - 1, p.day!, p.hour!, p.minute!, p.second!) -
+    Math.floor(ms / 1000) * 1000
+  );
+}
+
+/** Phase 9: Zeitpunkt (UTC-ms) einer Uhrzeit an einem Kalendertag in einer Zeitzone. */
+export function zonedTime(day: string, hour: number, minute: number, timeZone: string): number {
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+  const wall = Date.UTC(y, m - 1, d, hour, minute);
+  const o1 = zoneOffset(wall - zoneOffset(wall, timeZone), timeZone);
+  let ts = wall - o1;
+  const o2 = zoneOffset(ts, timeZone);
+  if (o2 !== o1) ts = wall - o2;
+  return ts;
+}
+
 /** Verschiebt einen Kalendertag um Tage bzw. Monate (UTC-Arithmetik, kein DST-Problem). */
 export function addDays(day: string, days: number): string {
   const d = new Date(`${day}T00:00:00Z`);

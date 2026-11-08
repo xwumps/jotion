@@ -6,6 +6,7 @@ import { DatabaseAccessService } from './database-access';
 import { DatabasesController } from './databases.controller';
 import { DatabasesService } from './databases.service';
 import { RowsService } from './rows.service';
+import { PageCopier } from '../templates/page-copier';
 
 @Module({
   controllers: [DatabasesController],
@@ -16,7 +17,15 @@ import { RowsService } from './rows.service';
     ComputeService,
     ComputedSchemaService,
     ChartsService,
+    PageCopier,
   ],
-  exports: [DatabaseAccessService, DatabasesService, ComputeService, ChartsService],
+  exports: [
+    DatabaseAccessService,
+    DatabasesService,
+    RowsService,
+    ComputeService,
+    ChartsService,
+    PageCopier,
+  ],
 })
 export class DatabasesModule {}

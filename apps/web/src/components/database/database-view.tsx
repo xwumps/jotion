@@ -35,6 +35,8 @@ import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../ui/m
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { countConditions, FilterEditor, SortEditor } from './filter-editor';
 import { RowPeek } from './row-peek';
+import { NewRowButton } from './row-templates-menu';
+import { AutomationsButton } from './automations';
 import { orderedProperties, TableView } from './table-view';
 import { BoardView } from './views/board-view';
 import { CalendarView } from './views/calendar-view';
@@ -371,19 +373,8 @@ function DatabaseBody({
                   </PopoverContent>
                 </Popover>
               )}
-              {editable && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    actions.createRow.mutate({}, { onSuccess: (row) => setPeek(row.id) })
-                  }
-                  className="ml-1 flex h-7 items-center gap-1 rounded-md bg-accent px-2 text-[14px] font-medium text-white hover:bg-accent-hover"
-                  data-testid="new-row"
-                >
-                  <Plus className="size-4" />
-                  {t('toolbar.new')}
-                </button>
-              )}
+              {editable && <AutomationsButton db={db} />}
+              {editable && <NewRowButton db={db} actions={actions} onOpen={setPeek} />}
             </div>
           </div>
           {view.type === 'board' ? (

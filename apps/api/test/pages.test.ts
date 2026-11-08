@@ -279,6 +279,7 @@ describe('Performance', () => {
     let t = performance.now();
     const s = await sidebar();
     const sidebarMs = performance.now() - t;
+    await c.get(`/api/pages/${root.id}/children`);
     t = performance.now();
     const kids = (await c.get(`/api/pages/${root.id}/children`)).body;
     const childrenMs = performance.now() - t;

@@ -32,6 +32,7 @@ export function RowPeek({
 }) {
   const t = useTranslations('database');
   const tp = useTranslations('page');
+  const tt = useTranslations('templates');
   const page = usePage(rowId);
   const qc = useQueryClient();
   const editorRef = useRef<PageEditorHandle>(null);
@@ -68,6 +69,14 @@ export function RowPeek({
                   <Maximize2 className="size-3.5" />
                   {t('peek.openPage')}
                 </Link>
+              )}
+              {page.data?.kind === 'ROW_TEMPLATE' && (
+                <span
+                  className="rounded bg-[var(--cb-purple)] px-1.5 py-0.5 text-[12px] font-medium text-[var(--c-purple)]"
+                  data-testid="peek-template-badge"
+                >
+                  {tt('badge')}
+                </span>
               )}
               <div className="ml-auto">
                 <SaveIndicator />

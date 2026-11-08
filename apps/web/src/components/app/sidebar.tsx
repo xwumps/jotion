@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@jotion/ui';
-import { Home, Inbox, Search, Settings, Star, Trash2 } from 'lucide-react';
+import { Home, Inbox, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -15,6 +15,7 @@ import { ThemeSwitch } from '../theme-switch';
 import { PageTreeDnd, TreeSection } from './page-tree';
 import { QuickSearch } from './quick-search';
 import { ShortcutsDialog } from './shortcuts-dialog';
+import { TemplateGallery } from './template-gallery';
 import { TrashDialog } from './trash-dialog';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
@@ -82,6 +83,7 @@ export function Sidebar({ ws }: { ws: string }) {
   const favorites = useFavorites(ws);
   const { create } = usePageActions(ws);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [gallery, setGallery] = useState(false);
   useRealtime(ws);
 
   return (
@@ -109,6 +111,12 @@ export function Sidebar({ ws }: { ws: string }) {
             testId="nav-home"
           />
           <NavItem icon={Inbox} label={t('inbox')} disabledHint={t('comingSoon')} />
+          <NavItem
+            icon={LayoutTemplate}
+            label={t('templates')}
+            onClick={() => setGallery(true)}
+            testId="nav-templates"
+          />
           <NavItem
             icon={Settings}
             label={t('settings')}
@@ -172,6 +180,7 @@ export function Sidebar({ ws }: { ws: string }) {
         <LanguageSwitch />
       </div>
       <TrashDialog ws={ws} open={trashOpen} onOpenChange={setTrashOpen} />
+      <TemplateGallery ws={ws} open={gallery} onOpenChange={setGallery} />
       <QuickSearch ws={ws} />
       <ShortcutsDialog />
     </aside>

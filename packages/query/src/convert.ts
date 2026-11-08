@@ -41,7 +41,7 @@ export interface ConversionResult {
 
 /** Typen, aus und in die konvertiert werden kann. */
 export function canConvert(from: PropertyType, to: PropertyType): boolean {
-  const blocked: PropertyType[] = ['title', 'relation', 'rollup', 'formula'];
+  const blocked: PropertyType[] = ['title', 'relation', 'rollup', 'formula', 'button'];
   return from !== to && !blocked.includes(from) && !blocked.includes(to);
 }
 

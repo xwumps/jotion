@@ -91,6 +91,7 @@ export function ValueDisplay({
   wrap?: boolean;
 }) {
   const locale = useLocale();
+  if (prop.type === 'button') return <ButtonCell prop={prop} row={row} />;
   if (prop.type === 'relation') return <RelationDisplay prop={prop} row={row} wrap={wrap} />;
   if (prop.type === 'formula' || prop.type === 'rollup')
     return <ComputedDisplay prop={prop} value={row.values[prop.id] as never} wrap={wrap} />;
@@ -254,6 +255,12 @@ export function ValueEditor({
       cellValue(row, prop) === '' ||
       (Array.isArray(cellValue(row, prop)) && (cellValue(row, prop) as unknown[]).length === 0));
 
+  if (prop.type === 'button')
+    return (
+      <div className={base}>
+        <ButtonCell prop={prop} row={row} actions={ctx.editable ? ctx.actions : undefined} />
+      </div>
+    );
   if (prop.type === 'checkbox') {
     return (
       <div className={base}>
@@ -786,5 +793,43 @@ function FilesEditor({
         }}
       />
     </div>
+  );
+}
+
+/** Phase 9: Button-Property: Klick löst die zugeordnete Automatisierung für die Zeile aus. */
+export function ButtonCell({
+  prop,
+  row,
+  actions,
+}: {
+  prop: PropertyDto;
+  row: RowDto;
+  actions?: DatabaseActions;
+}) {
+  const t = useTranslations('automations');
+  const cfg = prop.config as { label?: string; automationId?: string | null };
+  const [busy, setBusy] = useState(false);
+  const label = cfg.label?.trim() || prop.name;
+  if (!cfg.automationId)
+    return <span className="truncate text-[12px] text-fg-subtle">{t('buttonUnassigned')}</span>;
+  return (
+    <button
+      type="button"
+      disabled={!actions || busy}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!actions) return;
+        setBusy(true);
+        actions.clickButton.mutate(
+          { rowId: row.id, propertyId: prop.id },
+          { onSettled: () => setBusy(false) },
+        );
+      }}
+      className="h-6 max-w-full truncate rounded-md border border-border bg-bg px-2 text-[12px] font-medium shadow-sm hover:bg-hover disabled:opacity-60"
+      data-testid="row-button"
+      data-property={prop.name}
+    >
+      {label}
+    </button>
   );
 }

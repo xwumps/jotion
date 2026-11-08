@@ -46,7 +46,7 @@ interface NodeRow {
 }
 
 // Datenbankzeilen erscheinen nicht im Seitenbaum (Phase 4)
-const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind <> 'DATABASE_ROW'`;
+const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind IN ('PAGE', 'DATABASE')`;
 
 @Injectable()
 export class PagesService {
@@ -84,7 +84,7 @@ export class PagesService {
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
              EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
         FROM pages p
-       WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind <> 'DATABASE_ROW'
+       WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind IN ('PAGE', 'DATABASE')
        ORDER BY p.position, p.id`;
     return rows.map(toNode);
   }
@@ -587,7 +587,7 @@ export class PagesService {
           parentId: page.id,
           deletedAt: null,
           archivedAt: null,
-          kind: { not: 'DATABASE_ROW' },
+          kind: { in: ['PAGE', 'DATABASE'] },
         },
       }),
     ]);
@@ -614,6 +614,7 @@ export class PagesService {
       breadcrumbs,
       canEdit: !page.deletedAt,
       kind: page.kind,
+      isTemplate: page.isTemplate,
       databaseId: page.databaseId,
     };
   }

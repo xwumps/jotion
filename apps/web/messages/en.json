@@ -71,7 +71,8 @@
     "workspaceName": "Name",
     "cancel": "Cancel",
     "create": "Create",
-    "logout": "Log out"
+    "logout": "Log out",
+    "templates": "Templates"
   },
   "trash": {
     "title": "Trash",
@@ -393,6 +394,10 @@
       "chart": {
         "label": "Chart",
         "description": "Chart from a database"
+      },
+      "button": {
+        "label": "Button",
+        "description": "Runs an automation"
       }
     },
     "chartViewName": "Chart"
@@ -573,7 +578,8 @@
       "unique_id": "ID",
       "relation": "Relation",
       "rollup": "Rollup",
-      "formula": "Formula"
+      "formula": "Formula",
+      "button": "Button"
     },
     "statusGroups": {
       "todo": "To-do",
@@ -1261,5 +1267,139 @@
     "remoteValue": "Source",
     "takeRemote": "Use source",
     "keepLocal": "Keep local"
+  },
+  "templates": {
+    "gallery": "Templates",
+    "galleryDescription": "Create a new page from a template. Built-in templates include databases with examples.",
+    "categories": {
+      "all": "All",
+      "productivity": "Productivity",
+      "school": "School",
+      "knowledge": "Knowledge",
+      "custom": "Custom"
+    },
+    "createIn": "Create in",
+    "private": "Private",
+    "team": "Team",
+    "untitled": "Untitled",
+    "ownTeam": "Custom template (team)",
+    "ownPrivate": "Custom template (private)",
+    "noCustom": "No custom templates yet. Choose “As template” in a page menu.",
+    "asTemplate": "As template",
+    "savedAsTemplate": "Page is now a template",
+    "removedTemplate": "Page is no longer a template",
+    "menu": "Templates",
+    "rowTemplates": "Templates",
+    "noRowTemplates": "No templates yet.",
+    "emptyRow": "Empty row",
+    "newTemplate": "New template",
+    "newTemplateTitle": "New template",
+    "default": "Default",
+    "repeats": "Repeats",
+    "options": "Options",
+    "edit": "Edit",
+    "setDefault": "Set as default",
+    "unsetDefault": "Remove default",
+    "repeat": "Repeat",
+    "every": {
+      "day": "Daily",
+      "week": "Weekly",
+      "month": "Monthly"
+    },
+    "saveRepeat": "Apply",
+    "nextRun": "Next row: {date, date, short} {date, time, short}",
+    "delete": "Delete template",
+    "badge": "Template"
+  },
+  "automations": {
+    "title": "Automations",
+    "titleFor": "Automations: {name}",
+    "buttonTitle": "Button automations",
+    "untitled": "Untitled",
+    "intro": "Automations react to changes, schedules or buttons and run on behalf of the person who created them.",
+    "empty": "No automations yet.",
+    "new": "New automation",
+    "log": "Log",
+    "enabled": "Active",
+    "actionsCount": "{n, plural, one {# action} other {# actions}}",
+    "status": {
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "stopped": "Stopped"
+    },
+    "depth": "Chain depth {n}",
+    "ok": "ok",
+    "error": "error",
+    "noRuns": "No runs yet.",
+    "triggers": {
+      "row_created": "Row created",
+      "property_changed": "Property changed",
+      "schedule": "Schedule",
+      "date_reached": "Date reached",
+      "button": "Button clicked"
+    },
+    "actions": {
+      "set_property": "Set property",
+      "create_row": "Create row",
+      "webhook": "Call webhook"
+    },
+    "values": {
+      "static": "Value",
+      "clear": "Clear",
+      "today": "Today",
+      "now": "Now",
+      "trigger_user": "Triggering person",
+      "toggle": "Toggle",
+      "formula": "Formula",
+      "text": "Text with placeholders"
+    },
+    "every": {
+      "day": "Daily",
+      "week": "Weekly",
+      "month": "Monthly"
+    },
+    "namePlaceholder": "Automation name",
+    "when": "When",
+    "condition": "Only if (optional)",
+    "then": "Then",
+    "removeAction": "Remove",
+    "addAction": "Add action",
+    "secret": "Key for the webhook signature (HMAC-SHA256 in header X-Jotion-Signature)",
+    "copy": "Copy",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saved": "Automation saved",
+    "offsetDays": "days relative",
+    "forEachRow": "for each matching row",
+    "noButtonProperty": "No button property",
+    "includeRow": "Send row values",
+    "webhookHint": "POST with JSON. Targets in your own network must be listed in JOTION_SSRF_ALLOWLIST.",
+    "targetTrigger": "This row",
+    "targetRelated": "Related rows via “{name}”",
+    "days": "days",
+    "checked": "checked",
+    "unchecked": "unchecked",
+    "inDatabase": "In",
+    "chooseDatabase": "Choose database",
+    "search": "Search …",
+    "noTemplate": "no template",
+    "titlePlaceholder": "Title, e.g. New:",
+    "addValue": "Add value …",
+    "linkVia": "Link to this row via",
+    "noLink": "don't link",
+    "buttonUnassigned": "No automation",
+    "runFailed": "Automation failed, see log",
+    "runDone": "Done",
+    "buttonDefault": "Button",
+    "setupButton": "Set up button",
+    "buttonSettings": "Button settings",
+    "buttonLabel": "Label",
+    "automation": "Automation",
+    "none": "none",
+    "editAutomations": "Edit automations",
+    "createAutomation": "Create automation"
   }
 }

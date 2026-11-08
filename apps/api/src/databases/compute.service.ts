@@ -33,6 +33,10 @@ export class ComputeService implements OnModuleDestroy {
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
   ) {}
 
+  get timeZone(): string {
+    return this.env.JOTION_TIMEZONE;
+  }
+
   engine(
     db: Prisma.TransactionClient | PrismaService['client'] = this.prisma.client,
   ): ComputeEngine {

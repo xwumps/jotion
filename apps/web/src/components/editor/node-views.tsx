@@ -20,6 +20,7 @@ import { PageIcon } from '../page/page-icon';
 import { contentNodeViewOverrides } from './content-views';
 import { useEditorPage } from './editor-context';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ButtonNode } from '../database/button-node-view';
 import { ChartNode } from '../database/chart-node-view';
 import { DatabaseNode } from '../database/database-node-view';
 
@@ -133,4 +134,5 @@ export const nodeViewOverrides = [
   ...contentNodeViewOverrides,
   DatabaseNode,
   ChartNode,
+  ButtonNode,
 ];

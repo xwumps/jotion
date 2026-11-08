@@ -140,11 +140,42 @@ export function usePageActions(ws: string) {
 }
 
 /** Live-Aktualisierung über Server-Sent Events. */
+/** Ereignisse so lange sammeln, bevor neu geladen wird (Massenänderungen: einmal statt je Zeile) */
+const REALTIME_BATCH_MS = 200;
+
 export function useRealtime(ws: string): void {
   const qc = useQueryClient();
   const router = useRouter();
   useEffect(() => {
     const source = new EventSource(`/api/workspaces/${ws}/events`);
+    // Gesammelte Invalidierungen; jede betroffene Abfrage lädt je Bündel genau einmal neu
+    let pages = new Set<string>();
+    let dbEvents = new Map<string, Set<string>>();
+    let members = false;
+    let workspace = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      timer = null;
+      const p = pages;
+      const d = dbEvents;
+      pages = new Set();
+      dbEvents = new Map();
+      if (p.size) {
+        invalidateTree(qc, ws);
+        for (const id of p) {
+          void qc.invalidateQueries({ queryKey: qk.page(id) });
+          void qc.invalidateQueries({ queryKey: ['pageSummary', id] });
+        }
+        // Zeilen sind Seiten: Titel und Papierkorb wirken auf Datenbankansichten
+        void qc.invalidateQueries({ queryKey: ['dbRows'] });
+      }
+      for (const [id, types] of d) for (const type of types) handleDatabaseEvent(qc, type, id);
+      if (members) void qc.invalidateQueries({ queryKey: qk.members(ws) });
+      // Workspace-Name kommt serverseitig aus /auth/me
+      if (workspace) router.refresh();
+      members = false;
+      workspace = false;
+    };
     source.addEventListener('change', (msg) => {
       let event: RealtimeEvent;
       try {
@@ -152,21 +183,19 @@ export function useRealtime(ws: string): void {
       } catch {
         return;
       }
-      if (event.type.startsWith('page.')) {
-        invalidateTree(qc, ws);
-        void qc.invalidateQueries({ queryKey: qk.page(event.entityId) });
-        void qc.invalidateQueries({ queryKey: ['pageSummary', event.entityId] });
-        // Zeilen sind Seiten: Titel und Papierkorb wirken auf Datenbankansichten
-        void qc.invalidateQueries({ queryKey: ['dbRows'] });
-      } else if (event.type.startsWith('database.')) {
-        handleDatabaseEvent(qc, event.type, event.entityId);
-      } else if (event.type === 'members.changed') {
-        void qc.invalidateQueries({ queryKey: qk.members(ws) });
-      } else if (event.type === 'workspace.updated') {
-        // Workspace-Name kommt serverseitig aus /auth/me
-        router.refresh();
-      }
+      if (event.type.startsWith('page.')) pages.add(event.entityId);
+      else if (event.type.startsWith('database.')) {
+        const set = dbEvents.get(event.entityId) ?? new Set<string>();
+        set.add(event.type);
+        dbEvents.set(event.entityId, set);
+      } else if (event.type === 'members.changed') members = true;
+      else if (event.type === 'workspace.updated') workspace = true;
+      else return;
+      timer ??= setTimeout(flush, REALTIME_BATCH_MS);
     });
-    return () => source.close();
+    return () => {
+      source.close();
+      if (timer) clearTimeout(timer);
+    };
   }, [qc, ws, router]);
 }

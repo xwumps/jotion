@@ -108,6 +108,7 @@ model Workspace {
   files                  File[]
   dashboards             Dashboard[]
   integrationConnections IntegrationConnection[]
+  automations            Automation[]
 
   @@map("workspaces")
 }
@@ -167,6 +168,8 @@ model Page {
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   lastEditedAt   DateTime             @default(now()) @map("last_edited_at") @db.Timestamptz(3)
   archivedAt     DateTime?            @map("archived_at") @db.Timestamptz(3)
+  /// Phase 9: eigene Vorlage (erscheint in der Vorlagen-Galerie)
+  isTemplate     Boolean              @default(false) @map("is_template")
   deletedAt      DateTime?            @map("deleted_at") @db.Timestamptz(3)
   deletedById    String?              @map("deleted_by_id") @db.Uuid
   /// Seite, mit der dieser Teilbaum in den Papierkorb kam (Wiederherstellung als Einheit)
@@ -336,6 +339,8 @@ enum PageKind {
   PAGE
   DATABASE
   DATABASE_ROW
+  /// Phase 9: Zeilen-Vorlage einer Datenbank (parent_id = Datenbank, erscheint in keiner Abfrage)
+  ROW_TEMPLATE
 }
 
 /// Property-Typen. relation, rollup und formula folgen in Phase 6.
@@ -361,6 +366,8 @@ enum PropertyType {
   relation
   rollup
   formula
+  /// Phase 9: löst eine Automatisierung für die Zeile aus (kein gespeicherter Wert)
+  button
 }
 
 /// Ansichtstypen. Phase 4 setzt table um, die übrigen folgen in Phase 5 und 7.
@@ -670,4 +677,71 @@ model SyncConflict {
 
   @@index([entityId, field])
   @@map("sync_conflicts")
+}
+
+/// Phase 9: Zeilen-Vorlage (Seite kind = ROW_TEMPLATE) mit Standard und Wiederholung.
+model DbTemplate {
+  pageId     String    @id @map("page_id") @db.Uuid
+  databaseId String    @map("database_id") @db.Uuid
+  isDefault  Boolean   @default(false) @map("is_default")
+  /// { every: day|week|month, time: "HH:MM", weekday?, monthday? }
+  recurrence Json?
+  nextRunAt  DateTime? @map("next_run_at") @db.Timestamptz(3)
+  lastRunAt  DateTime? @map("last_run_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([databaseId])
+  @@index([nextRunAt])
+  @@map("db_templates")
+}
+
+/// Phase 9: Automatisierung (Trigger, Bedingung, Aktionen), läuft als ihr Ersteller.
+model Automation {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  databaseId  String?   @map("database_id") @db.Uuid
+  name        String
+  enabled     Boolean   @default(true)
+  trigger     Json
+  /// Filter-AST wie bei Ansichten (gilt für die auslösende Zeile)
+  conditions  Json?
+  actions     Json      @default("[]")
+  createdById String    @map("created_by_id") @db.Uuid
+  /// Geheimnis für signierte Webhooks (SecretBox)
+  secret      String?
+  nextRunAt   DateTime? @map("next_run_at") @db.Timestamptz(3)
+  lastRunAt   DateTime? @map("last_run_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs      AutomationRun[]
+
+  @@index([databaseId, enabled])
+  @@index([workspaceId])
+  @@index([enabled, nextRunAt])
+  @@map("automations")
+}
+
+/// Phase 9: Ausführungsprotokoll; (automation_id, event_key) macht jede Ausführung idempotent.
+model AutomationRun {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  automationId String    @map("automation_id") @db.Uuid
+  eventKey     String    @map("event_key")
+  /// running, succeeded, failed, skipped, stopped
+  status       String    @default("running")
+  chainDepth   Int       @default(0) @map("chain_depth")
+  rowId        String?   @map("row_id") @db.Uuid
+  actorId      String?   @map("actor_id") @db.Uuid
+  /// Ergebnis je Aktion
+  details      Json      @default("[]")
+  error        String?
+  startedAt    DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(3)
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, eventKey])
+  @@index([automationId, startedAt])
+  @@map("automation_runs")
 }

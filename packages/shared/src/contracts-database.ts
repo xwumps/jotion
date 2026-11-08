@@ -31,6 +31,7 @@ export const PROPERTY_TYPES = [
   'relation',
   'rollup',
   'formula',
+  'button',
 ] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
@@ -56,6 +57,7 @@ export const CREATABLE_PROPERTY_TYPES = [
   'relation',
   'rollup',
   'formula',
+  'button',
 ] as const satisfies readonly PropertyType[];
 export type CreatablePropertyType = (typeof CREATABLE_PROPERTY_TYPES)[number];
 
@@ -77,6 +79,7 @@ export const READONLY_PROPERTY_TYPES: readonly PropertyType[] = [
   'unique_id',
   'rollup',
   'formula',
+  'button',
 ];
 
 export const isReadonlyType = (t: PropertyType) => READONLY_PROPERTY_TYPES.includes(t);
@@ -294,6 +297,13 @@ export const propertyConfigSchemas = {
       volatile: z.boolean().default(false),
     })
     .strict(),
+  /** Phase 9: Klick löst die Automatisierung für die Zeile aus */
+  button: z
+    .object({
+      label: z.string().trim().max(60).default(''),
+      automationId: id.nullable().default(null),
+    })
+    .strict(),
 } satisfies Record<PropertyType, z.ZodType>;
 
 export type PropertyConfig<T extends PropertyType = PropertyType> = z.output<
@@ -404,6 +414,7 @@ export interface PropertyValueMap {
   relation: string[];
   rollup: ComputedValue;
   formula: ComputedValue;
+  button: null;
 }
 export type PropertyValue = PropertyValueMap[PropertyType] | null;
 
@@ -454,6 +465,7 @@ export const propertyValueSchemas = {
   relation: z.array(id).max(MAX_RELATION_LINKS),
   rollup: z.never(),
   formula: z.never(),
+  button: z.never(),
 } satisfies Record<PropertyType, z.ZodType>;
 
 export interface PropertyLike {
@@ -1310,6 +1322,8 @@ export const createRowSchema = z
   .object({
     title: z.string().max(2000).optional(),
     values: z.record(z.string(), z.unknown()).optional(),
+    /** Phase 9: Zeilen-Vorlage; ohne Angabe greift die Standardvorlage, "none" verhindert das */
+    templateId: z.union([id, z.literal('none')]).optional(),
     ...placement,
   })
   .strict();

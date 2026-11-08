@@ -8,7 +8,16 @@ import { BLOCK_NODE_TYPES, DOC_FRAGMENT } from './constants';
 import { resolveEmbed } from './embeds';
 import { jotionExtensions } from './extensions';
 import { collectHeadings, normalizeColumnWidths, resizeColumns } from './nodes/layout';
-import { docToJson, projectDoc, remapSubpages, subpageIds } from './projection';
+import {
+  appendPmContent,
+  docToJson,
+  projectDoc,
+  remapDocIds,
+  remapSubpages,
+  replaceTextVariables,
+  subpageIds,
+} from './projection';
+import * as Y from 'yjs';
 import { safeMediaSrc } from './urls';
 
 const schema = getSchema(jotionExtensions({ collaborative: true }));
@@ -246,6 +255,108 @@ describe('remapSubpages', () => {
     expect(subpageIds(doc)).toEqual([NEW]);
     remapSubpages(doc, new Map());
     expect(subpageIds(doc)).toEqual([]);
+  });
+});
+
+describe('Vorlagen (Phase 9)', () => {
+  let n = 0;
+  const id = () => `b${++n}`;
+
+  it('baut Inhalt aus JSON passend zum Schema, mit Block-IDs und Marks', () => {
+    const doc = new Y.Doc();
+    appendPmContent(
+      doc,
+      [
+        { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Woche' }] },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Fett', marks: [{ type: 'bold' }] },
+            { type: 'text', text: ' und normal' },
+          ],
+        },
+        {
+          type: 'taskList',
+          content: [
+            {
+              type: 'taskItem',
+              attrs: { checked: false },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Aufgabe' }] }],
+            },
+          ],
+        },
+        {
+          type: 'callout',
+          attrs: { icon: '📌' },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hinweis' }] }],
+        },
+        { type: 'database', attrs: { databaseId: PAGE } },
+      ],
+      id,
+    );
+    const json = yDocToProsemirrorJSON(doc, DOC_FRAGMENT);
+    const node = PMNode.fromJSON(schema, json);
+    expect(() => node.check()).not.toThrow();
+    expect(node.textContent).toContain('Fett und normal');
+    expect(
+      node
+        .child(1)
+        .child(0)
+        .marks.map((m) => m.type.name),
+    ).toEqual(['bold']);
+    // Jeder Block hat eine ID (für Projektion und Verweise)
+    expect(projectDoc(doc).blocks.every((b) => b.id)).toBe(true);
+    expect(projectDoc(doc).blocks.map((b) => b.type)).toContain('database');
+  });
+
+  it('schreibt Verweise auf Kopien um und entfernt fremde Unterseiten und Datenbanken', () => {
+    const doc = new Y.Doc();
+    const OTHER = '01900000-0000-7000-8000-0000000000d1';
+    const NEW = '01900000-0000-7000-8000-0000000000d2';
+    appendPmContent(
+      doc,
+      [
+        { type: 'subpage', attrs: { pageId: CHILD } },
+        { type: 'subpage', attrs: { pageId: OTHER } },
+        { type: 'database', attrs: { databaseId: OTHER } },
+        { type: 'pageLink', attrs: { pageId: OTHER } },
+      ],
+      id,
+    );
+    remapDocIds(doc, new Map([[CHILD, NEW]]));
+    const json = yDocToProsemirrorJSON(doc, DOC_FRAGMENT) as {
+      content: { type: string; attrs: Record<string, string> }[];
+    };
+    expect(json.content.map((c) => [c.type, c.attrs.pageId ?? c.attrs.databaseId])).toEqual([
+      ['subpage', NEW],
+      ['pageLink', OTHER],
+    ]);
+  });
+
+  it('ersetzt Variablen und behält Formatierung', () => {
+    const doc = new Y.Doc();
+    appendPmContent(
+      doc,
+      [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Stand @heute', marks: [{ type: 'italic' }] },
+            { type: 'text', text: ' von @ersteller (@heute)' },
+          ],
+        },
+      ],
+      id,
+    );
+    expect(replaceTextVariables(doc, { '@heute': '8.11.2026', '@ersteller': 'Jarne' })).toBe(3);
+    const node = PMNode.fromJSON(schema, yDocToProsemirrorJSON(doc, DOC_FRAGMENT));
+    expect(node.textContent).toBe('Stand 8.11.2026 von Jarne (8.11.2026)');
+    expect(
+      node
+        .child(0)
+        .child(0)
+        .marks.map((m) => m.type.name),
+    ).toEqual(['italic']);
   });
 });
 

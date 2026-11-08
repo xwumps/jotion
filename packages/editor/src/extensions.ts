@@ -19,6 +19,7 @@ import { MathBlock, MathInline, Mention } from './nodes/inline';
 import { Breadcrumb, Column, ColumnList, TableOfContents } from './nodes/layout';
 import { Audio, Bookmark, Embed, FileBlock, Image, Pdf, Video } from './nodes/media';
 import { Chart } from './nodes/chart';
+import { ButtonBlock } from './nodes/button';
 import { Database } from './nodes/database';
 
 export const lowlight = createLowlight(common);
@@ -200,6 +201,7 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
     }),
     Database,
     Chart,
+    ButtonBlock,
   ];
   if (options.placeholder) {
     const ph = options.placeholder;

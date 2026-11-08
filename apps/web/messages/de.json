@@ -71,7 +71,8 @@
     "workspaceName": "Name",
     "cancel": "Abbrechen",
     "create": "Erstellen",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "templates": "Vorlagen"
   },
   "trash": {
     "title": "Papierkorb",
@@ -393,6 +394,10 @@
       "chart": {
         "label": "Diagramm",
         "description": "Diagramm aus einer Datenbank"
+      },
+      "button": {
+        "label": "Button",
+        "description": "Führt eine Automatisierung aus"
       }
     },
     "chartViewName": "Diagramm"
@@ -573,7 +578,8 @@
       "unique_id": "ID",
       "relation": "Relation",
       "rollup": "Rollup",
-      "formula": "Formel"
+      "formula": "Formel",
+      "button": "Button"
     },
     "statusGroups": {
       "todo": "Zu erledigen",
@@ -1261,5 +1267,139 @@
     "remoteValue": "Quelle",
     "takeRemote": "Quelle übernehmen",
     "keepLocal": "Lokal behalten"
+  },
+  "templates": {
+    "gallery": "Vorlagen",
+    "galleryDescription": "Neue Seite aus einer Vorlage anlegen. Mitgelieferte Vorlagen enthalten Datenbanken mit Beispielen.",
+    "categories": {
+      "all": "Alle",
+      "productivity": "Produktivität",
+      "school": "Schule",
+      "knowledge": "Wissen",
+      "custom": "Eigene"
+    },
+    "createIn": "Anlegen in",
+    "private": "Privat",
+    "team": "Team",
+    "untitled": "Ohne Titel",
+    "ownTeam": "Eigene Vorlage (Team)",
+    "ownPrivate": "Eigene Vorlage (privat)",
+    "noCustom": "Noch keine eigenen Vorlagen. Im Seitenmenü „Als Vorlage“ wählen.",
+    "asTemplate": "Als Vorlage",
+    "savedAsTemplate": "Seite ist jetzt eine Vorlage",
+    "removedTemplate": "Seite ist keine Vorlage mehr",
+    "menu": "Vorlagen",
+    "rowTemplates": "Vorlagen",
+    "noRowTemplates": "Noch keine Vorlagen.",
+    "emptyRow": "Leere Zeile",
+    "newTemplate": "Neue Vorlage",
+    "newTemplateTitle": "Neue Vorlage",
+    "default": "Standard",
+    "repeats": "Wiederholt sich",
+    "options": "Optionen",
+    "edit": "Bearbeiten",
+    "setDefault": "Als Standard",
+    "unsetDefault": "Nicht mehr Standard",
+    "repeat": "Wiederholen",
+    "every": {
+      "day": "Täglich",
+      "week": "Wöchentlich",
+      "month": "Monatlich"
+    },
+    "saveRepeat": "Übernehmen",
+    "nextRun": "Nächste Zeile: {date, date, short} {date, time, short}",
+    "delete": "Vorlage löschen",
+    "badge": "Vorlage"
+  },
+  "automations": {
+    "title": "Automatisierungen",
+    "titleFor": "Automatisierungen: {name}",
+    "buttonTitle": "Button-Automatisierungen",
+    "untitled": "Ohne Titel",
+    "intro": "Automatisierungen reagieren auf Änderungen, Zeitpläne oder Buttons und laufen im Namen der Person, die sie angelegt hat.",
+    "empty": "Noch keine Automatisierungen.",
+    "new": "Neue Automatisierung",
+    "log": "Protokoll",
+    "enabled": "Aktiv",
+    "actionsCount": "{n, plural, one {# Aktion} other {# Aktionen}}",
+    "status": {
+      "running": "Läuft",
+      "succeeded": "Erfolgreich",
+      "failed": "Fehler",
+      "skipped": "Übersprungen",
+      "stopped": "Gestoppt"
+    },
+    "depth": "Kettentiefe {n}",
+    "ok": "ok",
+    "error": "Fehler",
+    "noRuns": "Noch keine Ausführungen.",
+    "triggers": {
+      "row_created": "Zeile erstellt",
+      "property_changed": "Property geändert",
+      "schedule": "Zeitplan",
+      "date_reached": "Datum erreicht",
+      "button": "Button geklickt"
+    },
+    "actions": {
+      "set_property": "Property setzen",
+      "create_row": "Zeile anlegen",
+      "webhook": "Webhook aufrufen"
+    },
+    "values": {
+      "static": "Wert",
+      "clear": "Leeren",
+      "today": "Heute",
+      "now": "Jetzt",
+      "trigger_user": "Auslösende Person",
+      "toggle": "Umschalten",
+      "formula": "Formel",
+      "text": "Text mit Platzhaltern"
+    },
+    "every": {
+      "day": "Täglich",
+      "week": "Wöchentlich",
+      "month": "Monatlich"
+    },
+    "namePlaceholder": "Name der Automatisierung",
+    "when": "Wenn",
+    "condition": "Nur wenn (optional)",
+    "then": "Dann",
+    "removeAction": "Entfernen",
+    "addAction": "Aktion hinzufügen",
+    "secret": "Schlüssel für die Webhook-Signatur (HMAC-SHA256 im Header X-Jotion-Signature)",
+    "copy": "Kopieren",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saved": "Automatisierung gespeichert",
+    "offsetDays": "Tage relativ",
+    "forEachRow": "für jede passende Zeile",
+    "noButtonProperty": "Kein Button-Property vorhanden",
+    "includeRow": "Werte der Zeile mitsenden",
+    "webhookHint": "POST mit JSON. Ziele im eigenen Netz müssen in JOTION_SSRF_ALLOWLIST stehen.",
+    "targetTrigger": "Diese Zeile",
+    "targetRelated": "Verknüpfte Zeilen über „{name}“",
+    "days": "Tage",
+    "checked": "angehakt",
+    "unchecked": "nicht angehakt",
+    "inDatabase": "In",
+    "chooseDatabase": "Datenbank wählen",
+    "search": "Suchen …",
+    "noTemplate": "ohne Vorlage",
+    "titlePlaceholder": "Titel, z. B. Neu:",
+    "addValue": "Wert hinzufügen …",
+    "linkVia": "Mit dieser Zeile verknüpfen über",
+    "noLink": "nicht verknüpfen",
+    "buttonUnassigned": "Keine Automatisierung",
+    "runFailed": "Automatisierung fehlgeschlagen, siehe Protokoll",
+    "runDone": "Ausgeführt",
+    "buttonDefault": "Button",
+    "setupButton": "Button einrichten",
+    "buttonSettings": "Button-Einstellungen",
+    "buttonLabel": "Beschriftung",
+    "automation": "Automatisierung",
+    "none": "keine",
+    "editAutomations": "Automatisierungen bearbeiten",
+    "createAutomation": "Automatisierung anlegen"
   }
 }
