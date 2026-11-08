@@ -154,7 +154,7 @@ describe('Benachrichtigungen', () => {
   it('Erwähnung in der Seite benachrichtigt einmal, nur neue Erwähnungen zählen', async () => {
     const page = await newPage({ title: 'Protokoll', scope: 'TEAM' });
     await writeMentions(page.id, [{ id: 'a', users: [memberId, ownerId] }], ownerId);
-    let box = await inbox(member);
+    const box = await inbox(member);
     expect(box.items).toHaveLength(1);
     expect(box.items[0]).toMatchObject({ type: 'mention_page', blockId: 'a' });
     expect(box.items[0].excerpt).toContain('Block a');
