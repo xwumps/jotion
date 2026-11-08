@@ -469,6 +469,8 @@ model RelationLink {
 
   @@id([propertyId, fromRowId, toRowId])
   @@index([toRowId])
+  /// Laden der Verknüpfungen einer Zeile über alle Relationen (Berechnung, Zeilen-DTOs)
+  @@index([fromRowId])
   @@map("relation_links")
 }
 

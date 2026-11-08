@@ -131,6 +131,32 @@ beforeAll(async () => {
   await engine.recomputeRows(ids.companies);
 }, 120_000);
 
+/** Abfrageplan der Lade-Abfragen, Statistiken und wartende Sperren (nur bei langsamen Läufen). */
+async function diagnose() {
+  const projectRows = (
+    await db.$queryRaw<{ id: string }[]>`
+      SELECT id::text FROM pages WHERE database_id = ${ids.projects}::uuid ORDER BY id LIMIT 100`
+  ).map((r) => r.id);
+  const plan = await db.$queryRawUnsafe<{ 'QUERY PLAN': string }[]>(
+    `EXPLAIN (ANALYZE, BUFFERS)
+     SELECT l.property_id, l.from_row_id, l.to_row_id, tp.title
+       FROM relation_links l JOIN pages tp ON tp.id = l.to_row_id AND tp.deleted_at IS NULL
+      WHERE l.from_row_id = ANY($1::uuid[]) ORDER BY l.position, l.to_row_id`,
+    projectRows,
+  );
+  console.log(plan.map((p) => p['QUERY PLAN']).join('\n'));
+  console.log(
+    await db.$queryRaw`
+      SELECT relname, n_live_tup, last_analyze, last_autoanalyze FROM pg_stat_user_tables
+       WHERE relname IN ('pages', 'relation_links', 'property_values')`,
+  );
+  console.log(
+    await db.$queryRaw`
+      SELECT pid, state, wait_event_type, wait_event, left(query, 120) AS query FROM pg_stat_activity
+       WHERE datname = current_database() AND pid <> pg_backend_pid()`,
+  );
+}
+
 afterAll(async () => {
   await db.workspace.deleteMany({ where: { id: ws } });
   await db.user.deleteMany({ where: { id: user } });
@@ -173,6 +199,9 @@ describe('ComputeEngine (PostgreSQL, 10.000 Zeilen)', () => {
     const ms = performance.now() - t0;
     console.log(`100 Projekte mit 10.000 verknüpften Aufgaben neu berechnet: ${ms.toFixed(0)} ms`);
     expect(changed).toHaveLength(100);
+    // Einmal in CI 53 s statt 0,2 s, lokal nicht nachstellbar: bei Überschreitung Plan und
+    // Sperren ausgeben, damit ein erneuter Ausreißer erklärbar ist
+    if (ms >= 5000) await diagnose();
     expect(ms).toBeLessThan(5000);
   });
 });
