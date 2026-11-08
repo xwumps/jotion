@@ -58,14 +58,15 @@ describe.skipIf(!BASE)('Radicale (echter CalDAV-Server)', () => {
   });
 
   it('Discovery, vollständiger Abruf, sync-collection, Löschung', async () => {
-    const cal = `/anna/test-${randomUUID().slice(0, 8)}/`;
-    const mk = `<?xml version="1.0"?><C:mkcalendar xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><D:displayname>Schule Test</D:displayname></D:prop></D:set></C:mkcalendar>`;
+    const tag = randomUUID().slice(0, 8);
+    const cal = `/anna/test-${tag}/`;
+    const mk = `<?xml version="1.0"?><C:mkcalendar xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><D:set><D:prop><D:displayname>Schule ${tag}</D:displayname></D:prop></D:set></C:mkcalendar>`;
     expect(await dav('MKCALENDAR', cal, mk, { 'Content-Type': 'application/xml' })).toBe(201);
     expect(await dav('PUT', `${cal}a.ics`, ics('a', 'Mathe', 'LOCATION:Raum 1\n'))).toBe(201);
     expect(await dav('PUT', `${cal}b.ics`, ics('b', 'Deutsch'))).toBe(201);
 
     const test = await caldavConnector.testConnection(ctx());
-    const source = test.sources.find((s) => s.name === 'Schule Test');
+    const source = test.sources.find((s) => s.name === `Schule ${tag}`);
     expect(source).toBeDefined();
     expect(test.capabilities.incremental).toBe(true);
 
@@ -81,8 +82,10 @@ describe.skipIf(!BASE)('Radicale (echter CalDAV-Server)', () => {
       hasTime: true,
     });
 
+    // Radicale erkennt Änderungen über Zeitstempel mit Sekundenauflösung
+    await new Promise((r) => setTimeout(r, 1100));
     expect([201, 204]).toContain(
-      await dav('PUT', `${cal}a.ics`, ics('a', 'Mathe', 'LOCATION:Raum 2\n')),
+      await dav('PUT', `${cal}a.ics`, ics('a', 'Mathe', 'LOCATION:Raum 2 (neu)\n')),
     );
     expect(await dav('PUT', `${cal}c.ics`, ics('c', 'Englisch'))).toBe(201);
     expect([200, 204]).toContain(await dav('DELETE', `${cal}b.ics`));
@@ -90,7 +93,7 @@ describe.skipIf(!BASE)('Radicale (echter CalDAV-Server)', () => {
     const inc = await pullCalendar(ctx(), source!.remoteId, DEFAULT_SOURCE_OPTIONS, full.cursor);
     expect(inc.complete).toBe(false);
     expect(inc.records.map((r) => [r.externalId, r.fields.location ?? null]).sort()).toEqual([
-      ['a', 'Raum 2'],
+      ['a', 'Raum 2 (neu)'],
       ['c', null],
     ]);
     expect(inc.deletedRefs).toEqual([`${cal}b.ics`]);
