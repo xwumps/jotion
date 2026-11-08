@@ -1062,5 +1062,53 @@
       "640": "Sehr groß"
     },
     "missing": "Diese Diagramm-Ansicht gibt es nicht mehr"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "scopes": {
+      "personal": "Meins",
+      "shared": "Geteilt"
+    },
+    "edit": "Bearbeiten",
+    "done": "Fertig",
+    "addWidget": "Widget hinzufügen",
+    "remove": "Entfernen",
+    "move": "Verschieben",
+    "settings": "Einstellungen",
+    "empty": "Hier gibt es noch keine Widgets.",
+    "emptyEdit": "Noch keine Widgets. Über „Bearbeiten“ fügst du welche hinzu.",
+    "untitled": "Ohne Titel",
+    "noUpcoming": "Nichts Anstehendes",
+    "noOverdue": "Nichts überfällig",
+    "noRecent": "Noch keine besuchten Seiten",
+    "noFavorites": "Noch keine Favoriten",
+    "notePlaceholder": "Notiz …",
+    "noLinks": "Keine Links",
+    "linksHintEdit": "Links über das Zahnrad hinzufügen",
+    "chooseView": "Wähle über das Zahnrad eine Datenbank und eine Ansicht.",
+    "noAccess": "Kein Zugriff auf diese Datenbank",
+    "viewMissing": "Diese Ansicht gibt es nicht mehr",
+    "widgetTitle": "Titel",
+    "database": "Datenbank",
+    "searchDatabase": "Datenbank suchen …",
+    "view": "Ansicht",
+    "choose": "Wählen …",
+    "noMatchingView": "Keine passende Ansicht",
+    "days": "Zeitraum",
+    "daysValue": "{count} Tage",
+    "linkTitle": "Titel",
+    "addLink": "Link hinzufügen",
+    "types": {
+      "upcoming": "Anstehend",
+      "overdue": "Überfällig",
+      "board": "Board",
+      "chart": "Diagramm",
+      "calendar": "Kalender",
+      "kpi": "Kennzahl",
+      "recent": "Zuletzt besucht",
+      "favorites": "Favoriten",
+      "note": "Schnellnotiz",
+      "links": "Links"
+    }
   }
 }

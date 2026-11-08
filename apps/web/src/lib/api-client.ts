@@ -11,7 +11,7 @@ export class ApiClientError extends Error {
   }
 }
 
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 /** Browser-Aufrufe der API (gleicher Origin, Cookie-Session). */
 export async function api<T = unknown>(
@@ -53,6 +53,7 @@ export const apiGet = <T>(path: string) => api<T>(path);
 export const apiPost = <T>(path: string, body: unknown = {}) =>
   api<T>(path, { method: 'POST', body });
 export const apiPatch = <T>(path: string, body: unknown) => api<T>(path, { method: 'PATCH', body });
+export const apiPut = <T>(path: string, body: unknown) => api<T>(path, { method: 'PUT', body });
 export const apiDelete = <T>(path: string) => api<T>(path, { method: 'DELETE' });
 
 export function errorMessage(err: unknown): string {

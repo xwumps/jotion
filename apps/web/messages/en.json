@@ -1062,5 +1062,53 @@
       "640": "Extra large"
     },
     "missing": "This chart view no longer exists"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "scopes": {
+      "personal": "Mine",
+      "shared": "Shared"
+    },
+    "edit": "Edit",
+    "done": "Done",
+    "addWidget": "Add widget",
+    "remove": "Remove",
+    "move": "Move",
+    "settings": "Settings",
+    "empty": "No widgets yet.",
+    "emptyEdit": "No widgets yet. Use “Edit” to add some.",
+    "untitled": "Untitled",
+    "noUpcoming": "Nothing upcoming",
+    "noOverdue": "Nothing overdue",
+    "noRecent": "No visited pages yet",
+    "noFavorites": "No favorites yet",
+    "notePlaceholder": "Note …",
+    "noLinks": "No links",
+    "linksHintEdit": "Add links via the gear",
+    "chooseView": "Choose a database and view via the gear.",
+    "noAccess": "No access to this database",
+    "viewMissing": "This view no longer exists",
+    "widgetTitle": "Title",
+    "database": "Database",
+    "searchDatabase": "Search databases …",
+    "view": "View",
+    "choose": "Choose …",
+    "noMatchingView": "No matching view",
+    "days": "Range",
+    "daysValue": "{count} days",
+    "linkTitle": "Title",
+    "addLink": "Add link",
+    "types": {
+      "upcoming": "Upcoming",
+      "overdue": "Overdue",
+      "board": "Board",
+      "chart": "Chart",
+      "calendar": "Calendar",
+      "kpi": "Number",
+      "recent": "Recently visited",
+      "favorites": "Favorites",
+      "note": "Quick note",
+      "links": "Links"
+    }
   }
 }
