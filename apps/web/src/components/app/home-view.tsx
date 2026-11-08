@@ -1,11 +1,12 @@
 'use client';
 
-import { Clock, Plus, Star } from 'lucide-react';
+import { Clock, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { pageHref, relativeTime } from '@/lib/format';
-import { useFavorites, usePageActions, useRecent } from '@/lib/hooks';
+import { usePageActions, useRecent } from '@/lib/hooks';
+import { Dashboard } from '../dashboard/dashboard';
 import { Greeting } from '../greeting';
 import { PageIcon } from '../page/page-icon';
 import { useMe } from './providers';
@@ -16,11 +17,10 @@ export function HomeView({ ws, status }: { ws: string; status: ReactNode }) {
   const locale = useLocale();
   const me = useMe();
   const recent = useRecent(ws);
-  const favorites = useFavorites(ws);
   const { create } = usePageActions(ws);
 
   return (
-    <div className="mx-auto max-w-[900px] px-6 pb-24 pt-[10vh] sm:px-12">
+    <div className="mx-auto max-w-[1100px] px-4 pb-24 pt-[10vh] sm:px-12">
       <h1 className="text-center text-[32px] font-bold tracking-[-0.02em]">
         <Greeting />, {me.user.name.split(' ')[0]}
       </h1>
@@ -67,29 +67,7 @@ export function HomeView({ ws, status }: { ws: string; status: ReactNode }) {
         )}
       </section>
 
-      {(favorites.data?.length ?? 0) > 0 && (
-        <section className="mt-10" aria-labelledby="fav-title">
-          <h2
-            id="fav-title"
-            className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-fg-muted"
-          >
-            <Star className="size-3.5" />
-            {t('favorites')}
-          </h2>
-          <div className="grid gap-1 sm:grid-cols-2">
-            {favorites.data!.map((f) => (
-              <Link
-                key={f.id}
-                href={pageHref(ws, f.id)}
-                className="flex h-9 items-center gap-2 rounded-md px-2 text-[14px] hover:bg-hover"
-              >
-                <PageIcon icon={f.icon} />
-                <span className="truncate">{f.title || tc('untitled')}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <Dashboard ws={ws} />
 
       <div className="mt-12 max-w-sm">{status}</div>
     </div>

@@ -49,6 +49,7 @@ const PROP_KEYS = [
   'latex',
   // Phase 4: Inline-Datenbank
   'databaseId',
+  'viewId',
 ];
 /** Attribute, deren Text bei Blöcken ohne eigenen Fließtext durchsuchbar sein soll */
 const ATOM_TEXT_KEYS: Record<string, string[]> = {
@@ -142,7 +143,7 @@ export function projectDoc(doc: Y.Doc): Projection {
         blocks.push({ id, parentId, type, position: position++, text, props });
         // Inline-Datenbank verweist auf die Datenbankseite (Phase 4)
         if (
-          type === 'database' &&
+          (type === 'database' || type === 'chart') &&
           typeof attrs.databaseId === 'string' &&
           UUID_RE.test(attrs.databaseId)
         ) {

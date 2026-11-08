@@ -36,6 +36,7 @@ export const BLOCK_NODE_TYPES = [
   'breadcrumb',
   'mathBlock',
   'database',
+  'chart',
 ] as const;
 
 /** Knoten mit Hintergrund-/Textfarbe auf Blockebene. */

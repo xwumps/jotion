@@ -803,7 +803,7 @@ export const VIEW_TYPES = [
   'chart',
 ] as const;
 export type ViewType = (typeof VIEW_TYPES)[number];
-/** Anlegbar (Chart folgt in Phase 7). */
+/** Anlegbare Ansichten. */
 export const CREATABLE_VIEW_TYPES = [
   'table',
   'board',
@@ -811,6 +811,7 @@ export const CREATABLE_VIEW_TYPES = [
   'gallery',
   'calendar',
   'timeline',
+  'chart',
 ] as const satisfies readonly ViewType[];
 
 export const viewPropertySchema = z
@@ -827,7 +828,7 @@ export type ViewProperty = z.output<typeof viewPropertySchema>;
 
 /** Gruppenschlüssel für "leer" (keine Option, kein Datum, ...). */
 export const EMPTY_GROUP = '__empty__';
-export const DATE_BUCKETS = ['day', 'week', 'month', 'year'] as const;
+export const DATE_BUCKETS = ['day', 'week', 'month', 'quarter', 'year'] as const;
 export type DateBucket = (typeof DATE_BUCKETS)[number];
 
 /** Typen, nach denen gruppiert werden kann. */
@@ -937,6 +938,151 @@ export const timelineConfigSchema = z
   .strict();
 export type TimelineConfig = z.output<typeof timelineConfigSchema>;
 
+// ---------------------------------------------------------------- Charts (Phase 7)
+
+export const CHART_TYPES = [
+  'bar',
+  'bar_horizontal',
+  'line',
+  'area',
+  'pie',
+  'donut',
+  'scatter',
+  'progress_bar',
+  'progress_ring',
+  'kpi',
+] as const;
+export type ChartType = (typeof CHART_TYPES)[number];
+
+export const CHART_MEASURES = [
+  'count',
+  'count_unique',
+  'sum',
+  'average',
+  'median',
+  'min',
+  'max',
+] as const;
+export type ChartMeasure = (typeof CHART_MEASURES)[number];
+
+export const CHART_DATE_RANGES = [
+  'all',
+  'last_7_days',
+  'last_30_days',
+  'last_90_days',
+  'this_month',
+  'this_year',
+  'fixed',
+] as const;
+export type ChartDateRange = (typeof CHART_DATE_RANGES)[number];
+
+const chartAxisSchema = z
+  .object({
+    propertyId: id,
+    dateBucket: z.enum(DATE_BUCKETS).default('month'),
+    numberInterval: z.number().positive().max(1e12).default(10),
+  })
+  .strict();
+
+export const chartConfigSchema = z
+  .object({
+    type: z.enum(CHART_TYPES).default('bar'),
+    /** X-Achse (bzw. Segmente bei Kreis): ohne bei KPI und Fortschritt */
+    x: chartAxisSchema.nullable().default(null),
+    /** Y-Wert: Anzahl oder Berechnung über ein Zahl-Property (auch Formel, Rollup) */
+    y: z
+      .object({
+        measure: z.enum(CHART_MEASURES).default('count'),
+        propertyId: id.nullable().default(null),
+      })
+      .strict()
+      .default({ measure: 'count', propertyId: null }),
+    /** Gruppierung in Serien (gestapelt oder nebeneinander) */
+    series: chartAxisSchema.nullable().default(null),
+    stack: z.enum(['none', 'stacked', 'percent']).default('none'),
+    sort: z.enum(['x_asc', 'x_desc', 'y_asc', 'y_desc']).default('x_asc'),
+    topN: z.number().int().min(1).max(100).nullable().default(null),
+    hideEmpty: z.boolean().default(false),
+    cumulative: z.boolean().default(false),
+    /** Zeitraum über ein Datums-Property */
+    dateFilter: z
+      .object({
+        propertyId: id,
+        range: z.enum(CHART_DATE_RANGES).default('last_30_days'),
+        from: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
+        to: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
+      })
+      .strict()
+      .nullable()
+      .default(null),
+    /** KPI: Vergleich mit dem gleich langen Zeitraum davor (braucht dateFilter) */
+    compare: z.boolean().default(false),
+    /** Fortschritt: Zielwert */
+    target: z.number().finite().nullable().default(null),
+    display: z
+      .object({
+        palette: z.enum(['jotion', 'pastel', 'vivid', 'mono']).default('jotion'),
+        optionColors: z.boolean().default(true),
+        legend: z.boolean().default(true),
+        dataLabels: z.boolean().default(false),
+        xTitle: z.string().max(100).default(''),
+        yTitle: z.string().max(100).default(''),
+        grid: z.boolean().default(true),
+        smooth: z.boolean().default(false),
+        height: z.number().int().min(160).max(800).default(320),
+      })
+      .strict()
+      .default({
+        palette: 'jotion',
+        optionColors: true,
+        legend: true,
+        dataLabels: false,
+        xTitle: '',
+        yTitle: '',
+        grid: true,
+        smooth: false,
+        height: 320,
+      }),
+  })
+  .strict();
+export type ChartConfig = z.output<typeof chartConfigSchema>;
+export type ChartConfigInput = z.input<typeof chartConfigSchema>;
+
+export const chartQuerySchema = z
+  .object({
+    viewId: id,
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict();
+
+export interface ChartPointDto {
+  /** Gruppenschlüssel der X-Achse (EMPTY_GROUP für leer, "" ohne X-Achse) */
+  x: string;
+  /** Gruppenschlüssel der Serie ("" ohne Serie) */
+  series: string;
+  value: number;
+}
+
+export interface ChartDataDto {
+  points: ChartPointDto[];
+  /** Gesamtwert über alle Zeilen (KPI, Fortschritt) */
+  total: number;
+  /** KPI: Wert im Zeitraum davor */
+  previous: number | null;
+  /** KPI: Verlauf je Tag oder Woche (Sparkline) */
+  spark: { x: string; value: number }[];
+  /** Zeitraum des Datumsfilters (für die Anzeige) */
+  range: { from: string; to: string } | null;
+}
+
 export const viewConfigSchema = z
   .object({
     filter: filterSchema.nullable().default(null),
@@ -957,7 +1103,7 @@ export const viewConfigSchema = z
     calendar: calendarConfigSchema.optional(),
     timeline: timelineConfigSchema.optional(),
     gallery: galleryConfigSchema.optional(),
-    chart: z.record(z.string(), z.unknown()).optional(),
+    chart: chartConfigSchema.optional(),
   })
   .strict();
 export type ViewConfig = z.output<typeof viewConfigSchema>;
@@ -1125,6 +1271,11 @@ export const queryRowsSchema = z
     timeZone: z.string().max(64).optional(),
     /** Vorschau aus dem Seiteninhalt mitliefern (Karten in Board und Gallery) */
     preview: z.boolean().optional(),
+    /** Drilldown: nur Zeilen eines Diagrammpunkts (X-Gruppe und Serie der Chart-Ansicht) */
+    chartPoint: z
+      .object({ x: z.string().max(200).optional(), series: z.string().max(200).optional() })
+      .strict()
+      .optional(),
     /** Nur Zeilen einer Gruppe (und Untergruppe) der Ansicht */
     group: groupKey.optional(),
     subGroup: groupKey.optional(),

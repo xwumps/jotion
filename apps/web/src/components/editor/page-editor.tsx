@@ -121,6 +121,19 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
         }
       },
       pickPage,
+      createChart: async (databaseId) => {
+        try {
+          const view = await apiPost<{ id: string }>(`/databases/${databaseId}/views`, {
+            name: t('chartViewName'),
+            type: 'chart',
+          });
+          void qc.invalidateQueries({ queryKey: ['db', databaseId] });
+          return view.id;
+        } catch (err) {
+          toast.error(errorMessage(err));
+          return null;
+        }
+      },
       createDatabase: async ({ inline, sourceDatabaseId }) => {
         try {
           const db = await apiPost<{ id: string }>(`/workspaces/${page.workspaceId}/databases`, {

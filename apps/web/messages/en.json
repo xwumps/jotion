@@ -388,8 +388,13 @@
       "pageLink": {
         "label": "Link to page",
         "description": "Link to an existing page"
+      },
+      "chart": {
+        "label": "Chart",
+        "description": "Chart from a database"
       }
-    }
+    },
+    "chartViewName": "Chart"
   },
   "search": {
     "title": "Search",
@@ -864,7 +869,8 @@
       "list": "List",
       "gallery": "Gallery",
       "calendar": "Calendar",
-      "timeline": "Timeline"
+      "timeline": "Timeline",
+      "chart": "Chart"
     },
     "settings": "View settings",
     "layout": "Layout",
@@ -876,7 +882,8 @@
       "day": "Day",
       "week": "Week",
       "month": "Month",
-      "year": "Year"
+      "year": "Year",
+      "quarter": "Quarter"
     },
     "numberInterval": "Range size",
     "groupSort": "Group order",
@@ -952,6 +959,156 @@
       "month": "Month",
       "quarter": "Quarter",
       "year": "Year"
+    }
+  },
+  "charts": {
+    "edit": "Edit chart",
+    "chooseX": "Choose an X axis in “Edit chart”.",
+    "value": "Value",
+    "type": "Type",
+    "axes": "Axes",
+    "xAxis": "X axis",
+    "series": "Group by",
+    "bucket": "Interval",
+    "interval": "Range size",
+    "measure": "Calculate",
+    "of": "Of",
+    "choose": "Choose …",
+    "none": "None",
+    "stack": "Stack",
+    "sort": "Sort",
+    "topN": "Top only",
+    "all": "all",
+    "hideEmpty": "Hide empty groups",
+    "cumulative": "Cumulative",
+    "target": "Target",
+    "dateRange": "Date range",
+    "dateProperty": "Date from",
+    "range": "Range",
+    "fromTo": "From to",
+    "compare": "Compare with previous period",
+    "display": "Display",
+    "palette": "Colors",
+    "optionColors": "Use option colors",
+    "legend": "Legend",
+    "dataLabels": "Data labels",
+    "grid": "Grid lines",
+    "smooth": "Smooth lines",
+    "xTitle": "X axis title",
+    "yTitle": "Y axis title",
+    "height": "Height",
+    "vsPrevious": "vs. {value} before",
+    "progressLabel": "{pct} percent reached",
+    "drilldown": "Entries",
+    "drillCount": "{count, plural, one {# entry} other {# entries}}",
+    "types": {
+      "bar": "Bar",
+      "bar_horizontal": "Horizontal bar",
+      "line": "Line",
+      "area": "Area",
+      "pie": "Pie",
+      "donut": "Donut",
+      "scatter": "Scatter",
+      "progress_bar": "Progress (bar)",
+      "progress_ring": "Progress (ring)",
+      "kpi": "Number"
+    },
+    "buckets": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "measures": {
+      "count": "Count",
+      "count_unique": "Count unique",
+      "sum": "Sum",
+      "average": "Average",
+      "median": "Median",
+      "min": "Min",
+      "max": "Max"
+    },
+    "stacks": {
+      "none": "Side by side",
+      "stacked": "Stacked",
+      "percent": "Stacked 100 %"
+    },
+    "sorts": {
+      "x_asc": "X ascending",
+      "x_desc": "X descending",
+      "y_asc": "Value ascending",
+      "y_desc": "Value descending"
+    },
+    "ranges": {
+      "all": "All",
+      "last_7_days": "Last 7 days",
+      "last_30_days": "Last 30 days",
+      "last_90_days": "Last 90 days",
+      "this_month": "This month",
+      "this_year": "This year",
+      "fixed": "Fixed range"
+    },
+    "palettes": {
+      "jotion": "Jotion",
+      "pastel": "Pastel",
+      "vivid": "Vivid",
+      "mono": "Grays"
+    },
+    "heights": {
+      "200": "Small",
+      "320": "Medium",
+      "480": "Large",
+      "640": "Extra large"
+    },
+    "missing": "This chart view no longer exists"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "scopes": {
+      "personal": "Mine",
+      "shared": "Shared"
+    },
+    "edit": "Edit",
+    "done": "Done",
+    "addWidget": "Add widget",
+    "remove": "Remove",
+    "move": "Move",
+    "settings": "Settings",
+    "empty": "No widgets yet.",
+    "emptyEdit": "No widgets yet. Use “Edit” to add some.",
+    "untitled": "Untitled",
+    "noUpcoming": "Nothing upcoming",
+    "noOverdue": "Nothing overdue",
+    "noRecent": "No visited pages yet",
+    "noFavorites": "No favorites yet",
+    "notePlaceholder": "Note …",
+    "noLinks": "No links",
+    "linksHintEdit": "Add links via the gear",
+    "chooseView": "Choose a database and view via the gear.",
+    "noAccess": "No access to this database",
+    "viewMissing": "This view no longer exists",
+    "widgetTitle": "Title",
+    "database": "Database",
+    "searchDatabase": "Search databases …",
+    "view": "View",
+    "choose": "Choose …",
+    "noMatchingView": "No matching view",
+    "days": "Range",
+    "daysValue": "{count} days",
+    "linkTitle": "Title",
+    "addLink": "Add link",
+    "types": {
+      "upcoming": "Upcoming",
+      "overdue": "Overdue",
+      "board": "Board",
+      "chart": "Chart",
+      "calendar": "Calendar",
+      "kpi": "Number",
+      "recent": "Recently visited",
+      "favorites": "Favorites",
+      "note": "Quick note",
+      "links": "Links"
     }
   }
 }

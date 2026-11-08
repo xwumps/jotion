@@ -18,6 +18,7 @@ import fc from 'fast-check';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   compileCalculationQuery,
+  compileAggregateQuery,
   compileCountQuery,
   compileGroupCountQuery,
   compileRowQuery,
@@ -25,6 +26,7 @@ import {
 } from './compile';
 import { encodeCursor } from './cursor';
 import { rowGroupKeys, type GroupSpec } from './grouping';
+import { rowValue } from './reference';
 import { calculateAll, queryRows } from './reference';
 import { toStorage } from './storage';
 import type { QueryContext, QueryProperty, RowRecord } from './types';
@@ -594,6 +596,110 @@ describe('Grouping-Engine gegen JS-Referenz (PostgreSQL)', () => {
         },
       ),
       { numRuns: 80, seed: 13 },
+    );
+  });
+});
+
+// ---------------------------------------------------------------- Diagramme (Phase 7)
+
+describe('Diagramm-Aggregation gegen JS-Referenz (PostgreSQL)', () => {
+  const groupable = () => props.filter((p) => GROUPABLE_TYPES.includes(p.type));
+  const specArb = (): fc.Arbitrary<GroupSpec> =>
+    fc.record({
+      prop: fc.constantFrom(...groupable()),
+      dateBucket: fc.constantFrom(...DATE_BUCKETS),
+      numberInterval: fc.constantFrom(1, 10, 100),
+    });
+  const MEASURES = ['count', 'count_unique', 'sum', 'average', 'median', 'min', 'max'] as const;
+
+  function reference(
+    ctx: QueryContext,
+    x: GroupSpec | null,
+    series: GroupSpec | null,
+    measure: (typeof MEASURES)[number],
+    value: QueryProperty | null,
+    tz: string,
+  ): Map<string, number | null> {
+    const buckets = new Map<string, unknown[]>();
+    for (const r of queryRows(rows, ctx))
+      for (const k of x ? rowGroupKeys(r, x, tz) : [''])
+        for (const sk of series ? rowGroupKeys(r, series, tz) : ['']) {
+          const id = `${k}|${sk}`;
+          if (!buckets.has(id)) buckets.set(id, []);
+          buckets.get(id)!.push(value ? rowValue(r, value) : r.id);
+        }
+    const out = new Map<string, number | null>();
+    for (const [id, vals] of buckets) {
+      const nums = vals.filter((v): v is number => typeof v === 'number');
+      const sorted = [...nums].sort((a, b) => a - b);
+      const m = Math.floor(sorted.length / 2);
+      switch (measure) {
+        case 'count':
+          out.set(id, vals.length);
+          break;
+        case 'count_unique':
+          out.set(id, new Set(vals.filter((v) => v !== null).map((v) => String(v))).size);
+          break;
+        case 'sum':
+          out.set(
+            id,
+            nums.reduce((a, b) => a + b, 0),
+          );
+          break;
+        case 'average':
+          out.set(id, nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null);
+          break;
+        case 'median':
+          out.set(
+            id,
+            sorted.length
+              ? sorted.length % 2
+                ? sorted[m]!
+                : (sorted[m - 1]! + sorted[m]!) / 2
+              : null,
+          );
+          break;
+        case 'min':
+          out.set(id, nums.length ? Math.min(...nums) : null);
+          break;
+        case 'max':
+          out.set(id, nums.length ? Math.max(...nums) : null);
+          break;
+      }
+    }
+    return out;
+  }
+
+  it('Werte je X-Gruppe und Serie stimmen mit der Referenz überein', async () => {
+    const number = props.find((p) => p.type === 'number')!;
+    const select = props.find((p) => p.type === 'select')!;
+    await fc.assert(
+      fc.asyncProperty(
+        fc.option(specArb(), { nil: null }),
+        fc.option(specArb(), { nil: null }),
+        fc.constantFrom(...MEASURES),
+        tzArb,
+        fc.option(
+          filterArb().filter((f) => depth(f) <= 3),
+          { nil: null },
+        ),
+        async (x, series, measure, tz, filter) => {
+          const value = measure === 'count' ? null : measure === 'count_unique' ? select : number;
+          const ctx = ctxOf(filter, [], tz);
+          const q = compileAggregateQuery(ctx, { x, series, measure, value });
+          const got = await db.$queryRawUnsafe<
+            { x: string; series: string; value: number | null }[]
+          >(q.sql, ...q.parameters);
+          const want = reference(ctx, x, series, measure, value, tz);
+          expect(new Set(got.map((r) => `${r.x}|${r.series}`))).toEqual(new Set(want.keys()));
+          for (const r of got) {
+            const w = want.get(`${r.x}|${r.series}`);
+            if (w === null || w === undefined) expect(r.value).toBeNull();
+            else expect(r.value).toBeCloseTo(w, 6);
+          }
+        },
+      ),
+      { numRuns: 120, seed: 21 },
     );
   });
 });

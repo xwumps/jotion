@@ -20,6 +20,7 @@ import { PageIcon } from '../page/page-icon';
 import { contentNodeViewOverrides } from './content-views';
 import { useEditorPage } from './editor-context';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ChartNode } from '../database/chart-node-view';
 import { DatabaseNode } from '../database/database-node-view';
 
 function PageRefView({ node, selected, kind }: NodeViewProps & { kind: 'subpage' | 'pageLink' }) {
@@ -131,4 +132,5 @@ export const nodeViewOverrides = [
   Callout.extend({ addNodeView: () => ReactNodeViewRenderer(CalloutView) }),
   ...contentNodeViewOverrides,
   DatabaseNode,
+  ChartNode,
 ];

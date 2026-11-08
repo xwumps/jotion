@@ -172,6 +172,8 @@ function groupKeysSql(g: GroupSpec, j: Joins, tz: string): Sql {
           return one(ymd(sql`(${d} - (extract(isodow from ${d})::int - 1))`));
         case 'month':
           return one(ymd(sql`date_trunc('month', ${d})`));
+        case 'quarter':
+          return one(ymd(sql`date_trunc('quarter', ${d})`));
         case 'year':
           return one(ymd(sql`date_trunc('year', ${d})`));
       }
@@ -562,6 +564,62 @@ export function compileGroupCountQuery(
   const s = subGroup ? groupKeysSql(subGroup, joins, tz) : null;
   return sql`SELECT g.k AS key, ${s ? sql`s.k` : sql`NULL::text`} AS sub_key, count(*)::int AS count
     FROM pages p ${joins.sql()} CROSS JOIN LATERAL unnest(${g}) AS g(k)${s ? sql` CROSS JOIN LATERAL unnest(${s}) AS s(k)` : sql``}
+    WHERE ${prepared.where}
+    GROUP BY 1, 2`.compile(kysely);
+}
+
+// ---------------------------------------------------------------- Diagramme (Phase 7)
+
+export type AggregateMeasure =
+  'count' | 'count_unique' | 'sum' | 'average' | 'median' | 'min' | 'max';
+
+export interface AggregateRequest {
+  x: GroupSpec | null;
+  series: GroupSpec | null;
+  measure: AggregateMeasure;
+  /** Property für Summe usw. (Zahl) bzw. eindeutige Werte */
+  value: QueryProperty | null;
+}
+
+/**
+ * Aggregation für Diagramme: Wert je X-Gruppe und Serie nach Filter, Suche und Zeitraum.
+ * Spalten: x, series ('' ohne Achse), value (float8). Mehrfachwerte zählen in jeder Gruppe.
+ */
+export function compileAggregateQuery(ctx: QueryContext, req: AggregateRequest): CompiledQuery {
+  const prepared = prepare(ctx);
+  const { joins, tz } = prepared;
+  const none = sql`ARRAY[''::text]`;
+  const gx = req.x ? groupKeysSql(req.x, joins, tz) : none;
+  const gs = req.series ? groupKeysSql(req.series, joins, tz) : none;
+  const v = req.value ? scalarValue(req.value, joins) : sql`NULL::float8`;
+  let agg: Sql;
+  switch (req.measure) {
+    case 'count':
+      agg = sql`count(*)::float8`;
+      break;
+    case 'count_unique':
+      agg = req.value
+        ? sql`count(DISTINCT (${v})::text)::float8`
+        : sql`count(DISTINCT p.id)::float8`;
+      break;
+    case 'sum':
+      agg = sql`COALESCE(sum(${v}), 0)::float8`;
+      break;
+    case 'average':
+      agg = sql`avg(${v})::float8`;
+      break;
+    case 'median':
+      agg = sql`(percentile_cont(0.5) WITHIN GROUP (ORDER BY ${v}))::float8`;
+      break;
+    case 'min':
+      agg = sql`min(${v})::float8`;
+      break;
+    case 'max':
+      agg = sql`max(${v})::float8`;
+      break;
+  }
+  return sql`SELECT g.k AS x, s.k AS series, ${agg} AS value
+    FROM pages p ${joins.sql()} CROSS JOIN LATERAL unnest(${gx}) AS g(k) CROSS JOIN LATERAL unnest(${gs}) AS s(k)
     WHERE ${prepared.where}
     GROUP BY 1, 2`.compile(kysely);
 }

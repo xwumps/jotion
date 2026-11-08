@@ -120,6 +120,8 @@ export function invalidateRows(qc: QueryClient, dataId: string): void {
 
 /** Echtzeit-Ereignis aus useRealtime. */
 export function handleDatabaseEvent(qc: QueryClient, type: string, entityId: string): void {
+  // Dashboard: Anstehend/Überfällig über alle Datenbanken
+  void qc.invalidateQueries({ queryKey: ['agenda'] });
   if (type === 'database.rows.changed') invalidateRows(qc, entityId);
   // Schemaänderungen betreffen auch Linked Databases mit anderer ID
   if (type === 'database.changed') {

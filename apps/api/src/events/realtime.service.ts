@@ -1,3 +1,4 @@
+import { chartVersionKey } from '../databases/charts.service';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import type { RealtimeEvent, RealtimeEventType } from '@jotion/shared';
 import type { ServerEnv } from '@jotion/shared/env';
@@ -99,6 +100,9 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
             audienceUserId: r.audience_user_id,
           };
           pipeline.publish(`${CHANNEL_PREFIX}${r.workspace_id}`, JSON.stringify(env));
+          // Diagramm-Cache dieser Datenbank ungültig machen (Phase 7)
+          if (r.type === 'database.rows.changed' || r.type === 'database.changed')
+            pipeline.incr(chartVersionKey(r.entity_id));
         }
         await pipeline.exec();
         const ids = rows.map((r) => r.id);

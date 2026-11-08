@@ -38,6 +38,7 @@ import { RowPeek } from './row-peek';
 import { orderedProperties, TableView } from './table-view';
 import { BoardView } from './views/board-view';
 import { CalendarView } from './views/calendar-view';
+import { ChartView } from './views/chart-view';
 import { ListGalleryView } from './views/list-gallery';
 import { TimelineView } from './views/timeline-view';
 import { VIEW_ICONS, ViewSettings } from './views/view-settings';
@@ -393,6 +394,8 @@ function DatabaseBody({
             <CalendarView {...viewProps} />
           ) : view.type === 'timeline' ? (
             <TimelineView {...viewProps} />
+          ) : view.type === 'chart' ? (
+            <ChartView {...viewProps} />
           ) : (
             <TableView
               db={db}

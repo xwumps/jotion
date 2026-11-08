@@ -304,7 +304,7 @@ describe('Kalender und Zeitleiste', () => {
       config: { sorts: [{ propertyId: s.date.id }], calendar: { datePropertyId: s.date.id } },
     });
     expect(
-      (await owner.patch(`/api/databases/${s.d.id}/views/${table.id}`, { type: 'chart' })).status,
+      (await owner.patch(`/api/databases/${s.d.id}/views/${table.id}`, { type: 'gantt' })).status,
     ).toBe(422);
   });
 });

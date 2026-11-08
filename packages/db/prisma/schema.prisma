@@ -106,6 +106,7 @@ model Workspace {
   invitations Invitation[]
   pages       Page[]
   files       File[]
+  dashboards  Dashboard[]
 
   @@map("workspaces")
 }
@@ -516,4 +517,19 @@ model DbPropertyConversion {
 
   @@index([propertyId, createdAt])
   @@map("db_property_conversions")
+}
+
+/// Phase 7: Dashboard je Nutzer ("user:<id>") oder geteilt im Workspace ("shared").
+model Dashboard {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  key         String
+  /// Widgets mit Position im 12-Spalten-Raster, per Zod validiert
+  config      Json     @default("{}")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, key])
+  @@map("dashboards")
 }

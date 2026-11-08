@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   calculateSchema,
+  chartQuerySchema,
   createDatabaseSchema,
   createPropertySchema,
   createRowSchema,
@@ -16,6 +17,7 @@ import {
 import { CurrentUser, type AuthUser } from '../common/request-context';
 import { UUID } from '../common/uuid.pipe';
 import { parse } from '../common/validation';
+import { ChartsService } from './charts.service';
 import { DatabasesService } from './databases.service';
 import { RowsService } from './rows.service';
 
@@ -25,6 +27,7 @@ export class DatabasesController {
   constructor(
     private readonly dbs: DatabasesService,
     private readonly rows: RowsService,
+    private readonly charts: ChartsService,
   ) {}
 
   @Post('workspaces/:id/databases')
@@ -118,6 +121,12 @@ export class DatabasesController {
   @HttpCode(200)
   calculate(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
     return this.rows.calculate(u, id, parse(calculateSchema, body));
+  }
+
+  @Post('databases/:id/chart')
+  @HttpCode(200)
+  chart(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
+    return this.charts.data(u, id, parse(chartQuerySchema, body));
   }
 
   @Post('databases/:id/groups')

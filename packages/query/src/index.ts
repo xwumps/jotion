@@ -4,12 +4,15 @@ export * from './cursor';
 export * from './normalize';
 export {
   compileCalculationQuery,
+  compileAggregateQuery,
   compileCountQuery,
   compileGroupCountQuery,
   compileRowQuery,
   CursorMismatchError,
   likePattern,
   sortSignature,
+  type AggregateMeasure,
+  type AggregateRequest,
   type CalculationRequest,
   type CompiledRowQuery,
 } from './compile';
