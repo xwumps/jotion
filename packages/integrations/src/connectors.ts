@@ -19,8 +19,10 @@ export async function guard<T>(fn: () => Promise<T>): Promise<T> {
     return await fn();
   } catch (err) {
     if (err instanceof ConnectorError) throw err;
-    if (err instanceof NetworkError) throw new ConnectorError('network', `Server nicht erreichbar: ${err.message}`);
-    if (err instanceof SsrfError) throw new ConnectorError('config', `Adresse nicht erlaubt: ${err.message}`);
+    if (err instanceof NetworkError)
+      throw new ConnectorError('network', `Server nicht erreichbar: ${err.message}`);
+    if (err instanceof SsrfError)
+      throw new ConnectorError('config', `Adresse nicht erlaubt: ${err.message}`);
     throw new ConnectorError('network', `Server nicht erreichbar: ${(err as Error).message}`);
   }
 }
@@ -37,7 +39,10 @@ function httpUrl(raw: unknown, field: string, requireHttps = false): string {
     throw new ConnectorError('config', `${field}: keine gültige URL`);
   }
   if (u.protocol !== 'https:' && (requireHttps || u.protocol !== 'http:'))
-    throw new ConnectorError('config', `${field}: ${requireHttps ? 'nur https' : 'nur http oder https'}`);
+    throw new ConnectorError(
+      'config',
+      `${field}: ${requireHttps ? 'nur https' : 'nur http oder https'}`,
+    );
   if (u.username || u.password)
     throw new ConnectorError('config', `${field}: Zugangsdaten bitte nicht in die URL schreiben`);
   u.hash = '';
@@ -64,17 +69,20 @@ type FeedCursor = {
 async function fetchFeed(ctx: ConnectorContext, url: string, cursor: FeedCursor | null) {
   const headers: Record<string, string> = { Accept: 'text/calendar, */*;q=0.5' };
   const user = str(ctx.config.username);
-  if (user) headers.Authorization = `Basic ${Buffer.from(`${user}:${ctx.secrets.password ?? ''}`).toString('base64')}`;
+  if (user)
+    headers.Authorization = `Basic ${Buffer.from(`${user}:${ctx.secrets.password ?? ''}`).toString('base64')}`;
   if (cursor?.etag && cursor.day === today(ctx)) headers['If-None-Match'] = cursor.etag;
   const res = await guard(() => ctx.http.get(url, headers));
   if (res.status === 401 || res.status === 403)
     throw new ConnectorError('auth', 'Zugriff auf den Kalender-Feed verweigert');
   if (res.status === 404) throw new ConnectorError('not_found', 'Kalender-Feed nicht gefunden');
   if (res.status === 304) return { notModified: true as const };
-  if (res.status !== 200) throw new ConnectorError('network', `Feed antwortet mit Status ${res.status}`);
+  if (res.status !== 200)
+    throw new ConnectorError('network', `Feed antwortet mit Status ${res.status}`);
   if (res.truncated) throw new ConnectorError('protocol', 'Kalender-Feed ist zu groß');
   const body = res.body.toString('utf8');
-  if (!/BEGIN:VCALENDAR/i.test(body)) throw new ConnectorError('protocol', 'Die Adresse liefert keinen iCalendar-Feed');
+  if (!/BEGIN:VCALENDAR/i.test(body))
+    throw new ConnectorError('protocol', 'Die Adresse liefert keinen iCalendar-Feed');
   const etag = typeof res.headers.etag === 'string' ? res.headers.etag : null;
   return { notModified: false as const, body, etag };
 }
@@ -96,7 +104,11 @@ export const icalFeedConnector: ConnectorDefinition = {
   },
   async testConnection(ctx) {
     const sources = await this.discoverSources(ctx);
-    return { accountLabel: new URL(str(ctx.config.url)).host, sources, capabilities: { ical: true } };
+    return {
+      accountLabel: new URL(str(ctx.config.url)).host,
+      sources,
+      capabilities: { ical: true },
+    };
   },
   async discoverSources(ctx) {
     const url = str(ctx.config.url);
@@ -105,13 +117,20 @@ export const icalFeedConnector: ConnectorDefinition = {
     const kinds: RecordKind[] = [];
     if (/BEGIN:VEVENT/i.test(body)) kinds.push('event');
     if (/BEGIN:VTODO/i.test(body)) kinds.push('task');
-    return [{ remoteId: url, name: calName(body) ?? new URL(url).host, kinds: kinds.length ? kinds : ['event'] }];
+    return [
+      {
+        remoteId: url,
+        name: calName(body) ?? new URL(url).host,
+        kinds: kinds.length ? kinds : ['event'],
+      },
+    ];
   },
   async pull(ctx, source, cursor) {
     const c = cursor as FeedCursor | null;
     const feed = await fetchFeed(ctx, source.remoteId, c);
     const day = today(ctx);
-    if (feed.notModified) return { records: [], deletedRefs: [], refreshedRefs: [], complete: false, cursor: c };
+    if (feed.notModified)
+      return { records: [], deletedRefs: [], refreshedRefs: [], complete: false, cursor: c };
     const hash = createHash('sha256').update(feed.body).digest('hex');
     // Gleicher Inhalt am selben Tag: nichts zu tun (am nächsten Tag verschiebt sich das Zeitfenster)
     if (c?.hash === hash && c.day === day)
@@ -122,7 +141,13 @@ export const icalFeedConnector: ConnectorDefinition = {
       now: ctx.now(),
       options: source.options,
     });
-    return { records, deletedRefs: [], refreshedRefs: [], complete: true, cursor: { etag: feed.etag, hash, day } };
+    return {
+      records,
+      deletedRefs: [],
+      refreshedRefs: [],
+      complete: true,
+      cursor: { etag: feed.etag, hash, day },
+    };
   },
 };
 
@@ -136,7 +161,10 @@ type DavCursor = {
 
 function davClient(ctx: ConnectorContext): CalDavClient {
   const username = str(ctx.config.username);
-  return new CalDavClient(ctx.http, username ? { username, password: ctx.secrets.password ?? '' } : null);
+  return new CalDavClient(
+    ctx.http,
+    username ? { username, password: ctx.secrets.password ?? '' } : null,
+  );
 }
 
 function parseObjects(
@@ -150,7 +178,13 @@ function parseObjects(
   for (const o of objects) {
     try {
       records.push(
-        ...parseIcs(o.data, { sourceKey, remoteRef: o.href, timeZone: ctx.timeZone, now: ctx.now(), options }),
+        ...parseIcs(o.data, {
+          sourceKey,
+          remoteRef: o.href,
+          timeZone: ctx.timeZone,
+          now: ctx.now(),
+          options,
+        }),
       );
     } catch (err) {
       errors.push({ ref: o.href, message: (err as Error).message });
@@ -209,7 +243,9 @@ export async function pullCalendar(
   });
 }
 
-function calendarSources(calendars: { url: string; displayName: string; components: string[]; color: string | null }[]): ExternalSource[] {
+function calendarSources(
+  calendars: { url: string; displayName: string; components: string[]; color: string | null }[],
+): ExternalSource[] {
   return calendars
     .map((c) => ({
       remoteId: c.url,
@@ -273,7 +309,13 @@ export const caldavConnector = davConnector('caldav', 'CalDAV', 'serverUrl', [],
  * current-user-principal); /caldav ist nur ein zusätzlicher Kandidat, nie fest verdrahtet.
  * Das Modul "Aufgaben" hat keine dokumentierte Schnittstelle und wird nicht angebunden.
  */
-export const iservConnector = davConnector('iserv', 'IServ', 'baseUrl', ['/caldav/', '/iserv/caldav/'], true);
+export const iservConnector = davConnector(
+  'iserv',
+  'IServ',
+  'baseUrl',
+  ['/caldav/', '/iserv/caldav/'],
+  true,
+);
 
 export const CONNECTORS: Record<string, ConnectorDefinition> = {
   [icalFeedConnector.type]: icalFeedConnector,

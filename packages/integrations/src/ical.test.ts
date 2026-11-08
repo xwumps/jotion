@@ -6,7 +6,12 @@ import { DEFAULT_SOURCE_OPTIONS, type DateField } from './sdk';
 
 const fixture = (name: string) => readFileSync(join(__dirname, '../fixtures/ics', name), 'utf8');
 const NOW = Date.parse('2026-11-08T12:00:00Z');
-const base = { sourceKey: 'src', timeZone: 'Europe/Berlin', now: NOW, options: DEFAULT_SOURCE_OPTIONS };
+const base = {
+  sourceKey: 'src',
+  timeZone: 'Europe/Berlin',
+  now: NOW,
+  options: DEFAULT_SOURCE_OPTIONS,
+};
 
 describe('parseIcs', () => {
   const records = parseIcs(fixture('school.ics'), base);
@@ -50,12 +55,12 @@ describe('parseIcs', () => {
     expect(moved.fields.title).toBe('Robotik-AG (verschoben)');
     expect((moved.fields.date as DateField).start).toBe('2026-11-11T14:00:00.000Z');
     // Sommerzeit endet am 25.10.: vorher UTC+2, danach UTC+1
-    expect((byId('ag-robotik@schule.example#2026-10-20T12:00:00.000Z').fields.date as DateField).start).toBe(
-      '2026-10-20T12:00:00.000Z',
-    );
-    expect((byId('ag-robotik@schule.example#2026-10-27T13:00:00.000Z').fields.date as DateField).start).toBe(
-      '2026-10-27T13:00:00.000Z',
-    );
+    expect(
+      (byId('ag-robotik@schule.example#2026-10-20T12:00:00.000Z').fields.date as DateField).start,
+    ).toBe('2026-10-20T12:00:00.000Z');
+    expect(
+      (byId('ag-robotik@schule.example#2026-10-27T13:00:00.000Z').fields.date as DateField).start,
+    ).toBe('2026-10-27T13:00:00.000Z');
   });
 
   it('Serie als eine Zeile, wenn Aufteilen aus ist', () => {
@@ -72,7 +77,9 @@ describe('parseIcs', () => {
       ...base,
       options: { ...DEFAULT_SOURCE_OPTIONS, windowPastDays: 0, windowFutureDays: 14 },
     });
-    const ids = narrow.filter((r) => r.externalId.startsWith('ag-robotik@')).map((r) => r.externalId);
+    const ids = narrow
+      .filter((r) => r.externalId.startsWith('ag-robotik@'))
+      .map((r) => r.externalId);
     expect(ids).toEqual([
       'ag-robotik@schule.example#2026-11-10T13:00:00.000Z',
       'ag-robotik@schule.example#2026-11-17T13:00:00.000Z',
@@ -89,7 +96,9 @@ describe('parseIcs', () => {
     });
     const again = parseIcs(fixture('school.ics'), base).filter((r) => r.weakId);
     expect(again[0]!.externalId).toBe(weak[0]!.externalId);
-    const other = parseIcs(fixture('school.ics'), { ...base, sourceKey: 'andere' }).filter((r) => r.weakId);
+    const other = parseIcs(fixture('school.ics'), { ...base, sourceKey: 'andere' }).filter(
+      (r) => r.weakId,
+    );
     expect(other[0]!.externalId).not.toBe(weak[0]!.externalId);
   });
 
@@ -121,7 +130,8 @@ describe('parseIcs', () => {
 
   it('Zeiten ohne Zone, IANA-Zonen ohne VTIMEZONE und eigene Zonen', () => {
     const r = parseIcs(fixture('floating.ics'), base);
-    const start = (id: string) => (r.find((x) => x.externalId === id)!.fields.date as DateField).start;
+    const start = (id: string) =>
+      (r.find((x) => x.externalId === id)!.fields.date as DateField).start;
     expect(start('floating-1')).toBe('2026-07-01T08:00:00.000Z');
     expect(start('iana-1')).toBe('2026-01-15T14:00:00.000Z');
     expect(start('custom-tz-1')).toBe('2026-01-15T06:00:00.000Z');

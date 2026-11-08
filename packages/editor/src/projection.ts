@@ -266,6 +266,29 @@ export function appendSubpageBlock(doc: Y.Doc, pageId: string, blockId: string):
   return true;
 }
 
+/**
+ * Hängt Text als Absätze ans Ende des Dokuments (serverseitig, z. B. Beschreibung eines
+ * synchronisierten Termins). Jede nicht leere Zeile wird ein Absatz.
+ */
+export function appendTextParagraphs(doc: Y.Doc, text: string, newId: () => string): number {
+  const paras = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (!paras.length) return 0;
+  doc.transact(() => {
+    const els = paras.map((p) => {
+      const el = new Y.XmlElement('paragraph');
+      el.setAttribute('id', newId());
+      el.insert(0, [new Y.XmlText(p)]);
+      return el;
+    });
+    doc.getXmlFragment(DOC_FRAGMENT).push(els);
+  }, 'jotion-server');
+  return paras.length;
+}
+
 /** Entfernt alle Unterseiten-Blöcke für eine Seite (z. B. nach Verschieben). Liefert die Anzahl. */
 export function removeSubpageBlocks(doc: Y.Doc, pageId: string): number {
   let removed = 0;

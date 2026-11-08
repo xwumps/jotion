@@ -4,7 +4,21 @@ export const QUEUE_PREFIX = 'jotion';
 export const QUEUES = {
   system: 'system',
   compute: 'compute',
+  integrations: 'integrations',
 } as const;
+
+/** Phase 8: Integrationen */
+export const INTEGRATION_JOBS = {
+  /** Eine Verbindung synchronisieren (Job-ID = Verbindungs-ID, nie parallel) */
+  sync: 'sync',
+  /** Fällige Verbindungen finden und Sync-Jobs anlegen */
+  schedule: 'schedule',
+} as const;
+export interface SyncJob {
+  connectionId: string;
+  trigger: 'manual' | 'schedule';
+}
+export const INTEGRATION_SCHEDULE_INTERVAL_MS = 60_000;
 
 /** Phase 6: Berechnete Properties (Rollups, Formeln) */
 export const COMPUTE_JOBS = {

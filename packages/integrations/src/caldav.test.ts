@@ -94,7 +94,12 @@ describe('CalDAV gegen Testserver', () => {
       ['Schule', ['event']],
       ['Aufgaben', ['task']],
     ]);
-    expect(r.capabilities).toMatchObject({ caldav: true, events: true, tasks: true, incremental: true });
+    expect(r.capabilities).toMatchObject({
+      caldav: true,
+      events: true,
+      tasks: true,
+      incremental: true,
+    });
   });
 
   it('falsches Passwort ist ein Anmeldefehler', async () => {
@@ -105,7 +110,10 @@ describe('CalDAV gegen Testserver', () => {
 
   it('nicht erreichbarer Server ist ein Netzwerkfehler', async () => {
     await expect(
-      caldavConnector.testConnection({ ...ctx, config: { ...ctx.config, serverUrl: 'http://127.0.0.1:1' } }),
+      caldavConnector.testConnection({
+        ...ctx,
+        config: { ...ctx.config, serverUrl: 'http://127.0.0.1:1' },
+      }),
     ).rejects.toMatchObject({ code: 'network' });
   });
 
@@ -127,7 +135,10 @@ describe('CalDAV gegen Testserver', () => {
       ['c', 'Englisch'],
     ]);
     expect(inc.deletedRefs).toEqual(['/dav/calendars/anna/schule/b.ics']);
-    expect(inc.refreshedRefs.sort()).toEqual(['/dav/calendars/anna/schule/a.ics', '/dav/calendars/anna/schule/c.ics']);
+    expect(inc.refreshedRefs.sort()).toEqual([
+      '/dav/calendars/anna/schule/a.ics',
+      '/dav/calendars/anna/schule/c.ics',
+    ]);
     expect(dav.requests.some((r) => r.body.includes('calendar-query'))).toBe(false);
 
     // Keine Änderung: leere Antwort
@@ -142,7 +153,12 @@ describe('CalDAV gegen Testserver', () => {
     expect(again.records.map((r) => r.externalId).sort()).toEqual(['a', 'c']);
 
     // Neuer Tag: vollständig (Zeitfenster für Wiederholungen wandert)
-    const nextDay = await pullCalendar({ ...ctx, now: () => NOW + 86_400_000 }, url, DEFAULT_SOURCE_OPTIONS, again.cursor);
+    const nextDay = await pullCalendar(
+      { ...ctx, now: () => NOW + 86_400_000 },
+      url,
+      DEFAULT_SOURCE_OPTIONS,
+      again.cursor,
+    );
     expect(nextDay.complete).toBe(true);
   });
 
@@ -169,8 +185,12 @@ describe('CalDAV gegen Testserver', () => {
   });
 
   it('IServ verlangt https und findet den Dienst nur per Discovery', () => {
-    expect(() => iservConnector.validateConfig({ baseUrl: 'http://schule.example', username: 'a' })).toThrow(/https/);
-    expect(iservConnector.validateConfig({ baseUrl: 'https://schule.example', username: 'anna' })).toEqual({
+    expect(() =>
+      iservConnector.validateConfig({ baseUrl: 'http://schule.example', username: 'a' }),
+    ).toThrow(/https/);
+    expect(
+      iservConnector.validateConfig({ baseUrl: 'https://schule.example', username: 'anna' }),
+    ).toEqual({
       baseUrl: 'https://schule.example/',
       username: 'anna',
     });
@@ -182,7 +202,9 @@ describe('CalDAV gegen Testserver', () => {
     try {
       // well-known des zweiten Servers zeigt auf sich selbst: erlaubt
       const client = new CalDavClient(http, { username: 'anna', password: 'geheim' });
-      await expect(client.discover(other.url)).resolves.toMatchObject({ homeUrls: [`${other.url}/x/calendars/anna/`] });
+      await expect(client.discover(other.url)).resolves.toMatchObject({
+        homeUrls: [`${other.url}/x/calendars/anna/`],
+      });
     } finally {
       await other.stop();
     }

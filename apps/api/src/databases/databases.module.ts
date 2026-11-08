@@ -17,6 +17,6 @@ import { RowsService } from './rows.service';
     ComputedSchemaService,
     ChartsService,
   ],
-  exports: [DatabaseAccessService, ComputeService, ChartsService],
+  exports: [DatabaseAccessService, DatabasesService, ComputeService, ChartsService],
 })
 export class DatabasesModule {}

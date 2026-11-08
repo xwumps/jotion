@@ -102,11 +102,12 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  members     WorkspaceMember[]
-  invitations Invitation[]
-  pages       Page[]
-  files       File[]
-  dashboards  Dashboard[]
+  members                WorkspaceMember[]
+  invitations            Invitation[]
+  pages                  Page[]
+  files                  File[]
+  dashboards             Dashboard[]
+  integrationConnections IntegrationConnection[]
 
   @@map("workspaces")
 }
@@ -175,22 +176,23 @@ model Page {
   /// Phase 4: bei Zeilen die Datenbank (immer gleich parentId), sonst null
   databaseId     String?              @map("database_id") @db.Uuid
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent          Page?            @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children        Page[]           @relation("PageTree")
-  owner           User             @relation("PageOwner", fields: [ownerId], references: [id])
-  createdBy       User             @relation("PageCreatedBy", fields: [createdById], references: [id])
-  favorites       Favorite[]
-  visits          PageVisit[]
-  doc             PageDoc?
-  docUpdates      PageDocUpdate[]
-  blocks          Block[]
-  blockReferences BlockReference[]
-  databaseInfo    Database?        @relation("DatabasePage")
-  database        Database?        @relation("DatabaseRows", fields: [databaseId], references: [id], onDelete: Cascade)
-  propertyValues  PropertyValue[]
-  relationsFrom   RelationLink[]   @relation("RelationFrom")
-  relationsTo     RelationLink[]   @relation("RelationTo")
+  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent           Page?            @relation("PageTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Page[]           @relation("PageTree")
+  owner            User             @relation("PageOwner", fields: [ownerId], references: [id])
+  createdBy        User             @relation("PageCreatedBy", fields: [createdById], references: [id])
+  favorites        Favorite[]
+  visits           PageVisit[]
+  doc              PageDoc?
+  docUpdates       PageDocUpdate[]
+  blocks           Block[]
+  blockReferences  BlockReference[]
+  databaseInfo     Database?        @relation("DatabasePage")
+  database         Database?        @relation("DatabaseRows", fields: [databaseId], references: [id], onDelete: Cascade)
+  propertyValues   PropertyValue[]
+  relationsFrom    RelationLink[]   @relation("RelationFrom")
+  relationsTo      RelationLink[]   @relation("RelationTo")
+  externalEntities ExternalEntity[]
 
   @@index([workspaceId, parentId, position])
   @@index([databaseId, position])
@@ -532,4 +534,138 @@ model Dashboard {
 
   @@id([workspaceId, key])
   @@map("dashboards")
+}
+
+/// Phase 8: Verbindung zu einem externen Dienst (iCal-Feed, CalDAV, IServ). Gehört einem Nutzer.
+model IntegrationConnection {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  workspaceId         String    @map("workspace_id") @db.Uuid
+  ownerId             String    @map("owner_id") @db.Uuid
+  type                String
+  name                String
+  /// Nicht geheime Einstellungen (URL, Benutzername)
+  config              Json      @default("{}")
+  /// Geheimnisse, verschlüsselt mit JOTION_MASTER_KEY (SecretBox, Format v1:...)
+  secrets             String?
+  /// active, paused, error
+  status              String    @default("active")
+  statusMessage       String?   @map("status_message")
+  accountLabel        String?   @map("account_label")
+  syncEnabled         Boolean   @default(true) @map("sync_enabled")
+  intervalMinutes     Int       @default(60) @map("interval_minutes")
+  nextSyncAt          DateTime? @map("next_sync_at") @db.Timestamptz(3)
+  lastSyncAt          DateTime? @map("last_sync_at") @db.Timestamptz(3)
+  consecutiveFailures Int       @default(0) @map("consecutive_failures")
+  /// Sperre eines laufenden Syncs (Lease, verlängert sich während des Laufs; nach Absturz verfällt sie)
+  syncLockId          String?   @map("sync_lock_id") @db.Uuid
+  syncLockedUntil     DateTime? @map("sync_locked_until") @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sources   IntegrationSource[]
+  runs      SyncRun[]
+
+  @@index([workspaceId, ownerId])
+  @@index([status, syncEnabled, nextSyncAt])
+  @@map("integration_connections")
+}
+
+/// Phase 8: Quelle einer Verbindung (Kalender, Feed) mit Ziel-Datenbank und Mapping.
+model IntegrationSource {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  connectionId     String    @map("connection_id") @db.Uuid
+  remoteId         String    @map("remote_id")
+  name             String
+  /// Arten der Datensätze (event, task)
+  kinds            String[]
+  enabled          Boolean   @default(true)
+  targetDatabaseId String?   @map("target_database_id") @db.Uuid
+  /// Feldzuordnung, Transformationen, Ownership (per Zod validiert)
+  mapping          Json      @default("{}")
+  /// Serien, Zeitfenster
+  options          Json      @default("{}")
+  /// mark, archive, trash
+  deletionPolicy   String    @default("mark") @map("deletion_policy")
+  /// Fortsetzungspunkt (Sync-Token, ctag, ETag); erst nach erfolgreicher Verarbeitung gespeichert
+  cursor           Json?
+  lastSyncedAt     DateTime? @map("last_synced_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  entities   ExternalEntity[]
+
+  @@unique([connectionId, remoteId])
+  @@map("integration_sources")
+}
+
+/// Phase 8: Zuordnung externer Datensatz zu Zeile. Einziger Weg zum Upsert (keine Dubletten).
+model ExternalEntity {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  sourceId        String    @map("source_id") @db.Uuid
+  externalId      String    @map("external_id")
+  weakId          Boolean   @default(false) @map("weak_id")
+  /// Ressource in der Quelle (CalDAV-href)
+  remoteRef       String?   @map("remote_ref")
+  rowId           String?   @map("row_id") @db.Uuid
+  /// Hash der zuletzt verarbeiteten Felder
+  version         String?
+  /// Je Feld der zuletzt synchronisierte Wert (Basis für den Drei-Wege-Vergleich)
+  fieldState      Json      @default("{}") @map("field_state")
+  remoteDeletedAt DateTime? @map("remote_deleted_at") @db.Timestamptz(3)
+  /// Lokal gelöscht: nicht neu anlegen
+  suppressed      Boolean   @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  source    IntegrationSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  row       Page?             @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  conflicts SyncConflict[]
+
+  @@unique([sourceId, externalId])
+  @@index([sourceId, remoteRef])
+  @@index([rowId])
+  @@map("external_entities")
+}
+
+/// Phase 8: Protokoll eines Sync-Laufs.
+model SyncRun {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  connectionId String    @map("connection_id") @db.Uuid
+  /// manual, schedule
+  trigger      String
+  /// running, succeeded, partial, failed
+  status       String    @default("running")
+  stats        Json      @default("{}")
+  /// Fehler einzelner Datensätze (höchstens 50)
+  errors       Json      @default("[]")
+  errorMessage String?   @map("error_message")
+  startedAt    DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(3)
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, startedAt])
+  @@map("sync_runs")
+}
+
+/// Phase 8: Feld lokal und remote geändert; lokale Änderung blieb erhalten.
+model SyncConflict {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  entityId    String    @map("entity_id") @db.Uuid
+  /// "title" oder Property-ID
+  field       String
+  localValue  Json?     @map("local_value")
+  remoteValue Json?     @map("remote_value")
+  baseValue   Json?     @map("base_value")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt  DateTime? @map("resolved_at") @db.Timestamptz(3)
+  /// remote (übernommen), local (behalten)
+  resolution  String?
+
+  entity ExternalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId, field])
+  @@map("sync_conflicts")
 }

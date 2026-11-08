@@ -53,7 +53,8 @@ const parser = new XMLParser({
 });
 
 type Node = Record<string, unknown>;
-const obj = (v: unknown): Node => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Node) : {});
+const obj = (v: unknown): Node =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Node) : {};
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
 const txt = (v: unknown): string => {
   if (typeof v === 'string') return v;
@@ -63,7 +64,8 @@ const txt = (v: unknown): string => {
 };
 
 const XML_HEAD = '<?xml version="1.0" encoding="utf-8"?>';
-const NS = 'xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:ic="http://apple.com/ns/ical/"';
+const NS =
+  'xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:ic="http://apple.com/ns/ical/"';
 const xmlEscape = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -74,7 +76,10 @@ interface MultiStatusEntry {
 }
 
 /** 207-Antwort in Einträge mit den Properties der erfolgreichen propstat-Blöcke. */
-export function parseMultiStatus(xml: string): { responses: MultiStatusEntry[]; syncToken: string | null } {
+export function parseMultiStatus(xml: string): {
+  responses: MultiStatusEntry[];
+  syncToken: string | null;
+} {
   let doc: Node;
   try {
     doc = obj(parser.parse(xml));
@@ -97,7 +102,10 @@ export function parseMultiStatus(xml: string): { responses: MultiStatusEntry[]; 
     const status = resp.status ? statusCode(txt(resp.status)) : 200;
     responses.push({ href: safeDecode(href), status, props });
   }
-  return { responses, syncToken: ms['sync-token'] !== undefined ? txt(ms['sync-token']) || null : null };
+  return {
+    responses,
+    syncToken: ms['sync-token'] !== undefined ? txt(ms['sync-token']) || null : null,
+  };
 }
 
 function statusCode(line: string): number {
@@ -152,12 +160,18 @@ export class CalDavClient {
         ...(body ? { body } : {}),
       });
       if (res.status === 401)
-        throw new ConnectorError('auth', 'Anmeldung fehlgeschlagen (Benutzername oder Passwort falsch)');
+        throw new ConnectorError(
+          'auth',
+          'Anmeldung fehlgeschlagen (Benutzername oder Passwort falsch)',
+        );
       if ([301, 302, 303, 307, 308].includes(res.status)) {
         const loc = res.headers.location;
         const next = typeof loc === 'string' ? new URL(loc, target) : null;
         if (!next || next.origin !== new URL(target).origin)
-          throw new ConnectorError('protocol', 'Weiterleitung auf einen anderen Server wird nicht gefolgt');
+          throw new ConnectorError(
+            'protocol',
+            'Weiterleitung auf einen anderen Server wird nicht gefolgt',
+          );
         target = next.toString();
         continue;
       }
@@ -197,7 +211,8 @@ export class CalDavClient {
         const homes = arr(obj(p.responses[0]?.props['calendar-home-set']).href).map((h) =>
           new URL(txt(h), p.url).toString(),
         );
-        if (!homes.length) throw new ConnectorError('protocol', 'Kein Kalenderverzeichnis gefunden');
+        if (!homes.length)
+          throw new ConnectorError('protocol', 'Kein Kalenderverzeichnis gefunden');
         const calendars: CalendarInfo[] = [];
         for (const home of homes) calendars.push(...(await this.listCalendars(home)));
         return { principalUrl, homeUrls: homes, calendars, contextUrl: r.url };
@@ -228,7 +243,9 @@ export class CalDavClient {
       const url = new URL(e.href, r.url).toString();
       out.push({
         url,
-        displayName: txt(e.props.displayname) || decodeURIComponent(url.replace(/\/$/, '').split('/').pop() ?? url),
+        displayName:
+          txt(e.props.displayname) ||
+          decodeURIComponent(url.replace(/\/$/, '').split('/').pop() ?? url),
         components,
         ctag: txt(e.props.getctag) || null,
         syncToken: txt(e.props['sync-token']) || null,
@@ -252,7 +269,8 @@ export class CalDavClient {
       if (/valid-sync-token/.test(text)) throw new SyncTokenInvalidError();
       throw new ConnectorError('auth', 'Zugriff verweigert');
     }
-    if (res.status === 404) throw new ConnectorError('not_found', `Kalender nicht gefunden: ${final}`);
+    if (res.status === 404)
+      throw new ConnectorError('not_found', `Kalender nicht gefunden: ${final}`);
     if (res.status !== 207)
       throw new ConnectorError('protocol', `Unerwartete Antwort ${res.status} auf REPORT`);
     if (res.truncated) throw new ConnectorError('protocol', 'Antwort des Servers ist zu groß');
@@ -270,7 +288,10 @@ export class CalDavClient {
   }
 
   /** Alle Objekte eines Kalenders (VEVENT und VTODO). */
-  async fetchAll(url: string, components: string[] = ['VEVENT', 'VTODO']): Promise<CalendarObject[]> {
+  async fetchAll(
+    url: string,
+    components: string[] = ['VEVENT', 'VTODO'],
+  ): Promise<CalendarObject[]> {
     const out: CalendarObject[] = [];
     for (const comp of components) {
       const body =

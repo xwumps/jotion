@@ -94,7 +94,10 @@ export class FakeCalDav {
   }
 
   private calProps(id: string, c: Calendar) {
-    const sync = this.opts.supportsSync === false ? '' : `<d:sync-token>http://fake/sync/${this.token}</d:sync-token>`;
+    const sync =
+      this.opts.supportsSync === false
+        ? ''
+        : `<d:sync-token>http://fake/sync/${this.token}</d:sync-token>`;
     return (
       `<d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:displayname>${esc(c.name)}</d:displayname>` +
       `<cs:getctag>${this.ctag(c)}</cs:getctag>${sync}` +
@@ -115,22 +118,38 @@ export class FakeCalDav {
 
     if (path === '/.well-known/caldav') return send(301, '', { Location: this.root });
     const expected = `Basic ${Buffer.from(`${this.user}:${this.opts.password ?? 'geheim'}`).toString('base64')}`;
-    if (req.headers.authorization !== expected) return send(401, '', { 'WWW-Authenticate': 'Basic realm="fake"' });
+    if (req.headers.authorization !== expected)
+      return send(401, '', { 'WWW-Authenticate': 'Basic realm="fake"' });
 
     const principal = `${this.root}principals/${this.user}/`;
     const home = `${this.root}calendars/${this.user}/`;
     if (req.method === 'PROPFIND') {
       if (path === this.root)
-        return send(207, this.ms(this.resp(path, `<d:current-user-principal><d:href>${principal}</d:href></d:current-user-principal>`)));
+        return send(
+          207,
+          this.ms(
+            this.resp(
+              path,
+              `<d:current-user-principal><d:href>${principal}</d:href></d:current-user-principal>`,
+            ),
+          ),
+        );
       if (path === principal)
-        return send(207, this.ms(this.resp(path, `<c:calendar-home-set><d:href>${home}</d:href></c:calendar-home-set>`)));
+        return send(
+          207,
+          this.ms(
+            this.resp(path, `<c:calendar-home-set><d:href>${home}</d:href></c:calendar-home-set>`),
+          ),
+        );
       if (path === home) {
         let out = this.resp(home, '<d:resourcetype><d:collection/></d:resourcetype>');
-        for (const [id, c] of this.calendars) out += this.resp(this.calPath(id), this.calProps(id, c));
+        for (const [id, c] of this.calendars)
+          out += this.resp(this.calPath(id), this.calProps(id, c));
         return send(207, this.ms(out));
       }
       for (const [id, c] of this.calendars)
-        if (path === this.calPath(id)) return send(207, this.ms(this.resp(path, this.calProps(id, c))));
+        if (path === this.calPath(id))
+          return send(207, this.ms(this.resp(path, this.calProps(id, c))));
       return send(404);
     }
 
@@ -140,11 +159,16 @@ export class FakeCalDav {
       const [id, c] = entry;
       const obj = (name: string) => {
         const o = c.objects.get(name)!;
-        return this.resp(`${this.calPath(id)}${name}`, `<d:getetag>${esc(o.etag)}</d:getetag><c:calendar-data>${esc(o.data)}</c:calendar-data>`);
+        return this.resp(
+          `${this.calPath(id)}${name}`,
+          `<d:getetag>${esc(o.etag)}</d:getetag><c:calendar-data>${esc(o.data)}</c:calendar-data>`,
+        );
       };
       if (body.includes('calendar-query')) {
         const comp = /comp-filter name="(V(?:EVENT|TODO))"/.exec(body)?.[1];
-        const names = [...c.objects.keys()].filter((n) => !comp || c.objects.get(n)!.data.includes(`BEGIN:${comp}`));
+        const names = [...c.objects.keys()].filter(
+          (n) => !comp || c.objects.get(n)!.data.includes(`BEGIN:${comp}`),
+        );
         return send(207, this.ms(names.map(obj).join('')));
       }
       if (body.includes('calendar-multiget')) {
@@ -158,7 +182,8 @@ export class FakeCalDav {
         return send(207, this.ms(out.join('')));
       }
       if (body.includes('sync-collection')) {
-        if (this.opts.supportsSync === false) return send(403, '<d:error xmlns:d="DAV:"><d:supported-report/></d:error>');
+        if (this.opts.supportsSync === false)
+          return send(403, '<d:error xmlns:d="DAV:"><d:supported-report/></d:error>');
         const t = Number(/sync\/(\d+)/.exec(body)?.[1] ?? NaN);
         const oldest = c.log[0]?.token ?? this.token;
         if (!Number.isFinite(t) || t < oldest - 1)
@@ -168,9 +193,15 @@ export class FakeCalDav {
         const out = [...latest].map(([name, deleted]) =>
           deleted || !c.objects.has(name)
             ? `<d:response><d:href>${esc(`${this.calPath(id)}${name}`)}</d:href><d:status>HTTP/1.1 404 Not Found</d:status></d:response>`
-            : this.resp(`${this.calPath(id)}${name}`, `<d:getetag>${esc(c.objects.get(name)!.etag)}</d:getetag>`),
+            : this.resp(
+                `${this.calPath(id)}${name}`,
+                `<d:getetag>${esc(c.objects.get(name)!.etag)}</d:getetag>`,
+              ),
         );
-        return send(207, this.ms(out.join(''), `<d:sync-token>http://fake/sync/${this.token}</d:sync-token>`));
+        return send(
+          207,
+          this.ms(out.join(''), `<d:sync-token>http://fake/sync/${this.token}</d:sync-token>`),
+        );
       }
     }
     return send(405);

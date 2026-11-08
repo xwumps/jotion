@@ -52,7 +52,8 @@ export class SecretBox {
 
   decrypt(box: string, context: string): string {
     const [v, id, iv, tag, data] = box.split(':');
-    if (v !== 'v1' || !id || !iv || !tag || data === undefined) throw new CryptoError('Unbekanntes Format');
+    if (v !== 'v1' || !id || !iv || !tag || data === undefined)
+      throw new CryptoError('Unbekanntes Format');
     const key = this.ring.get(id);
     if (!key) throw new CryptoError('Schlüssel nicht vorhanden (Rotation ohne alten Schlüssel?)');
     try {

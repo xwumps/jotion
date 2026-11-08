@@ -76,6 +76,27 @@ export const serverEnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /**
+   * Phase 8: Frühere Master-Schlüssel (kommagetrennt, Base64) zum Entschlüsseln nach einer
+   * Schlüsselrotation. Neue Daten werden immer mit JOTION_MASTER_KEY verschlüsselt.
+   */
+  JOTION_MASTER_KEY_PREVIOUS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    )
+    .refine((keys) => keys.every((k) => Buffer.from(k, 'base64').length === 32), {
+      message: 'muss aus 32-Byte-Schlüsseln in Base64 bestehen',
+    }),
+  /** Phase 8: Integrationen direkt in der API synchronisieren statt im Worker (für Tests) */
+  JOTION_SYNC_INLINE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 

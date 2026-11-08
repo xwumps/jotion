@@ -251,7 +251,9 @@ export class SafeHttpClient {
             'User-Agent': this.opts.userAgent ?? 'JotionBot/1.0 (Link-Vorschau)',
             Accept: this.opts.accept ?? 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
             'Accept-Encoding': 'identity',
-            ...(req.body !== undefined ? { 'Content-Length': String(Buffer.byteLength(req.body)) } : {}),
+            ...(req.body !== undefined
+              ? { 'Content-Length': String(Buffer.byteLength(req.body)) }
+              : {}),
             ...(req.headers ?? {}),
           },
         },

@@ -105,7 +105,8 @@ interface TimeContext {
 function timeMs(t: Time, tzid: string | null, ctx: TimeContext): number {
   const isUtc = t.zone?.tzid === 'UTC' || tzid === 'UTC' || tzid === 'Etc/UTC';
   if (isUtc) return Date.UTC(t.year, t.month - 1, t.day, t.hour, t.minute, t.second);
-  if (tzid && validZone(tzid)) return zonedToUtc(t.year, t.month, t.day, t.hour, t.minute, t.second, tzid);
+  if (tzid && validZone(tzid))
+    return zonedToUtc(t.year, t.month, t.day, t.hour, t.minute, t.second, tzid);
   const vtz = tzid ? ctx.local.get(tzid) : undefined;
   if (vtz) {
     const c = t.clone();
@@ -115,7 +116,11 @@ function timeMs(t: Time, tzid: string | null, ctx: TimeContext): number {
   return zonedToUtc(t.year, t.month, t.day, t.hour, t.minute, t.second, ctx.fallback);
 }
 
-function timeValue(t: Time, tzid: string | null, ctx: TimeContext): { value: string; hasTime: boolean } {
+function timeValue(
+  t: Time,
+  tzid: string | null,
+  ctx: TimeContext,
+): { value: string; hasTime: boolean } {
   if (t.isDate) return { value: dayString(t), hasTime: false };
   return { value: new Date(timeMs(t, tzid, ctx)).toISOString(), hasTime: true };
 }
@@ -138,7 +143,9 @@ function range(
   if (end && end.hasTime === start.hasTime) {
     if (start.hasTime) e = end.value > start.value ? end.value : null;
     else {
-      const last = new Date(Date.parse(`${end.value}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+      const last = new Date(Date.parse(`${end.value}T00:00:00Z`) - DAY_MS)
+        .toISOString()
+        .slice(0, 10);
       e = last > start.value ? last : null;
     }
   }
@@ -266,7 +273,12 @@ export function parseIcs(ics: string, opts: ParseIcsOptions): ExternalRecord[] {
   };
   const weak = (comp: Component, kind: RecordKind) =>
     `weak:${sha(
-      [opts.sourceKey, kind, comp.getFirstProperty('dtstart')?.toICALString() ?? '', text(comp, 'summary') ?? ''].join('\u0000'),
+      [
+        opts.sourceKey,
+        kind,
+        comp.getFirstProperty('dtstart')?.toICALString() ?? '',
+        text(comp, 'summary') ?? '',
+      ].join('\u0000'),
     ).slice(0, 40)}`;
 
   const windowStart = opts.now - opts.options.windowPastDays * DAY_MS;
@@ -280,7 +292,8 @@ export function parseIcs(ics: string, opts: ParseIcsOptions): ExternalRecord[] {
     for (const ev of events) {
       const uid = text(ev, 'uid');
       if (!uid) continue;
-      if (ev.hasProperty('recurrence-id')) exceptions.set(uid, [...(exceptions.get(uid) ?? []), ev]);
+      if (ev.hasProperty('recurrence-id'))
+        exceptions.set(uid, [...(exceptions.get(uid) ?? []), ev]);
       else if (!masters.has(uid)) masters.set(uid, ev);
     }
 
@@ -314,7 +327,10 @@ export function parseIcs(ics: string, opts: ParseIcsOptions): ExternalRecord[] {
       }
 
       // Serie: Einzeltermine im Zeitfenster
-      const event = new ICAL.Event(ev, { strictExceptions: true, exceptions: exceptions.get(uid) ?? [] });
+      const event = new ICAL.Event(ev, {
+        strictExceptions: true,
+        exceptions: exceptions.get(uid) ?? [],
+      });
       const it = event.iterator();
       let n = 0;
       for (let next = it.next(); next && n < MAX_OCCURRENCES; next = it.next()) {
@@ -330,7 +346,10 @@ export function parseIcs(ics: string, opts: ParseIcsOptions): ExternalRecord[] {
         n++;
         const item = occ.item.component;
         const itemTz = item === ev ? startTzid : (propTime(item, 'dtstart')?.tzid ?? startTzid);
-        const itemEndTz = item === ev ? (propTime(ev, 'dtend')?.tzid ?? startTzid) : (propTime(item, 'dtend')?.tzid ?? itemTz);
+        const itemEndTz =
+          item === ev
+            ? (propTime(ev, 'dtend')?.tzid ?? startTzid)
+            : (propTime(item, 'dtend')?.tzid ?? itemTz);
         push({
           externalId: `${uid}#${ridKey(occ.recurrenceId, startTzid, ctx)}`,
           weakId: false,
@@ -369,7 +388,11 @@ export function parseIcs(ics: string, opts: ParseIcsOptions): ExternalRecord[] {
       const uid = text(todo, 'uid');
       const rid = propTime(todo, 'recurrence-id');
       push({
-        externalId: uid ? (rid ? `${uid}#${ridKey(rid.time, rid.tzid, ctx)}` : uid) : weak(todo, 'task'),
+        externalId: uid
+          ? rid
+            ? `${uid}#${ridKey(rid.time, rid.tzid, ctx)}`
+            : uid
+          : weak(todo, 'task'),
         weakId: !uid,
         kind: 'task',
         fields: taskFields(todo, ctx),
