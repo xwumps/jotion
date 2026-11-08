@@ -2,6 +2,7 @@ export * from './constants';
 export { jotionExtensions, lowlight, type ExtensionOptions } from './extensions';
 export { Callout } from './nodes/callout';
 export { PageLink, Subpage } from './nodes/page-ref';
+export { parseSyncedToken, SyncedBlock, SYNCED_TOKEN_PREFIX, syncedToken } from './nodes/synced';
 export { Database } from './nodes/database';
 export { Chart } from './nodes/chart';
 export { ButtonBlock } from './nodes/button';

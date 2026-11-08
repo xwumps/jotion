@@ -20,6 +20,8 @@ interface Envelope extends RealtimeEvent {
 /** Ereignisse ohne Seiteninhalt, die unabhängig von Rechten an alle (bzw. audienceUserId) gehen */
 const UNFILTERED = new Set<RealtimeEventType>([
   'page.access.changed',
+  // Seite verschwunden (auch: in anderen Workspace verschoben); ohne Inhalt
+  'page.deleted',
   'notification.created',
   'workspace.updated',
   'members.changed',

@@ -19,6 +19,7 @@ import {
   Music,
   Navigation,
   Radical,
+  RefreshCw,
   Sigma,
   Table,
   Heading1,
@@ -43,6 +44,8 @@ export interface CommandContext {
   createDatabase?: (opts: { inline: boolean; sourceDatabaseId?: string }) => Promise<string | null>;
   /** Phase 7: Chart-Ansicht in einer Datenbank anlegen, liefert die ID der Ansicht */
   createChart?: (databaseId: string) => Promise<string | null>;
+  /** Phase 10: Inhaltsseite eines Synced Blocks anlegen */
+  createSyncedBlock?: () => Promise<string | null>;
 }
 
 export interface BlockCommand {
@@ -243,6 +246,16 @@ export const BLOCK_COMMANDS: BlockCommand[] = [
       if (r) e.chain().focus().deleteRange(r).run();
       const id = await ctx.createSubpage();
       if (id) e.chain().focus().insertSubpage(id).run();
+    },
+  },
+  {
+    id: 'syncedBlock',
+    icon: RefreshCw,
+    aliases: ['synced block', 'synchron', 'sync', 'synchronisierter block'],
+    run: async (e, r, ctx) => {
+      if (r) e.chain().focus().deleteRange(r).run();
+      const id = await ctx.createSyncedBlock?.();
+      if (id) e.chain().focus().insertSyncedBlock(id).run();
     },
   },
   {

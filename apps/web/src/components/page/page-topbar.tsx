@@ -4,6 +4,7 @@ import type { PageDto, PageSettings } from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import {
   Archive,
+  ArrowRightLeft,
   Copy,
   History,
   LayoutTemplate,
@@ -42,6 +43,7 @@ import { PageIcon } from './page-icon';
 import { SharePopover } from './share-popover';
 import { HistoryDialog } from './history-dialog';
 import { PresenceAvatars } from './presence-avatars';
+import { useMe } from '../app/providers';
 import { CommentsToggle } from '../comments/comments-panel';
 
 const FONTS = ['default', 'serif', 'mono'] as const;
@@ -58,6 +60,19 @@ export function PageTopbar({ page }: { page: PageDto }) {
   const { update, favorite, archive, trash } = usePageActions(ws);
   const setSetting = (patch: PageSettings) => update.mutate({ id: page.id, settings: patch });
   const th = useTranslations('history');
+  const me = useMe();
+  const otherWorkspaces = me.workspaces.filter((w) => w.id !== ws);
+  const moveToWorkspace = async (target: { id: string; name: string }) => {
+    if (!window.confirm(t('moveWorkspaceConfirm', { name: target.name }))) return;
+    try {
+      await apiPost(`/pages/${page.id}/move-workspace`, { workspaceId: target.id, scope: 'TEAM' });
+      invalidateTree(qc, ws);
+      toast.success(t('movedWorkspace', { name: target.name }));
+      router.push(pageHref(target.id, page.id));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
   const [historyOpen, setHistoryOpen] = useState(false);
   const crumbs = [...page.breadcrumbs, { id: page.id, title: page.title, icon: page.icon }];
 
@@ -217,6 +232,17 @@ export function PageTopbar({ page }: { page: PageDto }) {
               >
                 {tx('print')}
               </MenuItem>
+              {page.level === 'full' &&
+                (page.kind === 'PAGE' || page.kind === 'DATABASE') &&
+                otherWorkspaces.map((w) => (
+                  <MenuItem
+                    key={w.id}
+                    icon={ArrowRightLeft}
+                    onSelect={() => void moveToWorkspace(w)}
+                  >
+                    {t('moveToWorkspace', { name: w.name })}
+                  </MenuItem>
+                ))}
               <MenuItem
                 icon={Archive}
                 onSelect={() => archive.mutate({ id: page.id, archived: !page.archivedAt })}

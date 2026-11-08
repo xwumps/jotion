@@ -38,6 +38,7 @@ export const BLOCK_NODE_TYPES = [
   'database',
   'chart',
   'buttonBlock',
+  'syncedBlock',
 ] as const;
 
 /** Knoten mit Hintergrund-/Textfarbe auf Blockebene. */
@@ -66,4 +67,4 @@ export const CONTENT_COLOR_NAMES = [
 export type ContentColorName = (typeof CONTENT_COLOR_NAMES)[number];
 
 /** Knoten, die auf eine andere Seite verweisen (Attribut pageId). */
-export const PAGE_REFERENCE_NODES = ['subpage', 'pageLink'] as const;
+export const PAGE_REFERENCE_NODES = ['subpage', 'pageLink', 'syncedBlock'] as const;

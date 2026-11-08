@@ -144,7 +144,10 @@
     "gradients": "Gradients",
     "uploadImage": "Upload image",
     "uploading": "Uploading …",
-    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB"
+    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB",
+    "moveToWorkspace": "Move to {name}",
+    "moveWorkspaceConfirm": "Move this page and its subpages to {name}? Sharing for people who are not members there is removed.",
+    "movedWorkspace": "Moved to {name}"
   },
   "home": {
     "greetingMorning": "Good morning",
@@ -399,6 +402,10 @@
       "button": {
         "label": "Button",
         "description": "Runs an automation"
+      },
+      "syncedBlock": {
+        "label": "Synced block",
+        "description": "Content that stays the same in several places"
       }
     },
     "chartViewName": "Chart",
@@ -1483,5 +1490,13 @@
     "restore": "Restore this version",
     "restored": "Version restored",
     "noChanges": "No changes compared to the previous version"
+  },
+  "synced": {
+    "copied": "Synced block copied. Paste it on another page.",
+    "nested": "Synced block (nested, not shown here)",
+    "unavailable": "Synced block unavailable (deleted or no access)",
+    "origin": "Original: {title}",
+    "untitled": "Untitled",
+    "copy": "Copy and sync"
   }
 }

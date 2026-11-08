@@ -17,7 +17,7 @@ import type {
   reorderFavoriteSchema,
   updatePageSchema,
 } from '@jotion/shared';
-import { keyBetween } from '@jotion/shared';
+import { keyBetween, type SyncedBlockInfoDto } from '@jotion/shared';
 import type { z } from 'zod';
 import { AppError, forbidden, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
@@ -119,6 +119,53 @@ export class PagesService {
          AND ${PermissionService.visibleSql(user.id)}
        ORDER BY p.position, p.id`;
     return rows.map(toNode);
+  }
+
+  // ---------------------------------------------------------------- Synced Blocks (Phase 10)
+
+  /** Legt die Inhaltsseite eines neuen Synced Blocks unter der Seite an. */
+  async createSyncedBlock(user: AuthUser, pageId: string): Promise<SyncedBlockInfoDto> {
+    const { page } = await this.perms.requireEditablePage(user.id, pageId);
+    if (page.kind !== 'PAGE' && page.kind !== 'DATABASE_ROW')
+      throw new AppError('bad_request', 'Synced Blocks nur in Seiten und Zeilen');
+    const created = await this.prisma.client.$transaction(async (tx) => {
+      const position = await computePosition(
+        tx,
+        {
+          workspaceId: page.workspaceId,
+          parentId: page.id,
+          scope: page.scope,
+          ownerId: page.ownerId,
+        },
+        {},
+      );
+      return tx.page.create({
+        data: {
+          workspaceId: page.workspaceId,
+          parentId: page.id,
+          kind: 'SYNCED_BLOCK',
+          position,
+          title: '',
+          scope: page.scope,
+          ownerId: page.ownerId,
+          createdById: user.id,
+          lastEditedById: user.id,
+        },
+      });
+    });
+    return { pageId: created.id, originId: page.id, originTitle: page.title, canEdit: true };
+  }
+
+  async syncedInfo(user: AuthUser, syncedId: string): Promise<SyncedBlockInfoDto> {
+    const { page, level } = await this.perms.requirePage(user.id, syncedId);
+    if (page.kind !== 'SYNCED_BLOCK' || !page.parentId) throw notFound('Synced Block');
+    const origin = await this.prisma.client.page.findUnique({ where: { id: page.parentId } });
+    return {
+      pageId: page.id,
+      originId: page.parentId,
+      originTitle: origin?.title ?? '',
+      canEdit: atLeast(level, 'edit'),
+    };
   }
 
   // ---------------------------------------------------------------- Lesen
@@ -430,7 +477,7 @@ export class PagesService {
              (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
                 FROM pages a WHERE a.path @> p.path AND a.id <> p.id AND ${PermissionService.visibleSql(user.id, 'a')}) AS path
         FROM pages p
-       WHERE p.workspace_id = ${workspaceId}::uuid AND p.deleted_at IS NULL
+       WHERE p.workspace_id = ${workspaceId}::uuid AND p.deleted_at IS NULL AND p.kind NOT IN ('ROW_TEMPLATE', 'SYNCED_BLOCK')
          AND ${PermissionService.visibleSql(user.id)}
          ${q ? Prisma.sql`AND p.title ILIKE ${like}` : Prisma.empty}
        ORDER BY ${q ? Prisma.sql`similarity(p.title, ${q}) DESC,` : Prisma.empty} p.last_edited_at DESC

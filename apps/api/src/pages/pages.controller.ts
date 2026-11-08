@@ -9,10 +9,14 @@ import { CurrentUser, type AuthUser } from '../common/request-context';
 import { UUID } from '../common/uuid.pipe';
 import { parse } from '../common/validation';
 import { PagesService } from './pages.service';
+import { WorkspaceMoveService } from './workspace-move.service';
 
 @Controller()
 export class PagesController {
-  constructor(private readonly pages: PagesService) {}
+  constructor(
+    private readonly pages: PagesService,
+    private readonly moves: WorkspaceMoveService,
+  ) {}
 
   @Get('workspaces/:id/sidebar')
   sidebar(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string) {
@@ -22,6 +26,22 @@ export class PagesController {
   @Post('workspaces/:id/pages')
   create(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
     return this.pages.create(u, id, parse(createPageSchema, body));
+  }
+
+  @Post('pages/:id/synced-blocks')
+  @HttpCode(201)
+  createSynced(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string) {
+    return this.pages.createSyncedBlock(u, id);
+  }
+
+  @Post('pages/:id/move-workspace')
+  moveWorkspace(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
+    return this.moves.move(u, id, body);
+  }
+
+  @Get('pages/:id/synced')
+  synced(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string) {
+    return this.pages.syncedInfo(u, id);
   }
 
   @Get('workspaces/:id/trash')

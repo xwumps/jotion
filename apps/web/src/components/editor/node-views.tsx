@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ButtonNode } from '../database/button-node-view';
 import { ChartNode } from '../database/chart-node-view';
 import { DatabaseNode } from '../database/database-node-view';
+import { SyncedNode } from './synced-block-view';
 
 function PageRefView({ node, selected, kind }: NodeViewProps & { kind: 'subpage' | 'pageLink' }) {
   const t = useTranslations('editor');
@@ -135,4 +136,5 @@ export const nodeViewOverrides = [
   DatabaseNode,
   ChartNode,
   ButtonNode,
+  SyncedNode,
 ];

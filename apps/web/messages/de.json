@@ -144,7 +144,10 @@
     "gradients": "Farbverläufe",
     "uploadImage": "Bild hochladen",
     "uploading": "Wird hochgeladen …",
-    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB"
+    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB",
+    "moveToWorkspace": "Verschieben nach {name}",
+    "moveWorkspaceConfirm": "Seite samt Unterseiten nach {name} verschieben? Freigaben für Personen, die dort nicht Mitglied sind, entfallen.",
+    "movedWorkspace": "Nach {name} verschoben"
   },
   "home": {
     "greetingMorning": "Guten Morgen",
@@ -399,6 +402,10 @@
       "button": {
         "label": "Button",
         "description": "Führt eine Automatisierung aus"
+      },
+      "syncedBlock": {
+        "label": "Synced Block",
+        "description": "Inhalt, der an mehreren Stellen gleich bleibt"
       }
     },
     "chartViewName": "Diagramm",
@@ -1483,5 +1490,13 @@
     "restore": "Diese Version wiederherstellen",
     "restored": "Version wiederhergestellt",
     "noChanges": "Keine Änderungen gegenüber der vorherigen Version"
+  },
+  "synced": {
+    "copied": "Synced Block kopiert. In einer anderen Seite einfügen.",
+    "nested": "Synced Block (verschachtelt, hier nicht angezeigt)",
+    "unavailable": "Synced Block nicht verfügbar (gelöscht oder kein Zugriff)",
+    "origin": "Original: {title}",
+    "untitled": "Ohne Titel",
+    "copy": "Kopieren und synchronisieren"
   }
 }

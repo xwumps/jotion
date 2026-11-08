@@ -68,3 +68,19 @@ export interface PublicPageDto {
   doc: PageContentDto['doc'];
   children: { id: string; title: string; icon: PageIcon | null }[];
 }
+
+/** Phase 10: Synced Block (Inhalt in eigener Seite unter der Ursprungsseite) */
+export interface SyncedBlockInfoDto {
+  pageId: string;
+  originId: string;
+  originTitle: string;
+  canEdit: boolean;
+}
+
+/** Phase 10: Seite samt Unterseiten in einen anderen Workspace verschieben */
+export const moveToWorkspaceSchema = z
+  .object({
+    workspaceId: z.uuid(),
+    scope: z.enum(['PRIVATE', 'TEAM']).default('PRIVATE'),
+  })
+  .strict();

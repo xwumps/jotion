@@ -106,7 +106,7 @@ export class SearchService {
       Prisma.sql`p.workspace_id = ${workspaceId}::uuid`,
       Prisma.sql`p.deleted_at IS NULL`,
       // Zeilen-Vorlagen sind keine eigenständigen Seiten
-      Prisma.sql`p.kind <> 'ROW_TEMPLATE'`,
+      Prisma.sql`p.kind NOT IN ('ROW_TEMPLATE', 'SYNCED_BLOCK')`,
       PermissionService.visibleSql(user.id),
     ];
     if (query.scope === 'private')

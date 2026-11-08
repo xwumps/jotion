@@ -32,6 +32,7 @@ import { EditorPageContext } from './editor-context';
 import { createMediaPaste } from './media-paste';
 import { createMentionSuggestion, type MentionLabels } from './mention-menu';
 import { TableMenu } from './table-menu';
+import { SyncedPaste } from './synced-block-view';
 
 export interface PageEditorHandle {
   focusStart: () => void;
@@ -122,6 +123,15 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     };
     const ctxRef = useRef<CommandContext>(null!);
     ctxRef.current = {
+      createSyncedBlock: async () => {
+        try {
+          const res = await apiPost<{ pageId: string }>(`/pages/${page.id}/synced-blocks`);
+          return res.pageId;
+        } catch (err) {
+          toast.error(errorMessage(err));
+          return null;
+        }
+      },
       createSubpage: async () => {
         try {
           const child = await apiPost<CreatedPage>(`/workspaces/${page.workspaceId}/pages`, {
@@ -191,6 +201,7 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
               () => ctxRef.current,
             ),
             PasteHandler,
+            SyncedPaste,
             createMediaPaste(() => page.workspaceId),
             createMentionSuggestion(
               () => page.workspaceId,
@@ -322,7 +333,7 @@ const OFFLINE_START_TIMEOUT_MS = 4000;
  * Wartet auf den ersten Inhalt: Server synchronisiert, oder lokale Kopie mit Inhalt geladen
  * (sofort offline arbeitsfähig). Ohne beides (offline und noch nie geöffnet) nach kurzer Zeit.
  */
-function waitForInitialContent(s: PageSession): Promise<void> {
+export function waitForInitialContent(s: PageSession): Promise<void> {
   return new Promise((resolve) => {
     let done = false;
     const finish = () => {
