@@ -53,6 +53,14 @@ for (const [net, prefix] of [
 ] as const)
   blocked.addSubnet(net, prefix, 'ipv6');
 
+/** Netzwerkfehler (Zeitüberschreitung, Verbindung abgebrochen), keine Richtlinienverletzung. */
+export class NetworkError extends SsrfError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
 /** IPv4 aus IPv4-gemappten oder -kompatiblen IPv6-Adressen (::ffff:10.0.0.1) */
 function embeddedIpv4(ip: string): string | null {
   const m = /^(?:0*:)*:?(?:ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
@@ -77,7 +85,15 @@ export function isBlockedAddress(ip: string): boolean {
   return true;
 }
 
+export interface SafeRequest {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Buffer;
+}
+
 export interface SafeHttpOptions {
+  /** User-Agent der Anfragen */
+  userAgent?: string;
   /** Hostnamen oder CIDR-Bereiche, die trotz privater Adresse erlaubt sind */
   allowlist?: string[];
   timeoutMs?: number;
@@ -92,6 +108,7 @@ export interface SafeHttpResponse {
   contentType: string;
   body: Buffer;
   truncated: boolean;
+  headers: Record<string, string | string[] | undefined>;
 }
 
 class Allowlist {
@@ -169,17 +186,38 @@ export class SafeHttpClient {
     return { url, address: first.address, family: first.family === 6 ? 6 : 4 };
   }
 
-  async get(raw: string): Promise<SafeHttpResponse> {
+  async get(raw: string, headers: Record<string, string> = {}): Promise<SafeHttpResponse> {
+    return this.fetch(raw, { method: 'GET', headers });
+  }
+
+  /**
+   * Beliebige Methode (z. B. PROPFIND, REPORT für CalDAV). Weiterleitungen folgen nur GET und
+   * HEAD; Zugangsdaten (Authorization) gehen bei einer Weiterleitung nur an denselben Host.
+   */
+  async fetch(raw: string, req: SafeRequest = {}): Promise<SafeHttpResponse> {
     const maxRedirects = this.opts.maxRedirects ?? 3;
     const deadline = Date.now() + (this.opts.timeoutMs ?? 5000);
+    const method = (req.method ?? 'GET').toUpperCase();
+    const origin = new URL(raw).host;
     let current = raw;
     for (let hop = 0; hop <= maxRedirects; hop++) {
       const target = await this.resolve(current);
-      const res = await this.request(target, deadline);
-      if (res.redirect) {
+      const headers = { ...(req.headers ?? {}) };
+      if (target.url.host !== origin) delete headers.Authorization;
+      const res = await this.request(target, deadline, { ...req, method, headers });
+      if (res.redirect && (method === 'GET' || method === 'HEAD')) {
         current = new URL(res.redirect, target.url).toString();
         continue;
       }
+      if (res.redirect)
+        return {
+          url: target.url.toString(),
+          status: 301,
+          contentType: '',
+          body: Buffer.alloc(0),
+          truncated: false,
+          headers: { location: res.redirect },
+        };
       return res.response!;
     }
     throw new SsrfError('Zu viele Weiterleitungen');
@@ -188,6 +226,7 @@ export class SafeHttpClient {
   private request(
     target: { url: URL; address: string; family: 4 | 6 },
     deadline: number,
+    req: SafeRequest & { method: string },
   ): Promise<{ redirect?: string; response?: SafeHttpResponse }> {
     const maxBytes = this.opts.maxBytes ?? 1024 * 1024;
     const lib = target.url.protocol === 'https:' ? https : http;
@@ -201,17 +240,19 @@ export class SafeHttpClient {
     };
     return new Promise((resolve, reject) => {
       const remaining = deadline - Date.now();
-      if (remaining <= 0) return reject(new SsrfError('Zeitüberschreitung'));
-      const req = lib.request(
+      if (remaining <= 0) return reject(new NetworkError('Zeitüberschreitung'));
+      const request = lib.request(
         target.url,
         {
-          method: 'GET',
+          method: req.method,
           lookup,
           agent: false,
           headers: {
-            'User-Agent': 'JotionBot/1.0 (Link-Vorschau)',
+            'User-Agent': this.opts.userAgent ?? 'JotionBot/1.0 (Link-Vorschau)',
             Accept: this.opts.accept ?? 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
             'Accept-Encoding': 'identity',
+            ...(req.body !== undefined ? { 'Content-Length': String(Buffer.byteLength(req.body)) } : {}),
+            ...(req.headers ?? {}),
           },
         },
         (res: IncomingMessage) => {
@@ -243,6 +284,7 @@ export class SafeHttpClient {
                 contentType: String(res.headers['content-type'] ?? ''),
                 body: Buffer.concat(chunks),
                 truncated,
+                headers: res.headers,
               },
             });
           };
@@ -251,15 +293,16 @@ export class SafeHttpClient {
         },
       );
       const timer = setTimeout(() => {
-        req.destroy(new SsrfError('Zeitüberschreitung'));
+        request.destroy(new NetworkError('Zeitüberschreitung'));
       }, remaining);
-      req.on('error', (err) => {
+      request.on('error', (err) => {
         clearTimeout(timer);
         reject(
-          err instanceof SsrfError ? err : new SsrfError(`Abruf fehlgeschlagen: ${err.message}`),
+          err instanceof SsrfError ? err : new NetworkError(`Abruf fehlgeschlagen: ${err.message}`),
         );
       });
-      req.end();
+      if (req.body !== undefined) request.write(req.body);
+      request.end();
     });
   }
 }
