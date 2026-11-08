@@ -40,6 +40,7 @@ interface Db {
   views: { id: string; name: string; type: string; config: Record<string, unknown> }[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ok = <T = any>(res: { status: number; body: unknown }, status = 200): T => {
   expect(res.status, JSON.stringify(res.body)).toBe(status);
   return res.body as T;
