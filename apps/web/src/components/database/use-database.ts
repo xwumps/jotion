@@ -23,6 +23,7 @@ import {
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { apiDelete, apiGet, apiPatch, apiPost, errorMessage } from '@/lib/api-client';
@@ -154,6 +155,7 @@ function patchRowInCache(qc: QueryClient, dataId: string, row: RowDto) {
 
 export function useDatabaseActions(db: DatabaseDto) {
   const qc = useQueryClient();
+  const tAuto = useTranslations('automations');
   const onError = (err: unknown) => toast.error(errorMessage(err));
   const refreshDb = () => void qc.invalidateQueries({ queryKey: ['db'] });
   const refreshRows = () => invalidateRows(qc, db.dataId);
@@ -161,6 +163,20 @@ export function useDatabaseActions(db: DatabaseDto) {
   const createRow = useMutation({
     mutationFn: (input: CreateRowInput) => apiPost<RowDto>(`/databases/${db.id}/rows`, input),
     onSuccess: refreshRows,
+    onError,
+  });
+  /** Phase 9: Button einer Zeile (Automatisierung) */
+  const clickButton = useMutation({
+    mutationFn: ({ rowId, propertyId }: { rowId: string; propertyId: string }) =>
+      apiPost<{ queued: boolean; status: string | null }>(
+        `/databases/${db.id}/rows/${rowId}/buttons/${propertyId}`,
+      ),
+    onSuccess: (r) => {
+      if (r.status === 'failed') toast.error(tAuto('runFailed'));
+      // Ausführung im Hintergrund: Ergebnis kommt per Echtzeit-Ereignis, zur Sicherheit nachladen
+      void refreshRows();
+      if (r.queued) setTimeout(() => void refreshRows(), 800);
+    },
     onError,
   });
   const updateRow = useMutation({
@@ -305,6 +321,7 @@ export function useDatabaseActions(db: DatabaseDto) {
   return {
     refreshDb: () => qc.invalidateQueries({ queryKey: ['db'] }),
     createRow,
+    clickButton,
     updateRow,
     trashRows,
     moveRow,

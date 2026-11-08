@@ -5,6 +5,7 @@ import { cn } from '@jotion/ui';
 import {
   Archive,
   Copy,
+  LayoutTemplate,
   Link2,
   Lock,
   MoreHorizontal,
@@ -18,7 +19,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DuplicateResultDto } from '@jotion/shared';
-import { apiPost, errorMessage } from '@/lib/api-client';
+import { apiPost, apiPut, errorMessage } from '@/lib/api-client';
 import { invalidateTree } from '@/lib/hooks';
 import { toast } from 'sonner';
 import { pageHref, relativeTime } from '@/lib/format';
@@ -43,6 +44,7 @@ export function PageTopbar({ page }: { page: PageDto }) {
   const t = useTranslations('page');
   const tc = useTranslations('common');
   const tx = useTranslations('contentPage');
+  const tt = useTranslations('templates');
   const router = useRouter();
   const qc = useQueryClient();
   const locale = useLocale();
@@ -175,6 +177,23 @@ export function PageTopbar({ page }: { page: PageDto }) {
               <MenuItem icon={Copy} onSelect={() => void duplicate()}>
                 {tx('duplicate')}
               </MenuItem>
+              {(page.kind === 'PAGE' || page.kind === 'DATABASE') && (
+                <MenuCheckboxItem
+                  icon={LayoutTemplate}
+                  checked={page.isTemplate}
+                  onCheckedChange={(v) =>
+                    void apiPut(`/pages/${page.id}/template`, { isTemplate: v })
+                      .then(() => {
+                        toast.success(v ? tt('savedAsTemplate') : tt('removedTemplate'));
+                        void qc.invalidateQueries({ queryKey: ['page', page.id] });
+                        void qc.invalidateQueries({ queryKey: ['templates', ws] });
+                      })
+                      .catch((e: unknown) => toast.error(errorMessage(e)))
+                  }
+                >
+                  {tt('asTemplate')}
+                </MenuCheckboxItem>
+              )}
               <MenuItem
                 icon={Printer}
                 shortcut="Strg+P"

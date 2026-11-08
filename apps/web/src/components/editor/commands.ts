@@ -1,6 +1,7 @@
 import type { Editor, Range } from '@tiptap/core';
 import {
   BarChart3,
+  MousePointerClick,
   CheckSquare,
   ChevronRight,
   Code,
@@ -285,6 +286,12 @@ export const BLOCK_COMMANDS: BlockCommand[] = [
       const id = await ctx.createDatabase?.({ inline: true, sourceDatabaseId: source });
       if (id) e.chain().focus().insertDatabase(id).run();
     },
+  },
+  {
+    id: 'button',
+    icon: MousePointerClick,
+    aliases: ['button', 'knopf', 'schaltfläche', 'automatisierung', 'aktion'],
+    run: (e, r) => void chainAt(e, r).insertButton().run(),
   },
   {
     id: 'chart',
