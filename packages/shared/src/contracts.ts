@@ -231,8 +231,10 @@ export interface PageDto extends PageTreeNodeDto {
   breadcrumbs: BreadcrumbDto[];
   /** Rechte des aktuellen Nutzers auf dieser Seite */
   canEdit: boolean;
+  /** Phase 10: Zugriffsstufe des aktuellen Nutzers */
+  level: 'full' | 'edit' | 'comment' | 'view' | 'none';
   /** Phase 4: Seite, Datenbank oder Datenbankzeile (databaseId bei Zeilen) */
-  kind: 'PAGE' | 'DATABASE' | 'DATABASE_ROW' | 'ROW_TEMPLATE';
+  kind: 'PAGE' | 'DATABASE' | 'DATABASE_ROW' | 'ROW_TEMPLATE' | 'SYNCED_BLOCK';
   /** Phase 9: eigene Vorlage (Galerie) */
   isTemplate: boolean;
   databaseId: string | null;
@@ -307,6 +309,12 @@ export const REALTIME_EVENT_TYPES = [
   'page.restored',
   'page.deleted',
   'page.archived',
+  /** Phase 10: Freigaben geändert (ohne Inhalt, geht an alle Mitglieder) */
+  'page.access.changed',
+  /** Phase 10: neue Benachrichtigung (nur an den Empfänger) */
+  'notification.created',
+  /** Phase 10: Kommentare einer Seite geändert */
+  'comments.changed',
   'workspace.updated',
   'members.changed',
   'database.changed',

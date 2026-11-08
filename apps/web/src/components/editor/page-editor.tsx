@@ -4,6 +4,7 @@ import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { DOC_FRAGMENT, jotionExtensions } from '@jotion/editor';
 import type { PageDto } from '@jotion/shared';
 import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCaret from '@tiptap/extension-collaboration-caret';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,8 @@ import { toast } from 'sonner';
 import type { PageDto as CreatedPage } from '@jotion/shared';
 import { apiPost, errorMessage } from '@/lib/api-client';
 import { invalidateTree } from '@/lib/hooks';
+import { setPresence, userColor, type PresenceUser } from '@/lib/presence-store';
+import { useMe } from '../app/providers';
 import { pickPage } from '@/lib/quick-search-store';
 import { EditorBubbleMenu } from './bubble-menu';
 import { BlockHandle } from './block-handle';
@@ -29,6 +32,8 @@ import { EditorPageContext } from './editor-context';
 import { createMediaPaste } from './media-paste';
 import { createMentionSuggestion, type MentionLabels } from './mention-menu';
 import { TableMenu } from './table-menu';
+import { SyncedPaste } from './synced-block-view';
+import { ReadonlyCommentButton } from './readonly-comment-button';
 
 export interface PageEditorHandle {
   focusStart: () => void;
@@ -37,11 +42,13 @@ export interface PageEditorHandle {
 interface Props {
   page: PageDto;
   editable: boolean;
+  /** Phase 10: Kommentar zur Auswahl beginnen (fehlt ohne Kommentarrecht) */
+  onComment?: (blockId: string, quote: string) => void;
 }
 
 /** Bindet eine Seite an ihr Yjs-Dokument. Neue Sitzung je Seite (key = pageId). */
 export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEditor(
-  { page, editable },
+  { page, editable, onComment },
   ref,
 ) {
   const [session, setSession] = useState<PageSession | null>(null);
@@ -62,17 +69,27 @@ export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEdito
   }, [page.id]);
 
   if (!session) return <div className="min-h-[200px]" aria-busy="true" />;
-  return <EditorInner ref={ref} page={page} editable={editable} session={session} />;
+  return (
+    <EditorInner
+      ref={ref}
+      page={page}
+      editable={editable}
+      onComment={onComment}
+      session={session}
+    />
+  );
 });
 
 const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession }>(
-  function EditorInner({ page, editable, session }, ref) {
+  function EditorInner({ page, editable, onComment, session }, ref) {
     const t = useTranslations('editor');
     const tm = useTranslations('contentBlocks.mention');
     const locale = useLocale();
     const tdb = useTranslations('databaseCommands');
     const qc = useQueryClient();
     const [scope, setScope] = useState<'read-write' | 'readonly' | null>(null);
+    const me = useMe();
+    usePresenceSync(page.id, session);
     const canWrite = editable && scope !== 'readonly';
     useTrackSaveState(session.provider, editable);
 
@@ -107,6 +124,15 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     };
     const ctxRef = useRef<CommandContext>(null!);
     ctxRef.current = {
+      createSyncedBlock: async () => {
+        try {
+          const res = await apiPost<{ pageId: string }>(`/pages/${page.id}/synced-blocks`);
+          return res.pageId;
+        } catch (err) {
+          toast.error(errorMessage(err));
+          return null;
+        }
+      },
       createSubpage: async () => {
         try {
           const child = await apiPost<CreatedPage>(`/workspaces/${page.workspaceId}/pages`, {
@@ -166,11 +192,17 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
                   : '',
           extra: [
             Collaboration.configure({ document: session.doc, field: 'default' }),
+            // Phase 10: Live-Cursor und Auswahl anderer Personen
+            CollaborationCaret.configure({
+              provider: session.provider,
+              user: { userId: me.user.id, name: me.user.name, color: userColor(me.user.id) },
+            }),
             createSlashCommand(
               () => labelsRef.current,
               () => ctxRef.current,
             ),
             PasteHandler,
+            SyncedPaste,
             createMediaPaste(() => page.workspaceId),
             createMentionSuggestion(
               () => page.workspaceId,
@@ -231,7 +263,10 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     return (
       <EditorPageContext.Provider value={pageCtx}>
         <div className={cn('relative', !canWrite && 'jt-readonly')}>
-          {editor && canWrite && <EditorBubbleMenu editor={editor} />}
+          {editor && canWrite && <EditorBubbleMenu editor={editor} onComment={onComment} />}
+          {editor && !canWrite && onComment && (
+            <ReadonlyCommentButton editor={editor} onComment={onComment} />
+          )}
           {editor && canWrite && (
             <BlockHandle editor={editor} ctx={ctxRef.current} blockUrl={blockUrl} />
           )}
@@ -243,6 +278,29 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     );
   },
 );
+
+/** Phase 10: Personen auf der Seite aus dem Awareness-Zustand (ohne doppelte Tabs). */
+function usePresenceSync(pageId: string, session: PageSession) {
+  useEffect(() => {
+    const awareness = session.provider.awareness;
+    if (!awareness) return;
+    const update = () => {
+      const seen = new Map<string, PresenceUser>();
+      for (const s of awareness.getStates().values()) {
+        const u = (s as { user?: Partial<PresenceUser> }).user;
+        if (u?.userId && u.name && !seen.has(u.userId))
+          seen.set(u.userId, { userId: u.userId, name: u.name, color: u.color ?? '#999' });
+      }
+      setPresence(pageId, [...seen.values()]);
+    };
+    update();
+    awareness.on('change', update);
+    return () => {
+      awareness.off('change', update);
+      setPresence(pageId, []);
+    };
+  }, [pageId, session]);
+}
 
 /** Springt zu #<block-id> aus der URL, sobald der Inhalt geladen ist, und hebt den Block kurz hervor. */
 function useScrollToHashBlock(editor: Editor | null, session: PageSession) {
@@ -276,7 +334,7 @@ const OFFLINE_START_TIMEOUT_MS = 4000;
  * Wartet auf den ersten Inhalt: Server synchronisiert, oder lokale Kopie mit Inhalt geladen
  * (sofort offline arbeitsfähig). Ohne beides (offline und noch nie geöffnet) nach kurzer Zeit.
  */
-function waitForInitialContent(s: PageSession): Promise<void> {
+export function waitForInitialContent(s: PageSession): Promise<void> {
   return new Promise((resolve) => {
     let done = false;
     const finish = () => {

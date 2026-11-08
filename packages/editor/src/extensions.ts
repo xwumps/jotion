@@ -14,6 +14,7 @@ import { BLOCK_NODE_TYPES } from './constants';
 import { BackgroundColor, BlockColor, TextColor } from './marks/colors';
 import { Callout } from './nodes/callout';
 import { PageLink, Subpage } from './nodes/page-ref';
+import { SyncedBlock } from './nodes/synced';
 import { BlockSelection } from './block-selection';
 import { MathBlock, MathInline, Mention } from './nodes/inline';
 import { Breadcrumb, Column, ColumnList, TableOfContents } from './nodes/layout';
@@ -171,6 +172,7 @@ export function jotionExtensions(options: ExtensionOptions = {}): AnyExtension[]
     Callout,
     Subpage,
     PageLink,
+    SyncedBlock,
     TextColor,
     BackgroundColor,
     BlockColor,

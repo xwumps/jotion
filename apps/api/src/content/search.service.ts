@@ -106,8 +106,8 @@ export class SearchService {
       Prisma.sql`p.workspace_id = ${workspaceId}::uuid`,
       Prisma.sql`p.deleted_at IS NULL`,
       // Zeilen-Vorlagen sind keine eigenständigen Seiten
-      Prisma.sql`p.kind <> 'ROW_TEMPLATE'`,
-      Prisma.sql`(p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)`,
+      Prisma.sql`p.kind NOT IN ('ROW_TEMPLATE', 'SYNCED_BLOCK')`,
+      PermissionService.visibleSql(user.id),
     ];
     if (query.scope === 'private')
       filters.push(Prisma.sql`p.scope = 'PRIVATE' AND p.owner_id = ${user.id}::uuid`);
@@ -129,7 +129,7 @@ export class SearchService {
         SELECT p.id::text, p.title, p.icon, p.last_edited_at, p.archived_at IS NOT NULL AS archived,
                NULL::text AS block_id, NULL::text AS block_text, 0::float8 AS score,
                (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
-                  FROM pages a WHERE a.path @> p.path AND a.id <> p.id) AS path
+                  FROM pages a WHERE a.path @> p.path AND a.id <> p.id AND ${PermissionService.visibleSql(user.id, 'a')}) AS path
           FROM pages p WHERE ${visible}
          ORDER BY p.last_edited_at DESC LIMIT ${limit}`;
     } else {
@@ -167,7 +167,7 @@ export class SearchService {
         SELECT p.id::text, p.title, p.icon, p.last_edited_at, p.archived_at IS NOT NULL AS archived,
                h.block_id, h.block_text, h.score,
                (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
-                  FROM pages a WHERE a.path @> p.path AND a.id <> p.id) AS path
+                  FROM pages a WHERE a.path @> p.path AND a.id <> p.id AND ${PermissionService.visibleSql(user.id, 'a')}) AS path
           FROM hits h JOIN visible p ON p.id = h.page_id
          ORDER BY ${query.sort === 'edited' ? Prisma.sql`p.last_edited_at DESC` : Prisma.sql`h.score DESC, p.last_edited_at DESC`}
          LIMIT ${limit}`;

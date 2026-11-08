@@ -115,7 +115,7 @@ export class DashboardService {
         JOIN pages p ON p.id = v.row_id AND p.deleted_at IS NULL AND p.archived_at IS NULL
         JOIN pages d ON d.id = p.database_id AND d.deleted_at IS NULL
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.kind = 'DATABASE_ROW'
-         AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND ${PermissionService.visibleSql(user.id)}
          AND v.v_date_start < ${to} AND COALESCE(v.v_date_end, v.v_date_start) >= ${from}
        ORDER BY v.v_date_start
        LIMIT 2000`;

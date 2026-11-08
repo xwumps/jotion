@@ -4,7 +4,9 @@ import type { PageDto, PageSettings } from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import {
   Archive,
+  ArrowRightLeft,
   Copy,
+  History,
   LayoutTemplate,
   Link2,
   Lock,
@@ -17,6 +19,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { DuplicateResultDto } from '@jotion/shared';
 import { apiPost, apiPut, errorMessage } from '@/lib/api-client';
@@ -37,6 +40,11 @@ import {
 import { Tooltip } from '../ui/tooltip';
 import { SaveIndicator } from '../editor/save-status';
 import { PageIcon } from './page-icon';
+import { SharePopover } from './share-popover';
+import { HistoryDialog } from './history-dialog';
+import { PresenceAvatars } from './presence-avatars';
+import { useMe } from '../app/providers';
+import { CommentsToggle } from '../comments/comments-panel';
 
 const FONTS = ['default', 'serif', 'mono'] as const;
 
@@ -51,6 +59,21 @@ export function PageTopbar({ page }: { page: PageDto }) {
   const ws = page.workspaceId;
   const { update, favorite, archive, trash } = usePageActions(ws);
   const setSetting = (patch: PageSettings) => update.mutate({ id: page.id, settings: patch });
+  const th = useTranslations('history');
+  const me = useMe();
+  const otherWorkspaces = me.workspaces.filter((w) => w.id !== ws);
+  const moveToWorkspace = async (target: { id: string; name: string }) => {
+    if (!window.confirm(t('moveWorkspaceConfirm', { name: target.name }))) return;
+    try {
+      await apiPost(`/pages/${page.id}/move-workspace`, { workspaceId: target.id, scope: 'TEAM' });
+      invalidateTree(qc, ws);
+      toast.success(t('movedWorkspace', { name: target.name }));
+      router.push(pageHref(target.id, page.id));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
+  const [historyOpen, setHistoryOpen] = useState(false);
   const crumbs = [...page.breadcrumbs, { id: page.id, title: page.title, icon: page.icon }];
 
   const copyLink = async () => {
@@ -104,8 +127,11 @@ export function PageTopbar({ page }: { page: PageDto }) {
       >
         <SaveIndicator />
       </span>
+      <PresenceAvatars pageId={page.id} />
       {!page.deletedAt && (
         <>
+          {page.kind !== 'DATABASE' && <CommentsToggle page={page} />}
+          {(page.kind === 'PAGE' || page.kind === 'DATABASE') && <SharePopover page={page} />}
           <Tooltip label={page.isFavorite ? t('unfavorite') : t('favorite')}>
             <IconButton
               aria-label={page.isFavorite ? t('unfavorite') : t('favorite')}
@@ -174,6 +200,11 @@ export function PageTopbar({ page }: { page: PageDto }) {
               <MenuItem icon={Link2} onSelect={() => void copyLink()}>
                 {t('copyLink')}
               </MenuItem>
+              {page.kind !== 'DATABASE' && (
+                <MenuItem icon={History} onSelect={() => setHistoryOpen(true)}>
+                  {th('title')}
+                </MenuItem>
+              )}
               <MenuItem icon={Copy} onSelect={() => void duplicate()}>
                 {tx('duplicate')}
               </MenuItem>
@@ -201,6 +232,17 @@ export function PageTopbar({ page }: { page: PageDto }) {
               >
                 {tx('print')}
               </MenuItem>
+              {page.level === 'full' &&
+                (page.kind === 'PAGE' || page.kind === 'DATABASE') &&
+                otherWorkspaces.map((w) => (
+                  <MenuItem
+                    key={w.id}
+                    icon={ArrowRightLeft}
+                    onSelect={() => void moveToWorkspace(w)}
+                  >
+                    {t('moveToWorkspace', { name: w.name })}
+                  </MenuItem>
+                ))}
               <MenuItem
                 icon={Archive}
                 onSelect={() => archive.mutate({ id: page.id, archived: !page.archivedAt })}
@@ -226,6 +268,7 @@ export function PageTopbar({ page }: { page: PageDto }) {
           </Menu>
         </>
       )}
+      <HistoryDialog page={page} open={historyOpen} onOpenChange={setHistoryOpen} />
     </header>
   );
 }

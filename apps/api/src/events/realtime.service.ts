@@ -13,7 +13,19 @@ const RELAY_INTERVAL_MS = 150;
 
 interface Envelope extends RealtimeEvent {
   audienceUserId: string | null;
+  /** Phase 10: eingeschränkte Seiten gehen nur an diese Mitglieder */
+  audienceUserIds?: string[];
 }
+
+/** Ereignisse ohne Seiteninhalt, die unabhängig von Rechten an alle (bzw. audienceUserId) gehen */
+const UNFILTERED = new Set<RealtimeEventType>([
+  'page.access.changed',
+  // Seite verschwunden (auch: in anderen Workspace verschoben); ohne Inhalt
+  'page.deleted',
+  'notification.created',
+  'workspace.updated',
+  'members.changed',
+]);
 
 export interface Subscriber {
   userId: string;
@@ -89,6 +101,10 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
         >`SELECT id, workspace_id::text, type, entity_id::text, audience_user_id::text, payload, actor_id::text
             FROM change_events WHERE published_at IS NULL ORDER BY id LIMIT 200 FOR UPDATE SKIP LOCKED`;
         if (rows.length === 0) return 0;
+        const audiences = await this.audiences(
+          tx,
+          rows.filter((r) => !UNFILTERED.has(r.type)).map((r) => r.entity_id),
+        );
         const pipeline = this.redis.client.multi();
         for (const r of rows) {
           const env: Envelope = {
@@ -99,6 +115,8 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
             actorId: r.actor_id,
             audienceUserId: r.audience_user_id,
           };
+          const restricted = UNFILTERED.has(r.type) ? undefined : audiences.get(r.entity_id);
+          if (restricted) env.audienceUserIds = restricted;
           pipeline.publish(`${CHANNEL_PREFIX}${r.workspace_id}`, JSON.stringify(env));
           // Diagramm-Cache dieser Datenbank ungültig machen (Phase 7)
           if (r.type === 'database.rows.changed' || r.type === 'database.changed')
@@ -117,6 +135,29 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Phase 10: Empfänger je Seite, falls die Seite nicht für alle Mitglieder sichtbar ist (privat
+   * oder mit Freigabe-Angaben auf dem Pfad). Seiten ohne Einschränkung fehlen in der Map.
+   */
+  private async audiences(
+    tx: Pick<PrismaService['client'], '$queryRaw'>,
+    entityIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const ids = [...new Set(entityIds)];
+    if (!ids.length) return new Map();
+    const rows = await tx.$queryRaw<{ id: string; users: string[] }[]>`
+      SELECT p.id::text,
+             ARRAY(SELECT m.user_id::text FROM workspace_members m
+                    WHERE m.workspace_id = p.workspace_id
+                      AND jotion_level_rank(jotion_page_level(p.path, p.scope, p.owner_id, p.workspace_id, m.user_id)) >= 1) AS users
+        FROM pages p
+       WHERE p.id = ANY(${ids}::uuid[])
+         AND (p.scope = 'PRIVATE' OR EXISTS (
+               SELECT 1 FROM page_permissions pp JOIN pages a ON a.id = pp.page_id
+                WHERE pp.workspace_id = p.workspace_id AND a.path @> p.path))`;
+    return new Map(rows.map((r) => [r.id, r.users]));
+  }
+
   private dispatch(workspaceId: string, message: string): void {
     const set = this.subscribers.get(workspaceId);
     if (!set) return;
@@ -126,9 +167,10 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
     } catch {
       return;
     }
-    const { audienceUserId, ...event } = env;
+    const { audienceUserId, audienceUserIds, ...event } = env;
     for (const sub of set) {
-      if (audienceUserId && audienceUserId !== sub.userId) continue;
+      if (audienceUserIds && !audienceUserIds.includes(sub.userId)) continue;
+      if (!audienceUserIds && audienceUserId && audienceUserId !== sub.userId) continue;
       sub.send(event);
     }
   }

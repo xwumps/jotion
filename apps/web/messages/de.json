@@ -72,7 +72,8 @@
     "cancel": "Abbrechen",
     "create": "Erstellen",
     "logout": "Abmelden",
-    "templates": "Vorlagen"
+    "templates": "Vorlagen",
+    "shared": "Mit mir geteilt"
   },
   "trash": {
     "title": "Papierkorb",
@@ -143,7 +144,10 @@
     "gradients": "Farbverläufe",
     "uploadImage": "Bild hochladen",
     "uploading": "Wird hochgeladen …",
-    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB"
+    "uploadHint": "JPEG, PNG, WebP oder GIF, höchstens 10 MB",
+    "moveToWorkspace": "Verschieben nach {name}",
+    "moveWorkspaceConfirm": "Seite samt Unterseiten nach {name} verschieben? Freigaben für Personen, die dort nicht Mitglied sind, entfallen.",
+    "movedWorkspace": "Nach {name} verschoben"
   },
   "home": {
     "greetingMorning": "Guten Morgen",
@@ -398,9 +402,14 @@
       "button": {
         "label": "Button",
         "description": "Führt eine Automatisierung aus"
+      },
+      "syncedBlock": {
+        "label": "Synced Block",
+        "description": "Inhalt, der an mehreren Stellen gleich bleibt"
       }
     },
-    "chartViewName": "Diagramm"
+    "chartViewName": "Diagramm",
+    "comment": "Kommentieren"
   },
   "search": {
     "title": "Suchen",
@@ -1401,5 +1410,93 @@
     "none": "keine",
     "editAutomations": "Automatisierungen bearbeiten",
     "createAutomation": "Automatisierung anlegen"
+  },
+  "sharing": {
+    "button": "Teilen",
+    "loading": "Lädt …",
+    "yourLevel": "Deine Rechte: {level}",
+    "allMembers": "Alle Mitglieder des Workspace",
+    "inheritedFrom": "Geerbt von {title}",
+    "untitled": "Ohne Titel",
+    "remove": "Entfernen",
+    "addMember": "Mitglied hinzufügen …",
+    "levelLabel": "Zugriffsstufe",
+    "add": "Hinzufügen",
+    "noManage": "Freigaben ändern kann nur, wer volle Rechte hat.",
+    "publicLink": "Lese-Link für alle mit dem Link",
+    "publicLinkHint": "Wer den Link kennt, kann diese Seite und ihre Unterseiten ohne Konto lesen.",
+    "linkCopied": "Link kopiert",
+    "copy": "Kopieren",
+    "level": {
+      "full": "Volle Rechte",
+      "edit": "Bearbeiten",
+      "comment": "Kommentieren",
+      "view": "Ansehen",
+      "none": "Kein Zugriff"
+    },
+    "publicTitle": "Geteilte Seite | Jotion",
+    "publicNotFound": "Dieser Link ist ungültig oder wurde deaktiviert.",
+    "back": "Zurück",
+    "readOnly": "Nur lesen",
+    "databaseNotShown": "Datenbanken werden in der Leseansicht nicht angezeigt.",
+    "subpages": "Unterseiten"
+  },
+  "inbox": {
+    "title": "Posteingang",
+    "unread": "{count} ungelesen",
+    "readAll": "Alle gelesen",
+    "empty": "Keine Benachrichtigungen",
+    "someone": "Jemand",
+    "untitled": "Ohne Titel",
+    "type": {
+      "mention_page": "{actor} hat dich in {page} erwähnt",
+      "mention_comment": "{actor} hat dich in einem Kommentar auf {page} erwähnt",
+      "reply": "{actor} hat auf {page} geantwortet",
+      "comment": "{actor} hat {page} kommentiert"
+    }
+  },
+  "comments": {
+    "toggle": "Kommentare",
+    "title": "Kommentare",
+    "close": "Schließen",
+    "showResolved": "Erledigte zeigen ({count})",
+    "hideResolved": "Erledigte ausblenden",
+    "placeholder": "Kommentar schreiben, @ erwähnt Mitglieder",
+    "pagePlaceholder": "Zur Seite kommentieren …",
+    "replyPlaceholder": "Antworten …",
+    "empty": "Noch keine Kommentare",
+    "jumpToBlock": "Zum Block springen",
+    "onBlock": "Kommentar zu einem Block",
+    "onPage": "Kommentar zur Seite",
+    "resolve": "Als erledigt markieren",
+    "reopen": "Wieder öffnen",
+    "reply": "Antworten",
+    "edited": "(bearbeitet)",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "send": "Senden"
+  },
+  "presence": {
+    "label": "Gerade hier: {names}"
+  },
+  "history": {
+    "title": "Versionsverlauf",
+    "empty": "Noch keine Versionen. Versionen entstehen beim Bearbeiten, höchstens alle 10 Minuten.",
+    "beforeRestore": "Stand vor Wiederherstellung",
+    "system": "System",
+    "preview": "Vorschau",
+    "diff": "Änderungen",
+    "restore": "Diese Version wiederherstellen",
+    "restored": "Version wiederhergestellt",
+    "noChanges": "Keine Änderungen gegenüber der vorherigen Version"
+  },
+  "synced": {
+    "copied": "Synced Block kopiert. In einer anderen Seite einfügen.",
+    "nested": "Synced Block (verschachtelt, hier nicht angezeigt)",
+    "unavailable": "Synced Block nicht verfügbar (gelöscht oder kein Zugriff)",
+    "origin": "Original: {title}",
+    "untitled": "Ohne Titel",
+    "copy": "Kopieren und synchronisieren"
   }
 }

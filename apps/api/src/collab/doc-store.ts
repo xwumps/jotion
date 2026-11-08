@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { projectDoc, type Projection } from '@jotion/editor/projection';
 import { Prisma } from '@jotion/db';
 import * as Y from 'yjs';
+import { notify } from '../comments/notify';
 import { PrismaService } from '../infra/prisma.service';
 
 /**
@@ -11,6 +12,10 @@ import { PrismaService } from '../infra/prisma.service';
  *  - compact(): schreibt den Gesamtzustand, entfernt nur Updates, die nachweislich darin
  *    enthalten sind (Y.snapshotContainsUpdate), und aktualisiert die Block-Projektion.
  */
+/** Phase 10: Abstand automatischer Versionen und Höchstzahl je Seite */
+export const SNAPSHOT_INTERVAL_MS = 10 * 60_000;
+export const MAX_SNAPSHOTS = 100;
+
 @Injectable()
 export class DocStore {
   private readonly logger = new Logger('DocStore');
@@ -72,8 +77,16 @@ export class DocStore {
     });
 
     await this.prisma.client.$transaction(async (tx) => {
-      const page = await tx.page.findUnique({ where: { id: pageId }, select: { id: true } });
+      const page = await tx.page.findUnique({
+        where: { id: pageId },
+        select: { id: true, workspaceId: true, kind: true },
+      });
       if (!page) return; // Seite wurde inzwischen endgültig gelöscht
+      // Phase 10: bisherige Personen-Erwähnungen für den Vergleich nach dem Neuschreiben
+      const before = await tx.blockReference.findMany({
+        where: { pageId, targetType: 'user' },
+        select: { blockId: true, targetId: true },
+      });
       await tx.pageDoc.upsert({
         where: { pageId },
         create: { pageId, state: Buffer.from(state) },
@@ -83,6 +96,9 @@ export class DocStore {
         await tx.pageDocUpdate.deleteMany({ where: { id: { in: contained.map((u) => u.id) } } });
       }
       await this.writeProjection(tx, pageId, projection);
+      await this.notifyMentions(tx, page, before, projection, editorUserId);
+      // Phase 10: Version für die Seitenhistorie, höchstens eine je Intervall und nur nach Änderungen
+      if (contained.length) await this.maybeSnapshot(tx, pageId, state, editorUserId);
       if (editorUserId) {
         await tx.page.update({
           where: { id: pageId },
@@ -90,6 +106,66 @@ export class DocStore {
         });
       }
     });
+  }
+
+  /** Legt eine Version an, wenn die letzte älter als SNAPSHOT_INTERVAL_MS ist; behält die neuesten. */
+  private async maybeSnapshot(
+    tx: Prisma.TransactionClient,
+    pageId: string,
+    state: Uint8Array,
+    userId: string | null,
+  ): Promise<void> {
+    const last = await tx.pageSnapshot.findFirst({
+      where: { pageId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (last && Date.now() - last.createdAt.getTime() < SNAPSHOT_INTERVAL_MS) return;
+    const page = await tx.page.findUniqueOrThrow({
+      where: { id: pageId },
+      select: { title: true },
+    });
+    await tx.pageSnapshot.create({
+      data: { pageId, state: Buffer.from(state), title: page.title, createdById: userId },
+    });
+    await tx.$executeRaw`
+      DELETE FROM page_snapshots WHERE page_id = ${pageId}::uuid AND id NOT IN (
+        SELECT id FROM page_snapshots WHERE page_id = ${pageId}::uuid
+         ORDER BY created_at DESC LIMIT ${MAX_SNAPSHOTS})`;
+  }
+
+  /**
+   * Phase 10: Benachrichtigt neu erwähnte Personen (Erwähnung, die es in diesem Block vorher nicht
+   * gab). Vorlagen werden ausgelassen, damit Kopien keine Benachrichtigungen auslösen.
+   */
+  private async notifyMentions(
+    tx: Prisma.TransactionClient,
+    page: { id: string; workspaceId: string; kind: string },
+    before: { blockId: string; targetId: string }[],
+    projection: Projection,
+    actorId: string | null,
+  ): Promise<void> {
+    if (page.kind === 'ROW_TEMPLATE') return;
+    const old = new Set(before.map((b) => `${b.blockId}|${b.targetId}`));
+    const added = projection.references.filter(
+      (r) => r.targetType === 'user' && !old.has(`${r.blockId}|${r.targetId}`),
+    );
+    // Nutzer, die auf der Seite schon erwähnt waren, nicht erneut benachrichtigen
+    const known = new Set(before.map((b) => b.targetId));
+    const texts = new Map(projection.blocks.map((b) => [b.id, b.text]));
+    const byUser = new Map<string, string>();
+    for (const r of added)
+      if (!known.has(r.targetId) && !byUser.has(r.targetId)) byUser.set(r.targetId, r.blockId);
+    for (const [userId, blockId] of byUser) {
+      const text = texts.get(blockId) ?? '';
+      await notify(tx, [userId], {
+        workspaceId: page.workspaceId,
+        pageId: page.id,
+        type: 'mention_page',
+        actorId,
+        payload: { excerpt: text.length > 200 ? `${text.slice(0, 199)}…` : text, blockId },
+      });
+    }
   }
 
   /** Schreibt die Block-Projektion einer Seite neu (innerhalb einer Transaktion). */

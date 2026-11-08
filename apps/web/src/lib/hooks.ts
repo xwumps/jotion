@@ -24,6 +24,8 @@ import { handleDatabaseEvent } from '../components/database/use-database';
 export interface Sidebar {
   private: PageTreeNodeDto[];
   team: PageTreeNodeDto[];
+  /** Phase 10: fremde Seiten mit Freigabe */
+  shared?: PageTreeNodeDto[];
 }
 
 export const useSidebar = (ws: string) =>
@@ -181,6 +183,15 @@ export function useRealtime(ws: string): void {
       try {
         event = JSON.parse((msg as MessageEvent<string>).data) as RealtimeEvent;
       } catch {
+        return;
+      }
+      // Phase 10: Kommentare und Posteingang
+      if (event.type === 'comments.changed') {
+        void qc.invalidateQueries({ queryKey: qk.comments(event.entityId) });
+        return;
+      }
+      if (event.type === 'notification.created') {
+        void qc.invalidateQueries({ queryKey: qk.inbox(ws) });
         return;
       }
       if (event.type.startsWith('page.')) pages.add(event.entityId);

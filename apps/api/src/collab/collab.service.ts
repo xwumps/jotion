@@ -10,13 +10,14 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { Hocuspocus, type Document } from '@hocuspocus/server';
 import { appendSubpageBlock, removeSubpageBlocks } from '@jotion/editor/projection';
-import { pageDocName, pageIdFromDocName } from '@jotion/editor';
+import { DOC_FRAGMENT, pageDocName, pageIdFromDocName } from '@jotion/editor';
+import * as Y from 'yjs';
 import type { ServerEnv } from '@jotion/shared/env';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { SESSION_COOKIE, SessionService } from '../auth/session.service';
 import { SERVER_ENV } from '../config/config.module';
-import { PermissionService } from '../permissions/permission.service';
+import { atLeast, PermissionService } from '../permissions/permission.service';
 import { DocStore } from './doc-store';
 import { extractDocumentUpdate } from './sync-message';
 
@@ -71,9 +72,12 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
         const token = readCookie(requestHeaders.cookie, SESSION_COOKIE);
         const user = token ? await this.sessions.validate(token) : null;
         if (!pageId || !user) throw new Error('unauthorized');
-        const { page } = await this.perms.requirePage(user.id, pageId, { includeTrashed: true });
+        const { page, level } = await this.perms.requirePage(user.id, pageId, {
+          includeTrashed: true,
+        });
         const locked = Boolean((page.settings as { locked?: boolean } | null)?.locked);
-        connectionConfig.readOnly = Boolean(page.deletedAt) || locked;
+        // Phase 10: ansehen und kommentieren öffnen den Editor schreibgeschützt
+        connectionConfig.readOnly = Boolean(page.deletedAt) || locked || !atLeast(level, 'edit');
         return { userId: user.id, pageId } satisfies CollabContext;
       },
       // Token wird nicht benötigt (Cookie-Session), Hook muss aber existieren
@@ -142,6 +146,34 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       if (name && doc.name !== name) return;
       for (const conn of doc.getConnections()) conn.webSocket.close(1012, 'revalidate');
     });
+  }
+
+  /**
+   * Phase 10: Ersetzt den Inhalt einer Seite durch den eines anderen Dokuments (Version
+   * wiederherstellen). Als normale Änderung, damit offene Editoren sie live übernehmen und die
+   * Historie erhalten bleibt. Fehler werden weitergegeben.
+   */
+  async replaceContent(pageId: string, source: Y.Doc): Promise<void> {
+    const conn = await this.hocuspocus.openDirectConnection(pageDocName(pageId), {
+      system: true,
+    } satisfies CollabContext);
+    try {
+      await conn.transact((doc) => {
+        const frag = doc.getXmlFragment(DOC_FRAGMENT);
+        if (frag.length) frag.delete(0, frag.length);
+        const items = source
+          .getXmlFragment(DOC_FRAGMENT)
+          .toArray()
+          .filter(
+            (c): c is Y.XmlElement | Y.XmlText =>
+              c instanceof Y.XmlElement || c instanceof Y.XmlText,
+          )
+          .map((c) => c.clone());
+        frag.insert(0, items);
+      });
+    } finally {
+      await conn.disconnect();
+    }
   }
 
   /** Serverseitige Änderung am Dokument einer Seite (z. B. Unterseiten-Block). Fehler werden nur protokolliert. */

@@ -52,6 +52,7 @@ import type { AuthUser } from '../common/request-context';
 import { RowEventsBus, type ChangeContext } from '../common/row-events';
 import { PageCopier } from '../templates/page-copier';
 import { PrismaService } from '../infra/prisma.service';
+import { PermissionService } from '../permissions/permission.service';
 import { ChartsService } from './charts.service';
 import { ComputeService } from './compute.service';
 import { DatabaseAccessService, type LoadedProperty } from './database-access';
@@ -87,6 +88,7 @@ export class RowsService {
     private readonly charts: ChartsService,
     private readonly copier: PageCopier,
     private readonly events: RowEventsBus,
+    private readonly perms: PermissionService,
   ) {}
 
   private async viewConfig(databaseId: string, viewId?: string): Promise<ViewConfig | null> {
@@ -155,7 +157,7 @@ export class RowsService {
         : this.prisma.client.$queryRawUnsafe<{ total: number }[]>(count.sql, ...count.parameters),
     ]);
     const page = raw.slice(0, input.limit);
-    const rows = await this.toDtos(page, allProps);
+    const rows = await this.toDtos(page, allProps, user.id);
     if (input.preview) await this.attachPreviews(rows);
     return {
       rows,
@@ -280,7 +282,7 @@ export class RowsService {
       allowTemplate: true,
     });
     const props = await this.access.properties(a.data.db.id);
-    return (await this.pagesToDtos([row], props))[0]!;
+    return (await this.pagesToDtos([row], props, user.id))[0]!;
   }
 
   async create(
@@ -289,7 +291,7 @@ export class RowsService {
     input: z.output<typeof createRowSchema>,
     ctx: ChangeContext = {},
   ): Promise<RowDto> {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const data = a.data;
     const props = await this.access.properties(data.db.id);
     const values = await this.validateValues(data.page.workspaceId, props, input.values ?? {});
@@ -343,7 +345,7 @@ export class RowsService {
       actorId: user.id,
       depth: ctx.depth ?? 0,
     });
-    return (await this.pagesToDtos([row], props))[0]!;
+    return (await this.pagesToDtos([row], props, user.id))[0]!;
   }
 
   /**
@@ -438,7 +440,7 @@ export class RowsService {
       actorId: user.id,
       depth: ctx.depth ?? 0,
     });
-    return (await this.pagesToDtos([row], props))[0]!;
+    return (await this.pagesToDtos([row], props, user.id))[0]!;
   }
 
   async update(
@@ -448,7 +450,7 @@ export class RowsService {
     input: z.output<typeof updateRowSchema>,
     ctx: ChangeContext = {},
   ): Promise<RowDto> {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const row = await this.requireRow(user, a.data.db.id, rowId, { allowTemplate: true });
     const props = await this.access.properties(a.data.db.id);
     const values = await this.validateValues(a.data.page.workspaceId, props, input.values);
@@ -499,7 +501,7 @@ export class RowsService {
         actorId: user.id,
         depth: ctx.depth ?? 0,
       });
-    return (await this.pagesToDtos([updated], props))[0]!;
+    return (await this.pagesToDtos([updated], props, user.id))[0]!;
   }
 
   async move(
@@ -508,7 +510,7 @@ export class RowsService {
     rowId: string,
     input: z.output<typeof moveRowSchema>,
   ): Promise<RowDto> {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const row = await this.requireRow(user, a.data.db.id, rowId);
     const props = await this.access.properties(a.data.db.id);
     const placement = input.afterId !== undefined || input.beforeId !== undefined;
@@ -519,7 +521,7 @@ export class RowsService {
       if (input.groups?.length) {
         await tx.$queryRaw`SELECT id FROM pages WHERE id = ${row.id}::uuid FOR UPDATE`;
         const current = await tx.page.findUniqueOrThrow({ where: { id: row.id } });
-        const [dto] = await this.pagesToDtos([current], props);
+        const [dto] = await this.pagesToDtos([current], props, user.id);
         const record: RowRecord = { ...dto!, createdAt: dto!.createdAt, values: dto!.values };
         const raw: Record<string, unknown> = {};
         for (const g of input.groups) {
@@ -586,7 +588,7 @@ export class RowsService {
         depth: 0,
       });
     }
-    return (await this.pagesToDtos([moved], props))[0]!;
+    return (await this.pagesToDtos([moved], props, user.id))[0]!;
   }
 
   /** Zeilen in den Papierkorb (jede Zeile samt Unterseiten als eigene Einheit). */
@@ -595,11 +597,12 @@ export class RowsService {
     databaseId: string,
     input: z.output<typeof trashRowsSchema>,
   ): Promise<{ trashed: number }> {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const rows = await this.prisma.client.page.findMany({
       where: { id: { in: input.rowIds }, databaseId: a.data.db.id, deletedAt: null },
     });
-    const visible = rows.filter((r) => r.scope === 'TEAM' || r.ownerId === user.id);
+    // Zeilen teilen Bereich und Rechte der Datenbank, die requireData bereits geprüft hat
+    const visible = rows;
     await this.prisma.client.$transaction(async (tx) => {
       for (const r of visible) {
         await tx.$executeRaw`
@@ -657,7 +660,6 @@ export class RowsService {
     if (
       !row ||
       (!isTemplate && (row.kind !== 'DATABASE_ROW' || row.databaseId !== dataId)) ||
-      !(row.scope === 'TEAM' || row.ownerId === user.id) ||
       (row.deletedAt && !opts.includeTrashed)
     )
       throw notFound('Zeile');
@@ -886,7 +888,11 @@ export class RowsService {
     }
   }
 
-  private async toDtos(raw: RawRow[], props: LoadedProperty[]): Promise<RowDto[]> {
+  private async toDtos(
+    raw: RawRow[],
+    props: LoadedProperty[],
+    viewerId: string,
+  ): Promise<RowDto[]> {
     const values = await this.loadValues(
       raw.map((r) => r.id),
       props,
@@ -903,11 +909,11 @@ export class RowsService {
       lastEditedById: r.last_edited_by_id,
       values: values.get(r.id) ?? {},
     }));
-    await this.attachRefs(dtos, props);
+    await this.attachRefs(dtos, props, viewerId);
     return dtos;
   }
 
-  async pagesToDtos(pages: Page[], props: LoadedProperty[]): Promise<RowDto[]> {
+  async pagesToDtos(pages: Page[], props: LoadedProperty[], viewerId: string): Promise<RowDto[]> {
     return this.toDtos(
       pages.map((p) => ({
         id: p.id,
@@ -921,6 +927,7 @@ export class RowsService {
         last_edited_by_id: p.lastEditedById,
       })),
       props,
+      viewerId,
     );
   }
 
@@ -987,7 +994,11 @@ export class RowsService {
   }
 
   /** Titel und Icons der verknüpften Zeilen (Anzeige von Relationen). */
-  private async attachRefs(rows: RowDto[], props: LoadedProperty[]): Promise<void> {
+  private async attachRefs(
+    rows: RowDto[],
+    props: LoadedProperty[],
+    viewerId: string,
+  ): Promise<void> {
     const rel = props.filter((p) => p.type === 'relation').map((p) => p.id);
     const ids = [
       ...new Set(
@@ -999,8 +1010,15 @@ export class RowsService {
       where: { id: { in: ids } },
       select: { id: true, title: true, icon: true },
     });
+    // Phase 10: Titel nur für Zeilen, die der Nutzer sehen darf (sonst bleibt die ID ohne Titel)
+    const levels = await this.perms.levels(
+      viewerId,
+      pages.map((p) => p.id),
+    );
     const byId = new Map(
-      pages.map((p) => [p.id, { title: p.title, icon: (p.icon as PageIcon | null) ?? null }]),
+      pages
+        .filter((p) => (levels.get(p.id) ?? 'none') !== 'none')
+        .map((p) => [p.id, { title: p.title, icon: (p.icon as PageIcon | null) ?? null }]),
     );
     for (const r of rows) {
       const refs: NonNullable<RowDto['refs']> = {};

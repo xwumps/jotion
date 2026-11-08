@@ -11,11 +11,16 @@ import { AppError } from '../common/errors';
 export function assertPageParent(parent: Pick<Page, 'kind'> | null): void {
   if (parent?.kind === 'DATABASE')
     throw new AppError('bad_request', 'Einträge einer Datenbank werden als Zeilen angelegt');
+  // Phase 10: Synced Blocks und Zeilen-Vorlagen haben keine Unterseiten
+  if (parent?.kind === 'SYNCED_BLOCK' || parent?.kind === 'ROW_TEMPLATE')
+    throw new AppError('bad_request', 'Hier lassen sich keine Unterseiten anlegen');
 }
 
 export function assertMovable(page: Pick<Page, 'kind'>): void {
   if (page.kind === 'DATABASE_ROW')
     throw new AppError('bad_request', 'Zeilen bleiben in ihrer Datenbank');
+  if (page.kind === 'SYNCED_BLOCK')
+    throw new AppError('bad_request', 'Synced Blocks bleiben bei ihrer Ursprungsseite');
 }
 
 export async function wantsSubpageBlock(

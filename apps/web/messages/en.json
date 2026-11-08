@@ -72,7 +72,8 @@
     "cancel": "Cancel",
     "create": "Create",
     "logout": "Log out",
-    "templates": "Templates"
+    "templates": "Templates",
+    "shared": "Shared with me"
   },
   "trash": {
     "title": "Trash",
@@ -143,7 +144,10 @@
     "gradients": "Gradients",
     "uploadImage": "Upload image",
     "uploading": "Uploading …",
-    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB"
+    "uploadHint": "JPEG, PNG, WebP or GIF, up to 10 MB",
+    "moveToWorkspace": "Move to {name}",
+    "moveWorkspaceConfirm": "Move this page and its subpages to {name}? Sharing for people who are not members there is removed.",
+    "movedWorkspace": "Moved to {name}"
   },
   "home": {
     "greetingMorning": "Good morning",
@@ -398,9 +402,14 @@
       "button": {
         "label": "Button",
         "description": "Runs an automation"
+      },
+      "syncedBlock": {
+        "label": "Synced block",
+        "description": "Content that stays the same in several places"
       }
     },
-    "chartViewName": "Chart"
+    "chartViewName": "Chart",
+    "comment": "Comment"
   },
   "search": {
     "title": "Search",
@@ -1401,5 +1410,93 @@
     "none": "none",
     "editAutomations": "Edit automations",
     "createAutomation": "Create automation"
+  },
+  "sharing": {
+    "button": "Share",
+    "loading": "Loading …",
+    "yourLevel": "Your access: {level}",
+    "allMembers": "All workspace members",
+    "inheritedFrom": "Inherited from {title}",
+    "untitled": "Untitled",
+    "remove": "Remove",
+    "addMember": "Add member …",
+    "levelLabel": "Access level",
+    "add": "Add",
+    "noManage": "Only people with full access can change sharing.",
+    "publicLink": "Read-only link for anyone with the link",
+    "publicLinkHint": "Anyone with the link can read this page and its subpages without an account.",
+    "linkCopied": "Link copied",
+    "copy": "Copy",
+    "level": {
+      "full": "Full access",
+      "edit": "Can edit",
+      "comment": "Can comment",
+      "view": "Can view",
+      "none": "No access"
+    },
+    "publicTitle": "Shared page | Jotion",
+    "publicNotFound": "This link is invalid or has been disabled.",
+    "back": "Back",
+    "readOnly": "Read only",
+    "databaseNotShown": "Databases are not shown in the read-only view.",
+    "subpages": "Subpages"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "unread": "{count} unread",
+    "readAll": "Mark all read",
+    "empty": "No notifications",
+    "someone": "Someone",
+    "untitled": "Untitled",
+    "type": {
+      "mention_page": "{actor} mentioned you in {page}",
+      "mention_comment": "{actor} mentioned you in a comment on {page}",
+      "reply": "{actor} replied on {page}",
+      "comment": "{actor} commented on {page}"
+    }
+  },
+  "comments": {
+    "toggle": "Comments",
+    "title": "Comments",
+    "close": "Close",
+    "showResolved": "Show resolved ({count})",
+    "hideResolved": "Hide resolved",
+    "placeholder": "Write a comment, @ mentions members",
+    "pagePlaceholder": "Comment on this page …",
+    "replyPlaceholder": "Reply …",
+    "empty": "No comments yet",
+    "jumpToBlock": "Jump to block",
+    "onBlock": "Comment on a block",
+    "onPage": "Comment on the page",
+    "resolve": "Resolve",
+    "reopen": "Reopen",
+    "reply": "Reply",
+    "edited": "(edited)",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "send": "Send"
+  },
+  "presence": {
+    "label": "Here now: {names}"
+  },
+  "history": {
+    "title": "Version history",
+    "empty": "No versions yet. Versions are saved while editing, at most every 10 minutes.",
+    "beforeRestore": "State before restore",
+    "system": "System",
+    "preview": "Preview",
+    "diff": "Changes",
+    "restore": "Restore this version",
+    "restored": "Version restored",
+    "noChanges": "No changes compared to the previous version"
+  },
+  "synced": {
+    "copied": "Synced block copied. Paste it on another page.",
+    "nested": "Synced block (nested, not shown here)",
+    "unavailable": "Synced block unavailable (deleted or no access)",
+    "origin": "Original: {title}",
+    "untitled": "Untitled",
+    "copy": "Copy and sync"
   }
 }

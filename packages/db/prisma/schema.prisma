@@ -109,6 +109,9 @@ model Workspace {
   dashboards             Dashboard[]
   integrationConnections IntegrationConnection[]
   automations            Automation[]
+  pagePermissions        PagePermission[]
+  comments               Comment[]
+  notifications          Notification[]
 
   @@map("workspaces")
 }
@@ -196,6 +199,11 @@ model Page {
   relationsFrom    RelationLink[]   @relation("RelationFrom")
   relationsTo      RelationLink[]   @relation("RelationTo")
   externalEntities ExternalEntity[]
+  permissions      PagePermission[]
+  shareLink        PageShareLink?
+  comments         Comment[]
+  notifications    Notification[]
+  snapshots        PageSnapshot[]
 
   @@index([workspaceId, parentId, position])
   @@index([databaseId, position])
@@ -341,6 +349,8 @@ enum PageKind {
   DATABASE_ROW
   /// Phase 9: Zeilen-Vorlage einer Datenbank (parent_id = Datenbank, erscheint in keiner Abfrage)
   ROW_TEMPLATE
+  /// Phase 10: Inhalt eines Synced Blocks (parent_id = Ursprungsseite, nicht im Seitenbaum)
+  SYNCED_BLOCK
 }
 
 /// Property-Typen. relation, rollup und formula folgen in Phase 6.
@@ -744,4 +754,109 @@ model AutomationRun {
   @@unique([automationId, eventKey])
   @@index([automationId, startedAt])
   @@map("automation_runs")
+}
+
+/// Phase 10: Zugriffsstufe auf eine Seite und ihre Unterseiten
+enum PermissionLevel {
+  full
+  edit
+  comment
+  view
+  none
+}
+
+/// Phase 10: Recht eines Mitglieds (user_id) oder aller Mitglieder (user_id NULL) auf eine Seite.
+/// Gilt für den Teilbaum; die nächstgelegene Angabe gewinnt (siehe jotion_page_level).
+model PagePermission {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  workspaceId String          @map("workspace_id") @db.Uuid
+  pageId      String          @map("page_id") @db.Uuid
+  userId      String?         @map("user_id") @db.Uuid
+  level       PermissionLevel
+  createdById String          @map("created_by_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([pageId])
+  @@map("page_permissions")
+}
+
+/// Phase 10: Öffentlicher Lese-Link einer Seite (mit Unterseiten)
+model PageShareLink {
+  pageId      String   @id @map("page_id") @db.Uuid
+  token       String   @unique
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("page_share_links")
+}
+
+/// Phase 10: Kommentar; der erste eines Threads hat thread_id = id
+model Comment {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  pageId       String    @map("page_id") @db.Uuid
+  threadId     String    @map("thread_id") @db.Uuid
+  /// Block, an dem der Thread hängt (null = Seitenkommentar)
+  blockId      String?   @map("block_id")
+  /// Markierter Text beim Anlegen (Anzeige im Thread)
+  quote        String?
+  body         String
+  mentions     String[]  @db.Uuid
+  authorId     String    @map("author_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  editedAt     DateTime? @map("edited_at") @db.Timestamptz(3)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(3)
+  /// Nur am ersten Kommentar eines Threads
+  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz(3)
+  resolvedById String?   @map("resolved_by_id") @db.Uuid
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, threadId, createdAt])
+  @@map("comments")
+}
+
+/// Phase 10: Eintrag im Posteingang
+model Notification {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  /// mention_page, mention_comment, comment, reply
+  type        String
+  pageId      String?   @map("page_id") @db.Uuid
+  commentId   String?   @map("comment_id") @db.Uuid
+  actorId     String?   @map("actor_id") @db.Uuid
+  /// Auszug (Text, Blocktyp)
+  payload     Json      @default("{}")
+  readAt      DateTime? @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workspaceId, createdAt])
+  @@map("notifications")
+}
+
+/// Phase 10: Gespeicherter Stand einer Seite (Historie)
+model PageSnapshot {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  pageId      String   @map("page_id") @db.Uuid
+  state       Bytes
+  title       String   @default("")
+  /// auto, restore
+  reason      String   @default("auto")
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+  @@map("page_snapshots")
 }

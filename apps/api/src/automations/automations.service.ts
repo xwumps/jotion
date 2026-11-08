@@ -13,6 +13,7 @@ import {
   type AutomationDto,
   type AutomationRunDto,
   type AutomationTrigger,
+  type PermissionLevel,
 } from '@jotion/shared';
 import type { ServerEnv } from '@jotion/shared/env';
 import { AppError, notFound } from '../common/errors';
@@ -109,13 +110,17 @@ export class AutomationsService {
   }
 
   /** Zugriff: Datenbank (falls gesetzt) oder Mitgliedschaft im Workspace */
-  private async requireAutomation(user: AuthUser, id: string): Promise<Automation> {
+  private async requireAutomation(
+    user: AuthUser,
+    id: string,
+    level: PermissionLevel = 'view',
+  ): Promise<Automation> {
     const a = await this.prisma.client.automation.findUnique({ where: { id } });
     if (!a) throw notFound('Automatisierung');
     await this.perms.requireMember(user.id, a.workspaceId).catch(() => {
       throw notFound('Automatisierung');
     });
-    if (a.databaseId) await this.access.requireData(user.id, a.databaseId);
+    if (a.databaseId) await this.access.requireData(user.id, a.databaseId, { level });
     return a;
   }
 
@@ -183,7 +188,7 @@ export class AutomationsService {
         }
       }
       if (a.type === 'create_row') {
-        const d = await this.access.requireData(user.id, a.databaseId);
+        const d = await this.access.requireData(user.id, a.databaseId, { level: 'edit' });
         if (d.page.workspaceId !== workspaceId) throw notFound('Datenbank');
         if (a.templateId) {
           const t = await this.prisma.client.dbTemplate.findUnique({
@@ -201,7 +206,7 @@ export class AutomationsService {
     const input = parse(automationInputSchema, body);
     let databaseId: string | null = null;
     if (input.databaseId) {
-      const d = await this.access.requireData(user.id, input.databaseId);
+      const d = await this.access.requireData(user.id, input.databaseId, { level: 'edit' });
       if (d.page.workspaceId !== workspaceId) throw notFound('Datenbank');
       databaseId = d.data.db.id;
     }
@@ -232,7 +237,7 @@ export class AutomationsService {
   }
 
   async update(user: AuthUser, id: string, body: unknown): Promise<AutomationDto> {
-    const a = await this.requireAutomation(user, id);
+    const a = await this.requireAutomation(user, id, 'edit');
     const input = parse(updateAutomationSchema, body);
     const trigger = input.trigger ?? triggerSchema.parse(a.trigger);
     const actions = input.actions ?? (a.actions as unknown[]).map((x) => actionSchema.parse(x));
@@ -265,7 +270,7 @@ export class AutomationsService {
   }
 
   async remove(user: AuthUser, id: string): Promise<void> {
-    const a = await this.requireAutomation(user, id);
+    const a = await this.requireAutomation(user, id, 'edit');
     await this.prisma.client.automation.delete({ where: { id: a.id } });
   }
 
@@ -305,7 +310,7 @@ export class AutomationsService {
     rowId: string,
     propertyId: string,
   ): Promise<{ queued: boolean; status: RunResult['status'] | null }> {
-    const d = await this.access.requireData(user.id, databaseId);
+    const d = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const prop = (await this.access.properties(d.data.db.id)).find((p) => p.id === propertyId);
     if (!prop || prop.type !== 'button') throw notFound('Button');
     const automationId = (prop.config as { automationId: string | null }).automationId;
@@ -321,7 +326,7 @@ export class AutomationsService {
     user: AuthUser,
     id: string,
   ): Promise<{ queued: boolean; status: RunResult['status'] | null }> {
-    const a = await this.requireAutomation(user, id);
+    const a = await this.requireAutomation(user, id, 'edit');
     const t = triggerSchema.parse(a.trigger);
     if (t.type !== 'button' || t.propertyId)
       throw new AppError('bad_request', 'Diese Automatisierung ist kein Button');

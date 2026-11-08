@@ -446,7 +446,7 @@ function afterCursor(keys: SortKey[], cursor: DecodedCursor): Sql {
 // ---------------------------------------------------------------- Abfragen
 
 function baseWhere(ctx: QueryContext): Sql {
-  return sql`p.database_id = ${ctx.databaseId}::uuid AND p.kind = 'DATABASE_ROW' AND p.deleted_at IS NULL AND p.archived_at IS NULL AND (p.scope = 'TEAM' OR p.owner_id = ${ctx.viewerId}::uuid)`;
+  return sql`p.database_id = ${ctx.databaseId}::uuid AND p.kind = 'DATABASE_ROW' AND p.deleted_at IS NULL AND p.archived_at IS NULL`;
 }
 
 function searchSql(ctx: QueryContext): Sql | null {
