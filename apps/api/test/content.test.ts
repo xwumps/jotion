@@ -7,7 +7,7 @@ import type { PrismaClient } from '@jotion/db';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { DocStore } from '../src/collab/doc-store';
-import { isBlockedAddress, SafeHttpClient, SsrfError } from '../src/common/safe-http';
+import { isBlockedAddress, SafeHttpClient, SsrfError } from '@jotion/integrations';
 import { parseOpenGraph } from '../src/content/og-parser';
 import { makeSnippet } from '../src/content/search.service';
 import { parseRange } from '../src/files/files.controller';

@@ -25,6 +25,7 @@ export async function createTestApp(
   process.env.JOTION_DISABLE_RELAY = '1';
   // Abhängige Berechnungen direkt in der API (kein Worker im Test)
   process.env.JOTION_COMPUTE_INLINE = 'true';
+  process.env.JOTION_SYNC_INLINE = 'true';
   process.env.JOTION_PUBLIC_URL = PUBLIC_URL;
   process.env.JOTION_FILES_DIR = mkdtempSync(join(tmpdir(), 'jotion-files-'));
   const app = await createApp();

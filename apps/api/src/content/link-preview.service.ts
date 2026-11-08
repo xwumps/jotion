@@ -5,7 +5,7 @@ import type { ServerEnv } from '@jotion/shared/env';
 import { AppError } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { RateLimitService } from '../common/rate-limit.service';
-import { SafeHttpClient, SsrfError } from '../common/safe-http';
+import { SafeHttpClient, SsrfError } from '@jotion/integrations';
 import { SERVER_ENV } from '../config/config.module';
 import { RedisService } from '../infra/redis.service';
 import { PermissionService } from '../permissions/permission.service';

@@ -36,8 +36,16 @@ jobs:
       # Nur Testwerte (32 Byte Base64), keine echten Secrets
       JOTION_MASTER_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       AUTH_SECRET: ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=
+      # Phase 8: echter CalDAV-Server für Connector-Tests
+      JOTION_RADICALE_URL: http://127.0.0.1:5232
     steps:
       - uses: actions/checkout@v4
+      - name: Radicale (CalDAV) starten
+        run: |
+          docker run -d --name radicale -p 5232:5232 \
+            -v "$PWD/docker/radicale/config:/config/config:ro" \
+            -v "$PWD/docker/radicale/users:/config/users:ro" \
+            tomsquest/docker-radicale:3.5.4.0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -63,6 +71,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: bash scripts/init.sh
+      # Phase 8: der E2E-Test startet Radicale im Docker-Netz des Stacks
+      - run: sed -i "s/^JOTION_SSRF_ALLOWLIST=.*/JOTION_SSRF_ALLOWLIST=radicale/" .env
       - name: Stack bauen und starten
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Healthchecks prüfen

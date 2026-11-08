@@ -1,6 +1,8 @@
 import { createPrismaClient, pingDatabase } from '@jotion/db';
 import {
   COMPUTE_JOBS,
+  INTEGRATION_JOBS,
+  INTEGRATION_SCHEDULE_INTERVAL_MS,
   MAINTENANCE_INTERVAL_MS,
   VOLATILE_REFRESH_INTERVAL_MS,
   QUEUE_PREFIX,
@@ -14,6 +16,7 @@ import { Redis } from 'ioredis';
 import { writeHeartbeat } from './heartbeat';
 import { logger } from './logger';
 import { createComputeProcessor } from './processors/compute';
+import { createIntegrationsProcessor, createSyncEngine } from './processors/integrations';
 import { createSystemProcessor } from './processors/system';
 import { WORKER_VERSION } from './version';
 
@@ -73,6 +76,24 @@ async function main(): Promise<void> {
     logger.error({ job: job?.name, err: err.message }, 'Berechnung fehlgeschlagen'),
   );
 
+  // Phase 8: Integrationen (Zeitplan jede Minute, Syncs einzeln je Verbindung)
+  const integrationsQueue = new Queue(QUEUES.integrations, { connection, prefix: QUEUE_PREFIX });
+  await integrationsQueue.upsertJobScheduler(
+    'integrations-schedule',
+    { every: INTEGRATION_SCHEDULE_INTERVAL_MS },
+    { name: INTEGRATION_JOBS.schedule, opts: { removeOnComplete: 10, removeOnFail: 50 } },
+  );
+  const syncEngine = createSyncEngine(prisma, redis, computeQueue, env);
+  const integrationsWorker = new Worker(
+    QUEUES.integrations,
+    createIntegrationsProcessor(prisma, syncEngine, integrationsQueue),
+    // Verschiedene Verbindungen parallel; dieselbe nie (Job-ID und Sperre in der Datenbank)
+    { connection, prefix: QUEUE_PREFIX, concurrency: 2, lockDuration: 120_000 },
+  );
+  integrationsWorker.on('failed', (job, err) =>
+    logger.error({ job: job?.name, err: err.message }, 'Integrationsjob fehlgeschlagen'),
+  );
+
   // Sofortiger Heartbeat, damit der Healthcheck nicht auf den ersten Job warten muss
   await writeHeartbeat(redis);
   logger.info({ version: WORKER_VERSION }, 'Worker gestartet');
@@ -84,8 +105,10 @@ async function main(): Promise<void> {
     logger.info({ signal }, 'Worker wird beendet');
     await systemWorker.close();
     await computeWorker.close();
+    await integrationsWorker.close();
     await systemQueue.close();
     await computeQueue.close();
+    await integrationsQueue.close();
     await prisma.$disconnect();
     redis.disconnect();
     connection.disconnect();

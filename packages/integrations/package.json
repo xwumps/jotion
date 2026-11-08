@@ -1,0 +1,48 @@
+{
+  "name": "@jotion/integrations",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Integrationen: sicherer HTTP-Client, Verschl\u00fcsselung, iCal/CalDAV, Connectoren, Mapping und Sync",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/fake-caldav.d.ts",
+      "default": "./dist/testing/fake-caldav.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "testing": [
+        "dist/testing/fake-caldav.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jotion/db": "workspace:*",
+    "@jotion/editor": "workspace:*",
+    "@jotion/query": "workspace:*",
+    "@jotion/shared": "workspace:*",
+    "fast-xml-parser": "5.11.2",
+    "ical.js": "2.1.0",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@jotion/config": "workspace:*",
+    "fast-check": "4.10.2",
+    "vitest": "3.2.7"
+  }
+}

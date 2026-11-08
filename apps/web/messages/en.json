@@ -167,7 +167,8 @@
     "tabs": {
       "account": "My account",
       "workspace": "Workspace",
-      "members": "Members"
+      "members": "Members",
+      "integrations": "Integrations"
     },
     "profile": "Profile",
     "name": "Name",
@@ -1110,5 +1111,155 @@
       "note": "Quick note",
       "links": "Links"
     }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "intro": "Regularly bring calendars and tasks from IServ, CalDAV servers (e.g. Nextcloud) or iCal feeds into a database. Local changes are kept.",
+    "privacy": "Note: synced school data is stored only on this Jotion server. Credentials are stored encrypted and never shown.",
+    "add": "Add connection",
+    "loading": "Loading …",
+    "empty": "No connections yet.",
+    "addTitle": "Add connection",
+    "addDescription": "Credentials are stored encrypted.",
+    "type": "Type",
+    "types": {
+      "iserv": "IServ",
+      "caldav": "CalDAV",
+      "ical": "iCal feed"
+    },
+    "typeHints": {
+      "iserv": "Calendars of your IServ account via CalDAV. The exact address is discovered automatically. With two-factor login, use an app password if available. The “Tasks” module has no interface and is not connected.",
+      "caldav": "Any CalDAV server, e.g. Nextcloud, Radicale or iCloud (with an app-specific password).",
+      "ical": "Subscription link of a calendar (.ics, webcal://). Read only, fully reconciled."
+    },
+    "name": "Name",
+    "urlLabel": {
+      "iserv": "Server address",
+      "caldav": "Server address",
+      "ical": "Feed URL"
+    },
+    "urlPlaceholder": {
+      "iserv": "https://your-school.example",
+      "caldav": "https://cloud.example/remote.php/dav",
+      "ical": "https://… or webcal://…"
+    },
+    "username": "Username",
+    "usernameOptional": "Username (optional)",
+    "password": "Password",
+    "passwordOptional": "Password (optional)",
+    "passwordHint": "Or app password / token",
+    "newPassword": "New password",
+    "passwordStored": "A password is stored. Leave empty to keep it.",
+    "test": "Test connection",
+    "testing": "Testing …",
+    "save": "Save",
+    "saving": "Saving …",
+    "cancel": "Cancel",
+    "testOk": "Connected as {account}",
+    "testFailed": "Connection failed",
+    "noSources": "No calendars found.",
+    "created": "Connection saved. Now choose a target database for each calendar.",
+    "kinds": {
+      "event": "Events",
+      "task": "Tasks"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "error": "Error"
+    },
+    "runStatus": {
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "partial": "With errors",
+      "failed": "Failed"
+    },
+    "trigger": {
+      "manual": "manual",
+      "schedule": "scheduled"
+    },
+    "stats": "{created} new, {updated} changed, {deleted} removed, {conflicts} conflicts, {errors} errors",
+    "syncNow": "Sync now",
+    "syncQueued": "Sync started",
+    "edit": "Edit",
+    "editTitle": "Edit connection",
+    "savedConnection": "Connection saved",
+    "disconnect": "Disconnect",
+    "disconnected": "Connection removed",
+    "disconnectTitle": "Disconnect “{name}”?",
+    "disconnectDescription": "Credentials and mappings are deleted. Synced rows are never deleted.",
+    "disconnectRows": {
+      "keep": "Keep synced rows",
+      "archive": "Archive synced rows"
+    },
+    "retest": "Check again",
+    "autoSync": "Sync automatically",
+    "interval": "Interval",
+    "minutes": "every {n} minutes",
+    "hours": "{n, plural, one {hourly} other {every # hours}}",
+    "showRuns": "Recent syncs",
+    "hideRuns": "Hide history",
+    "conflictsCount": "{n, plural, one {# conflict} other {# conflicts}}",
+    "untitled": "Untitled",
+    "noTarget": "no target database",
+    "entityCount": "{n} entries",
+    "changeTarget": "Change target",
+    "chooseTarget": "Choose target database",
+    "mapping": "Mapping",
+    "databaseCreated": "Database “{title}” created",
+    "createDatabase": "Create new database “{title}” with suggested properties",
+    "searchDatabase": "Search existing database …",
+    "deletionPolicy": "Deleted at source:",
+    "deletion": {
+      "mark": "mark as “Removed”",
+      "archive": "archive",
+      "trash": "move to trash"
+    },
+    "expandRecurring": "Split series into single events ({past} days back, {future} ahead)",
+    "lastSynced": "Last: {date, date, short} {date, time, short}",
+    "mappingTitle": "Mapping for “{name}”",
+    "mappingDescription": "Which source fields are written into which properties. Unmapped properties are never changed.",
+    "property": "Property",
+    "sourceField": "Source field",
+    "ownership": "On changes",
+    "titleProperty": "Title",
+    "notMapped": "don't map",
+    "template": "Template …",
+    "ownerships": {
+      "local_preserve": "keep local changes",
+      "remote": "always from source",
+      "once": "only when created"
+    },
+    "ownershipHint": "“Keep local changes”: if someone changed the value in Jotion, the source does not overwrite it. If both change, the local version stays and a conflict is listed for review.",
+    "syncStatusProperty": "Sync status in",
+    "none": "none",
+    "descriptionToContent": "Use description as page content when created",
+    "mappingSaved": "Mapping saved",
+    "preview": "Preview",
+    "previewTitle": "Preview: first {n} entries",
+    "newOption": "new: {names}",
+    "newOptionsHint": "New options will be created: {list}",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "date": "Date (range)",
+      "start": "Start",
+      "end": "End",
+      "allDay": "All day",
+      "location": "Location",
+      "organizer": "Organizer",
+      "url": "Link",
+      "categories": "Categories",
+      "status": "Status",
+      "due": "Due",
+      "completed": "Completed",
+      "priority": "Priority",
+      "source": "Source (calendar name)"
+    },
+    "conflictsHint": "Changed locally and at the source. The local version was kept.",
+    "localValue": "Local",
+    "remoteValue": "Source",
+    "takeRemote": "Use source",
+    "keepLocal": "Keep local"
   }
 }

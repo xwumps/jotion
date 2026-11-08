@@ -17,6 +17,7 @@
     "@hocuspocus/server": "3.4.4",
     "@jotion/compute": "workspace:*",
     "@jotion/db": "workspace:*",
+    "@jotion/integrations": "workspace:*",
     "@jotion/editor": "workspace:*",
     "@jotion/query": "workspace:*",
     "@jotion/shared": "workspace:*",

@@ -11,6 +11,7 @@ import { EventsModule } from './events/events.module';
 import { FilesModule } from './files/files.module';
 import { HealthModule } from './health/health.module';
 import { InfraModule } from './infra/infra.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 import { loggerOptions } from './logger';
 import { PagesModule } from './pages/pages.module';
 import { PermissionsModule } from './permissions/permissions.module';
@@ -33,6 +34,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     ContentModule,
     HealthModule,
     DashboardModule,
+    IntegrationsModule,
   ],
 })
 export class AppModule {}

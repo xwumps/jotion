@@ -108,6 +108,8 @@ async function paste(data: { html?: string; text?: string }) {
 }
 
 test('Tabelle, Spalten, Inhaltsverzeichnis und Formeln bleiben nach Neuladen erhalten', async () => {
+  // Wiederholungen bis die Auswahl stimmt brauchen unter Last länger als 30 s
+  test.setTimeout(60_000);
   await newTeamPage('Bausteine');
   const k = page.keyboard;
   await k.type('# Kapitel eins');
@@ -126,18 +128,23 @@ test('Tabelle, Spalten, Inhaltsverzeichnis und Formeln bleiben nach Neuladen erh
 
   // Hinter die Tabelle und weiter
   // Direkt nach dem Tippen kann die Synchronisierung die Auswahl noch in die Zelle zurücksetzen
+  // ProseMirror übernimmt die Klick-Auswahl verzögert; ein Update dazwischen schreibt die alte
+  // Auswahl zurück. Deshalb erst speichern lassen und prüfen, ob die Auswahl stabil bleibt.
+  await saved();
   await expect(async () => {
-    await editor().locator('h1').click();
+    await editor().locator('h1').click({ timeout: 2000 });
+    await page.waitForTimeout(300);
     const inHeading = await page.evaluate(() => {
       const n = window.getSelection()?.anchorNode;
       const el = n instanceof Element ? n : n?.parentElement;
       return !!el?.closest('h1');
     });
     expect(inHeading).toBe(true);
-  }).toPass({ timeout: 5000 });
+  }).toPass({ timeout: 10_000 });
   await k.press('End');
   await k.press('Enter');
   await k.type('## Kapitel zwei');
+  await expect(editor().locator('table h2')).toHaveCount(0);
   await k.press('Enter');
   await slash('2 spalten');
   const columns = editor().locator('[data-type="column"]');

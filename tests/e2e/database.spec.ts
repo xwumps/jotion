@@ -47,12 +47,14 @@ test.afterAll(async () => {
 async function newTeamPage(title: string) {
   await page.goto(workspaceUrl);
   await expect(page.getByTestId('section-TEAM')).toBeVisible();
+  // Warten, bis die Seite hydriert ist (sonst geht der Klick ins Leere)
+  await page.waitForLoadState('networkidle');
   const before = page.url();
   await page
     .getByTestId('section-TEAM')
     .getByRole('button', { name: 'Seite in Team hinzufügen' })
     .click({ force: true });
-  await expect(page).not.toHaveURL(before);
+  await expect(page).not.toHaveURL(before, { timeout: 15_000 });
   await page.getByTestId('page-title').fill(title);
   await page.getByTestId('page-title').press('Enter');
   await expect(page).toHaveTitle(`${title} | Jotion`);

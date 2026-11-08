@@ -8,6 +8,8 @@
 - **Backup**: Worker-Job täglich: `pg_dump -Fc` + Tar des Datei-Volumes, Rotation (7 täglich, 4 wöchentlich), optional verschlüsselt; `scripts/restore.sh` mit Versionsprüfung. Wichtig: Master Key separat sichern (Hinweis in Doku und Admin-UI).
 - **Migrationen**: nur vorwärts, expand/contract-Muster bei Breaking Changes; Datenmigrationen als idempotente Skripte mit Verifikation; vor jedem Update automatisches Backup (`migrate`-Job prüft und erstellt Pre-Update-Dump).
 - **Updates**: semver-getaggte Images (GHCR), `docker compose pull && docker compose up -d`; Changelog mit Upgrade-Hinweisen.
+- **Master Key wechseln** (Phase 8): neuen Schlüssel als `JOTION_MASTER_KEY` setzen, den alten in `JOTION_MASTER_KEY_PREVIOUS` (kommagetrennt, mehrere möglich). Gespeicherte Zugangsdaten der Integrationen werden beim nächsten Zugriff mit dem neuen Schlüssel verschlüsselt; der alte kann entfernt werden, wenn alle Verbindungen einmal synchronisiert haben.
+- **Integrationen im LAN** (Phase 8): CalDAV-Server oder iCal-Feeds mit privater Adresse (z. B. Nextcloud im Heimnetz) müssen in `JOTION_SSRF_ALLOWLIST` stehen, sonst lehnt der Server den Abruf ab.
 - **Keine externen Pflichtdienste**: keine Telemetrie, Fonts lokal gebündelt, kein CDN.
 
 ---
