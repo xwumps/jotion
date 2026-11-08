@@ -185,6 +185,15 @@ export function useRealtime(ws: string): void {
       } catch {
         return;
       }
+      // Phase 10: Kommentare und Posteingang
+      if (event.type === 'comments.changed') {
+        void qc.invalidateQueries({ queryKey: qk.comments(event.entityId) });
+        return;
+      }
+      if (event.type === 'notification.created') {
+        void qc.invalidateQueries({ queryKey: qk.inbox(ws) });
+        return;
+      }
       if (event.type.startsWith('page.')) pages.add(event.entityId);
       else if (event.type.startsWith('database.')) {
         const set = dbEvents.get(event.entityId) ?? new Set<string>();

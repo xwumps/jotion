@@ -10,3 +10,4 @@ export * from './contracts-integrations';
 export * from './contracts-templates';
 export * from './contracts-automations';
 export * from './contracts-sharing';
+export * from './contracts-comments';

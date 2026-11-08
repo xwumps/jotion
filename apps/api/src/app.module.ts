@@ -17,6 +17,7 @@ import { AutomationsModule } from './automations/automations.module';
 import { loggerOptions } from './logger';
 import { PagesModule } from './pages/pages.module';
 import { SharingModule } from './sharing/sharing.module';
+import { CommentsModule } from './comments/comments.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 
@@ -41,6 +42,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     TemplatesModule,
     AutomationsModule,
     SharingModule,
+    CommentsModule,
   ],
 })
 export class AppModule {}

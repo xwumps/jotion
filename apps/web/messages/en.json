@@ -401,7 +401,8 @@
         "description": "Runs an automation"
       }
     },
-    "chartViewName": "Chart"
+    "chartViewName": "Chart",
+    "comment": "Comment"
   },
   "search": {
     "title": "Search",
@@ -1432,5 +1433,41 @@
     "readOnly": "Read only",
     "databaseNotShown": "Databases are not shown in the read-only view.",
     "subpages": "Subpages"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "unread": "{count} unread",
+    "readAll": "Mark all read",
+    "empty": "No notifications",
+    "someone": "Someone",
+    "untitled": "Untitled",
+    "type": {
+      "mention_page": "{actor} mentioned you in {page}",
+      "mention_comment": "{actor} mentioned you in a comment on {page}",
+      "reply": "{actor} replied on {page}",
+      "comment": "{actor} commented on {page}"
+    }
+  },
+  "comments": {
+    "toggle": "Comments",
+    "title": "Comments",
+    "close": "Close",
+    "showResolved": "Show resolved ({count})",
+    "hideResolved": "Hide resolved",
+    "placeholder": "Write a comment, @ mentions members",
+    "pagePlaceholder": "Comment on this page …",
+    "replyPlaceholder": "Reply …",
+    "empty": "No comments yet",
+    "jumpToBlock": "Jump to block",
+    "onBlock": "Comment on a block",
+    "onPage": "Comment on the page",
+    "resolve": "Resolve",
+    "reopen": "Reopen",
+    "reply": "Reply",
+    "edited": "(edited)",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "send": "Send"
   }
 }

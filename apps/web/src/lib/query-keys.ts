@@ -9,4 +9,6 @@ export const qk = {
   archive: (ws: string) => ['archive', ws] as const,
   members: (ws: string) => ['members', ws] as const,
   invitations: (ws: string) => ['invitations', ws] as const,
+  inbox: (ws: string) => ['inbox', ws] as const,
+  comments: (pageId: string) => ['comments', pageId] as const,
 };

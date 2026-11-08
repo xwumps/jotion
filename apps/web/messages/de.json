@@ -401,7 +401,8 @@
         "description": "Führt eine Automatisierung aus"
       }
     },
-    "chartViewName": "Diagramm"
+    "chartViewName": "Diagramm",
+    "comment": "Kommentieren"
   },
   "search": {
     "title": "Suchen",
@@ -1432,5 +1433,41 @@
     "readOnly": "Nur lesen",
     "databaseNotShown": "Datenbanken werden in der Leseansicht nicht angezeigt.",
     "subpages": "Unterseiten"
+  },
+  "inbox": {
+    "title": "Posteingang",
+    "unread": "{count} ungelesen",
+    "readAll": "Alle gelesen",
+    "empty": "Keine Benachrichtigungen",
+    "someone": "Jemand",
+    "untitled": "Ohne Titel",
+    "type": {
+      "mention_page": "{actor} hat dich in {page} erwähnt",
+      "mention_comment": "{actor} hat dich in einem Kommentar auf {page} erwähnt",
+      "reply": "{actor} hat auf {page} geantwortet",
+      "comment": "{actor} hat {page} kommentiert"
+    }
+  },
+  "comments": {
+    "toggle": "Kommentare",
+    "title": "Kommentare",
+    "close": "Schließen",
+    "showResolved": "Erledigte zeigen ({count})",
+    "hideResolved": "Erledigte ausblenden",
+    "placeholder": "Kommentar schreiben, @ erwähnt Mitglieder",
+    "pagePlaceholder": "Zur Seite kommentieren …",
+    "replyPlaceholder": "Antworten …",
+    "empty": "Noch keine Kommentare",
+    "jumpToBlock": "Zum Block springen",
+    "onBlock": "Kommentar zu einem Block",
+    "onPage": "Kommentar zur Seite",
+    "resolve": "Als erledigt markieren",
+    "reopen": "Wieder öffnen",
+    "reply": "Antworten",
+    "edited": "(bearbeitet)",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "send": "Senden"
   }
 }

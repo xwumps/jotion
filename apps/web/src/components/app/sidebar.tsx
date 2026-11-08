@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@jotion/ui';
-import { Home, Inbox, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lucide-react';
+import { Home, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -12,6 +12,7 @@ import { useFavorites, usePageActions, useRealtime, useSidebar } from '@/lib/hoo
 import { LanguageSwitch } from '../language-switch';
 import { PageIcon } from '../page/page-icon';
 import { ThemeSwitch } from '../theme-switch';
+import { InboxButton } from './inbox';
 import { PageTreeDnd, SharedSection, TreeSection } from './page-tree';
 import { QuickSearch } from './quick-search';
 import { ShortcutsDialog } from './shortcuts-dialog';
@@ -110,7 +111,7 @@ export function Sidebar({ ws }: { ws: string }) {
             active={pathname === `/w/${ws}`}
             testId="nav-home"
           />
-          <NavItem icon={Inbox} label={t('inbox')} disabledHint={t('comingSoon')} />
+          <InboxButton ws={ws} />
           <NavItem
             icon={LayoutTemplate}
             label={t('templates')}

@@ -37,11 +37,13 @@ export interface PageEditorHandle {
 interface Props {
   page: PageDto;
   editable: boolean;
+  /** Phase 10: Kommentar zur Auswahl beginnen (fehlt ohne Kommentarrecht) */
+  onComment?: (blockId: string, quote: string) => void;
 }
 
 /** Bindet eine Seite an ihr Yjs-Dokument. Neue Sitzung je Seite (key = pageId). */
 export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEditor(
-  { page, editable },
+  { page, editable, onComment },
   ref,
 ) {
   const [session, setSession] = useState<PageSession | null>(null);
@@ -62,11 +64,19 @@ export const PageEditor = forwardRef<PageEditorHandle, Props>(function PageEdito
   }, [page.id]);
 
   if (!session) return <div className="min-h-[200px]" aria-busy="true" />;
-  return <EditorInner ref={ref} page={page} editable={editable} session={session} />;
+  return (
+    <EditorInner
+      ref={ref}
+      page={page}
+      editable={editable}
+      onComment={onComment}
+      session={session}
+    />
+  );
 });
 
 const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession }>(
-  function EditorInner({ page, editable, session }, ref) {
+  function EditorInner({ page, editable, onComment, session }, ref) {
     const t = useTranslations('editor');
     const tm = useTranslations('contentBlocks.mention');
     const locale = useLocale();
@@ -231,7 +241,10 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     return (
       <EditorPageContext.Provider value={pageCtx}>
         <div className={cn('relative', !canWrite && 'jt-readonly')}>
-          {editor && canWrite && <EditorBubbleMenu editor={editor} />}
+          {editor && canWrite && <EditorBubbleMenu editor={editor} onComment={onComment} />}
+          {editor && !canWrite && onComment && (
+            <EditorBubbleMenu editor={editor} onComment={onComment} commentOnly />
+          )}
           {editor && canWrite && (
             <BlockHandle editor={editor} ctx={ctxRef.current} blockUrl={blockUrl} />
           )}

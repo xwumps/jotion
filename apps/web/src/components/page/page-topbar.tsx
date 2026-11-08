@@ -38,6 +38,7 @@ import { Tooltip } from '../ui/tooltip';
 import { SaveIndicator } from '../editor/save-status';
 import { PageIcon } from './page-icon';
 import { SharePopover } from './share-popover';
+import { CommentsToggle } from '../comments/comments-panel';
 
 const FONTS = ['default', 'serif', 'mono'] as const;
 
@@ -107,6 +108,7 @@ export function PageTopbar({ page }: { page: PageDto }) {
       </span>
       {!page.deletedAt && (
         <>
+          {page.kind !== 'DATABASE' && <CommentsToggle page={page} />}
           {(page.kind === 'PAGE' || page.kind === 'DATABASE') && <SharePopover page={page} />}
           <Tooltip label={page.isFavorite ? t('unfavorite') : t('favorite')}>
             <IconButton
