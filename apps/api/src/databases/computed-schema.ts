@@ -16,7 +16,7 @@ import {
 import { AppError } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { PrismaService } from '../infra/prisma.service';
-import { PermissionService } from '../permissions/permission.service';
+import { atLeast, PermissionService } from '../permissions/permission.service';
 import { DatabaseAccessService, type LoadedProperty } from './database-access';
 
 type Tx = Prisma.TransactionClient;
@@ -158,7 +158,7 @@ export class ComputedSchemaService {
       page.kind !== 'DATABASE' ||
       page.deletedAt ||
       page.workspaceId !== source.workspaceId ||
-      !this.perms.canSee(user.id, page)
+      !atLeast(await this.perms.level(user.id, page.id), 'view')
     )
       throw new AppError('validation_failed', 'Zieldatenbank nicht gefunden');
     if (db.sourceDatabaseId)

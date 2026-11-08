@@ -53,7 +53,8 @@ function PageBody({ page }: { page: PageDto }) {
   const router = useRouter();
   const actions = usePageActions(ws);
   const locked = !!page.settings.locked;
-  const editable = !page.deletedAt && !locked;
+  // Phase 10: ansehen und kommentieren sind schreibgeschützt
+  const editable = !page.deletedAt && !locked && page.canEdit;
   const font = page.settings.font ?? 'default';
   const [coverHover, setCoverHover] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);

@@ -9,3 +9,4 @@ export * from './contracts-dashboard';
 export * from './contracts-integrations';
 export * from './contracts-templates';
 export * from './contracts-automations';
+export * from './contracts-sharing';

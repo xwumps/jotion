@@ -34,7 +34,7 @@ import type { AuthUser } from '../common/request-context';
 import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
 import { computePosition } from '../pages/positions';
-import { PermissionService } from '../permissions/permission.service';
+import { atLeast, PermissionService } from '../permissions/permission.service';
 import { ComputeService } from './compute.service';
 import { COMPUTED_TYPES, ComputedSchemaService } from './computed-schema';
 import { DatabaseAccessService, safeConfig, type LoadedProperty } from './database-access';
@@ -192,7 +192,7 @@ export class DatabasesService {
       dataId: a.data?.db.id ?? a.page.id,
       properties: properties.map(propertyDto),
       views: views.map(viewDto),
-      canEdit: !a.page.deletedAt,
+      canEdit: !a.page.deletedAt && atLeast(a.level, 'edit') && atLeast(a.dataLevel, 'edit'),
       locked: Boolean((a.page.settings as { locked?: boolean } | null)?.locked),
       deleted: Boolean(a.page.deletedAt),
     };
@@ -208,10 +208,10 @@ export class DatabasesService {
     >`
       SELECT p.id::text, p.title, p.icon,
              (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
-                FROM pages a WHERE a.path @> p.path AND a.id <> p.id) AS path
+                FROM pages a WHERE a.path @> p.path AND a.id <> p.id AND ${PermissionService.visibleSql(user.id, 'a')}) AS path
         FROM pages p JOIN databases d ON d.id = p.id
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.kind = 'DATABASE' AND d.source_database_id IS NULL
-         AND p.deleted_at IS NULL AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND p.deleted_at IS NULL AND ${PermissionService.visibleSql(user.id)}
          ${query ? Prisma.sql`AND p.title ILIKE ${like}` : Prisma.empty}
        ORDER BY p.last_edited_at DESC LIMIT 20`;
     return rows.map((r) => ({ id: r.id, title: r.title, icon: r.icon, path: r.path ?? '' }));

@@ -72,7 +72,8 @@
     "cancel": "Abbrechen",
     "create": "Erstellen",
     "logout": "Abmelden",
-    "templates": "Vorlagen"
+    "templates": "Vorlagen",
+    "shared": "Mit mir geteilt"
   },
   "trash": {
     "title": "Papierkorb",
@@ -1401,5 +1402,35 @@
     "none": "keine",
     "editAutomations": "Automatisierungen bearbeiten",
     "createAutomation": "Automatisierung anlegen"
+  },
+  "sharing": {
+    "button": "Teilen",
+    "loading": "Lädt …",
+    "yourLevel": "Deine Rechte: {level}",
+    "allMembers": "Alle Mitglieder des Workspace",
+    "inheritedFrom": "Geerbt von {title}",
+    "untitled": "Ohne Titel",
+    "remove": "Entfernen",
+    "addMember": "Mitglied hinzufügen …",
+    "levelLabel": "Zugriffsstufe",
+    "add": "Hinzufügen",
+    "noManage": "Freigaben ändern kann nur, wer volle Rechte hat.",
+    "publicLink": "Lese-Link für alle mit dem Link",
+    "publicLinkHint": "Wer den Link kennt, kann diese Seite und ihre Unterseiten ohne Konto lesen.",
+    "linkCopied": "Link kopiert",
+    "copy": "Kopieren",
+    "level": {
+      "full": "Volle Rechte",
+      "edit": "Bearbeiten",
+      "comment": "Kommentieren",
+      "view": "Ansehen",
+      "none": "Kein Zugriff"
+    },
+    "publicTitle": "Geteilte Seite | Jotion",
+    "publicNotFound": "Dieser Link ist ungültig oder wurde deaktiviert.",
+    "back": "Zurück",
+    "readOnly": "Nur lesen",
+    "databaseNotShown": "Datenbanken werden in der Leseansicht nicht angezeigt.",
+    "subpages": "Unterseiten"
   }
 }

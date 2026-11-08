@@ -24,7 +24,7 @@ import type { AuthUser } from '../common/request-context';
 import { recordEvent } from '../events/outbox';
 import { PrismaService } from '../infra/prisma.service';
 import { CollabService } from '../collab/collab.service';
-import { PermissionService } from '../permissions/permission.service';
+import { atLeast, PermissionService } from '../permissions/permission.service';
 import { computePosition } from './positions';
 import {
   assertMovable,
@@ -48,6 +48,10 @@ interface NodeRow {
 // Datenbankzeilen erscheinen nicht im Seitenbaum (Phase 4)
 const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind IN ('PAGE', 'DATABASE')`;
 
+/** Hat die Seite (Alias p) Unterseiten, die der Nutzer sieht? */
+const hasVisibleChildren = (userId: string) =>
+  Prisma.sql`EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN} AND ${PermissionService.visibleSql(userId, 'c')})`;
+
 @Injectable()
 export class PagesService {
   constructor(
@@ -61,30 +65,58 @@ export class PagesService {
   async sidebar(
     user: AuthUser,
     workspaceId: string,
-  ): Promise<{ private: PageTreeNodeDto[]; team: PageTreeNodeDto[] }> {
+  ): Promise<{ private: PageTreeNodeDto[]; team: PageTreeNodeDto[]; shared: PageTreeNodeDto[] }> {
     await this.perms.requireMember(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, NULL::text AS parent_id, p.position, p.title, p.icon, p.scope::text AS scope,
-             EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
+             ${hasVisibleChildren(user.id)} AS has_children
         FROM pages p
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.parent_id IS NULL
          AND p.deleted_at IS NULL AND p.archived_at IS NULL
          AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND ${PermissionService.visibleSql(user.id)}
        ORDER BY p.position, p.id`;
     const nodes = rows.map(toNode);
     return {
       private: nodes.filter((n) => n.scope === 'PRIVATE'),
       team: nodes.filter((n) => n.scope === 'TEAM'),
+      shared: await this.sharedWithMe(user, workspaceId),
     };
+  }
+
+  /**
+   * Phase 10: "Mit mir geteilt": sichtbare Seiten, deren Elternseite der Nutzer nicht sieht, sowie
+   * fremde private Seiten auf oberster Ebene. Ohne Freigabe-Angaben im Workspace gibt es keine.
+   */
+  private async sharedWithMe(user: AuthUser, workspaceId: string): Promise<PageTreeNodeDto[]> {
+    const any = await this.prisma.client.pagePermission.findFirst({
+      where: { workspaceId, level: { not: 'none' } },
+      select: { id: true },
+    });
+    if (!any) return [];
+    const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
+      SELECT p.id::text, NULL::text AS parent_id, p.position, p.title, p.icon, p.scope::text AS scope,
+             ${hasVisibleChildren(user.id)} AS has_children
+        FROM pages p LEFT JOIN pages q ON q.id = p.parent_id
+       WHERE p.workspace_id = ${workspaceId}::uuid
+         AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind IN ('PAGE', 'DATABASE')
+         AND NOT (p.scope = 'PRIVATE' AND p.owner_id = ${user.id}::uuid)
+         AND (CASE WHEN q.id IS NULL THEN p.scope = 'PRIVATE'
+                   ELSE NOT ${PermissionService.visibleSql(user.id, 'q')} END)
+         AND ${PermissionService.visibleSql(user.id)}
+       ORDER BY p.title, p.id
+       LIMIT 200`;
+    return rows.map(toNode);
   }
 
   async children(user: AuthUser, pageId: string): Promise<PageTreeNodeDto[]> {
     await this.perms.requirePage(user.id, pageId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
-             EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
+             ${hasVisibleChildren(user.id)} AS has_children
         FROM pages p
        WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind IN ('PAGE', 'DATABASE')
+         AND ${PermissionService.visibleSql(user.id)}
        ORDER BY p.position, p.id`;
     return rows.map(toNode);
   }
@@ -103,10 +135,12 @@ export class PagesService {
     return this.toDto(user, page);
   }
 
-  async breadcrumbs(pageId: string): Promise<BreadcrumbDto[]> {
+  /** Pfad über der Seite; Elternseiten ohne Lesezugriff werden ausgelassen (Phase 10). */
+  async breadcrumbs(userId: string, pageId: string): Promise<BreadcrumbDto[]> {
     return this.prisma.client.$queryRaw<BreadcrumbDto[]>`
       SELECT a.id::text, a.title, a.icon FROM pages a
        WHERE a.path @> (SELECT path FROM pages WHERE id = ${pageId}::uuid) AND a.id <> ${pageId}::uuid
+         AND ${PermissionService.visibleSql(userId, 'a')}
        ORDER BY nlevel(a.path)`;
   }
 
@@ -231,6 +265,9 @@ export class PagesService {
           ? page.ownerId
           : user.id
         : page.ownerId;
+    // Phase 10: Bereichswechsel ändert, wer die Seite sieht: nur mit vollen Rechten
+    if ((scope !== page.scope || ownerId !== page.ownerId) && !atLeast(access.level, 'full'))
+      throw forbidden('Zum Verschieben in einen anderen Bereich sind volle Rechte nötig');
 
     const moved = await this.prisma.client.$transaction(async (tx) => {
       const position = await computePosition(
@@ -299,7 +336,10 @@ export class PagesService {
   }
 
   async restore(user: AuthUser, pageId: string): Promise<PageDto> {
-    const { page } = await this.perms.requirePage(user.id, pageId, { includeTrashed: true });
+    const { page } = await this.perms.requirePage(user.id, pageId, {
+      includeTrashed: true,
+      level: 'edit',
+    });
     if (!page.deletedAt) throw new AppError('conflict', 'Seite ist nicht im Papierkorb');
     if (page.trashRootId !== page.id)
       throw new AppError(
@@ -343,7 +383,10 @@ export class PagesService {
   }
 
   async deletePermanently(user: AuthUser, pageId: string): Promise<void> {
-    const { page, role } = await this.perms.requirePage(user.id, pageId, { includeTrashed: true });
+    const { page, role } = await this.perms.requirePage(user.id, pageId, {
+      includeTrashed: true,
+      level: 'full',
+    });
     if (!page.deletedAt)
       throw new AppError('conflict', 'Nur Seiten im Papierkorb können endgültig gelöscht werden');
     if (!this.perms.canDeletePermanently(user.id, role, page))
@@ -385,10 +428,10 @@ export class PagesService {
     >`
       SELECT p.id::text, p.title, p.icon, p.last_edited_at,
              (SELECT string_agg(NULLIF(a.title, ''), ' / ' ORDER BY nlevel(a.path))
-                FROM pages a WHERE a.path @> p.path AND a.id <> p.id) AS path
+                FROM pages a WHERE a.path @> p.path AND a.id <> p.id AND ${PermissionService.visibleSql(user.id, 'a')}) AS path
         FROM pages p
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.deleted_at IS NULL
-         AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND ${PermissionService.visibleSql(user.id)}
          ${q ? Prisma.sql`AND p.title ILIKE ${like}` : Prisma.empty}
        ORDER BY ${q ? Prisma.sql`similarity(p.title, ${q}) DESC,` : Prisma.empty} p.last_edited_at DESC
        LIMIT 20`;
@@ -422,7 +465,7 @@ export class PagesService {
         LEFT JOIN users u ON u.id = p.deleted_by_id
         LEFT JOIN pages par ON par.id = p.parent_id
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.trash_root_id = p.id
-         AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND ${PermissionService.visibleSql(user.id)}
        ORDER BY p.deleted_at DESC`;
     return rows.map((r) => ({
       id: r.id,
@@ -443,10 +486,10 @@ export class PagesService {
     await this.perms.requireMember(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
-             EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
+             ${hasVisibleChildren(user.id)} AS has_children
         FROM pages p
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.archived_at IS NOT NULL AND p.deleted_at IS NULL
-         AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND ${PermissionService.visibleSql(user.id)}
        ORDER BY p.archived_at DESC`;
     return rows.map(toNode);
   }
@@ -457,10 +500,10 @@ export class PagesService {
     await this.perms.requireMember(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<(NodeRow & { fav_position: string })[]>`
       SELECT p.id::text, p.parent_id::text, f.position AS fav_position, p.position, p.title, p.icon, p.scope::text AS scope,
-             EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN}) AS has_children
+             ${hasVisibleChildren(user.id)} AS has_children
         FROM favorites f JOIN pages p ON p.id = f.page_id
        WHERE f.user_id = ${user.id}::uuid AND p.workspace_id = ${workspaceId}::uuid
-         AND p.deleted_at IS NULL AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND p.deleted_at IS NULL AND ${PermissionService.visibleSql(user.id)}
        ORDER BY f.position, p.id`;
     return rows.map((r) => ({
       id: r.id,
@@ -534,7 +577,7 @@ export class PagesService {
       SELECT p.id::text, p.title, p.icon, v.visited_at
         FROM page_visits v JOIN pages p ON p.id = v.page_id
        WHERE v.user_id = ${user.id}::uuid AND p.workspace_id = ${workspaceId}::uuid
-         AND p.deleted_at IS NULL AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
+         AND p.deleted_at IS NULL AND ${PermissionService.visibleSql(user.id)}
        ORDER BY v.visited_at DESC LIMIT 20`;
     return rows.map((r) => ({
       id: r.id,
@@ -573,8 +616,9 @@ export class PagesService {
   }
 
   private async toDto(user: AuthUser, page: Page): Promise<PageDto> {
-    const [breadcrumbs, fav, people, childCount] = await Promise.all([
-      this.breadcrumbs(page.id),
+    const [breadcrumbs, level, fav, people, childCount] = await Promise.all([
+      this.breadcrumbs(user.id, page.id),
+      this.perms.level(user.id, page.id),
       this.prisma.client.favorite.findUnique({
         where: { userId_pageId: { userId: user.id, pageId: page.id } },
       }),
@@ -612,7 +656,8 @@ export class PagesService {
       deletedAt: page.deletedAt?.toISOString() ?? null,
       isFavorite: fav !== null,
       breadcrumbs,
-      canEdit: !page.deletedAt,
+      canEdit: !page.deletedAt && atLeast(level, 'edit'),
+      level,
       kind: page.kind,
       isTemplate: page.isTemplate,
       databaseId: page.databaseId,

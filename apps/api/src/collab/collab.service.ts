@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { SESSION_COOKIE, SessionService } from '../auth/session.service';
 import { SERVER_ENV } from '../config/config.module';
-import { PermissionService } from '../permissions/permission.service';
+import { atLeast, PermissionService } from '../permissions/permission.service';
 import { DocStore } from './doc-store';
 import { extractDocumentUpdate } from './sync-message';
 
@@ -71,9 +71,12 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
         const token = readCookie(requestHeaders.cookie, SESSION_COOKIE);
         const user = token ? await this.sessions.validate(token) : null;
         if (!pageId || !user) throw new Error('unauthorized');
-        const { page } = await this.perms.requirePage(user.id, pageId, { includeTrashed: true });
+        const { page, level } = await this.perms.requirePage(user.id, pageId, {
+          includeTrashed: true,
+        });
         const locked = Boolean((page.settings as { locked?: boolean } | null)?.locked);
-        connectionConfig.readOnly = Boolean(page.deletedAt) || locked;
+        // Phase 10: ansehen und kommentieren öffnen den Editor schreibgeschützt
+        connectionConfig.readOnly = Boolean(page.deletedAt) || locked || !atLeast(level, 'edit');
         return { userId: user.id, pageId } satisfies CollabContext;
       },
       // Token wird nicht benötigt (Cookie-Session), Hook muss aber existieren

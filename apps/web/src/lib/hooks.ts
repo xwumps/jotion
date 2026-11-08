@@ -24,6 +24,8 @@ import { handleDatabaseEvent } from '../components/database/use-database';
 export interface Sidebar {
   private: PageTreeNodeDto[];
   team: PageTreeNodeDto[];
+  /** Phase 10: fremde Seiten mit Freigabe */
+  shared?: PageTreeNodeDto[];
 }
 
 export const useSidebar = (ws: string) =>

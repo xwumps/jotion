@@ -454,7 +454,7 @@ export class IntegrationsService {
   // ---------------------------------------------------------------- Quellen
 
   private async requireTarget(user: AuthUser, workspaceId: string, databaseId: string) {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     if (a.page.workspaceId !== workspaceId) throw notFound('Datenbank');
     return a;
   }

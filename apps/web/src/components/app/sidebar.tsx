@@ -12,7 +12,7 @@ import { useFavorites, usePageActions, useRealtime, useSidebar } from '@/lib/hoo
 import { LanguageSwitch } from '../language-switch';
 import { PageIcon } from '../page/page-icon';
 import { ThemeSwitch } from '../theme-switch';
-import { PageTreeDnd, TreeSection } from './page-tree';
+import { PageTreeDnd, SharedSection, TreeSection } from './page-tree';
 import { QuickSearch } from './quick-search';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { TemplateGallery } from './template-gallery';
@@ -164,6 +164,7 @@ export function Sidebar({ ws }: { ws: string }) {
             nodes={sidebar.data?.private ?? []}
             onAdd={() => create.mutate({ scope: 'PRIVATE' })}
           />
+          <SharedSection title={t('shared')} nodes={sidebar.data?.shared ?? []} />
         </PageTreeDnd>
 
         <div className="mt-auto pt-4">

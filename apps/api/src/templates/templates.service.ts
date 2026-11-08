@@ -104,10 +104,15 @@ export class TemplatesService {
         isTemplate: true,
         deletedAt: null,
         kind: { in: ['PAGE', 'DATABASE'] },
-        OR: [{ scope: 'TEAM' }, { ownerId: user.id }],
       },
       orderBy: { title: 'asc' },
     });
+    // Phase 10: nur Vorlagen, die der Nutzer sehen darf
+    const levels = await this.perms.levels(
+      user.id,
+      own.map((p) => p.id),
+    );
+    const visibleOwn = own.filter((p) => (levels.get(p.id) ?? 'none') !== 'none');
     return [
       ...BLUEPRINTS.map((b) => ({
         id: `builtin:${b.key}`,
@@ -118,7 +123,7 @@ export class TemplatesService {
         category: b.category,
         scope: null,
       })),
-      ...own.map((p) => ({
+      ...visibleOwn.map((p) => ({
         id: p.id,
         builtin: false,
         title: p.title,
@@ -396,7 +401,7 @@ export class TemplatesService {
     body: unknown,
   ): Promise<RowTemplateDto> {
     const input = parse(createRowTemplateSchema, body);
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const data = a.data;
     let pageId: string;
     if (input.fromRowId) {
@@ -453,7 +458,7 @@ export class TemplatesService {
     body: unknown,
   ): Promise<RowTemplateDto> {
     const input = parse(updateRowTemplateSchema, body);
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const t = await this.prisma.client.dbTemplate.findUnique({ where: { pageId: templateId } });
     if (!t || t.databaseId !== a.data.db.id) throw notFound('Vorlage');
     const updated = await this.prisma.client.$transaction(async (tx) => {
@@ -491,7 +496,7 @@ export class TemplatesService {
   }
 
   async deleteRowTemplate(user: AuthUser, databaseId: string, templateId: string): Promise<void> {
-    const a = await this.access.requireData(user.id, databaseId);
+    const a = await this.access.requireData(user.id, databaseId, { level: 'edit' });
     const t = await this.prisma.client.dbTemplate.findUnique({ where: { pageId: templateId } });
     if (!t || t.databaseId !== a.data.db.id) throw notFound('Vorlage');
     await this.prisma.client.$transaction(async (tx) => {

@@ -72,7 +72,8 @@
     "cancel": "Cancel",
     "create": "Create",
     "logout": "Log out",
-    "templates": "Templates"
+    "templates": "Templates",
+    "shared": "Shared with me"
   },
   "trash": {
     "title": "Trash",
@@ -1401,5 +1402,35 @@
     "none": "none",
     "editAutomations": "Edit automations",
     "createAutomation": "Create automation"
+  },
+  "sharing": {
+    "button": "Share",
+    "loading": "Loading …",
+    "yourLevel": "Your access: {level}",
+    "allMembers": "All workspace members",
+    "inheritedFrom": "Inherited from {title}",
+    "untitled": "Untitled",
+    "remove": "Remove",
+    "addMember": "Add member …",
+    "levelLabel": "Access level",
+    "add": "Add",
+    "noManage": "Only people with full access can change sharing.",
+    "publicLink": "Read-only link for anyone with the link",
+    "publicLinkHint": "Anyone with the link can read this page and its subpages without an account.",
+    "linkCopied": "Link copied",
+    "copy": "Copy",
+    "level": {
+      "full": "Full access",
+      "edit": "Can edit",
+      "comment": "Can comment",
+      "view": "Can view",
+      "none": "No access"
+    },
+    "publicTitle": "Shared page | Jotion",
+    "publicNotFound": "This link is invalid or has been disabled.",
+    "back": "Back",
+    "readOnly": "Read only",
+    "databaseNotShown": "Databases are not shown in the read-only view.",
+    "subpages": "Subpages"
   }
 }

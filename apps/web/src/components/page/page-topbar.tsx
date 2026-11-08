@@ -37,6 +37,7 @@ import {
 import { Tooltip } from '../ui/tooltip';
 import { SaveIndicator } from '../editor/save-status';
 import { PageIcon } from './page-icon';
+import { SharePopover } from './share-popover';
 
 const FONTS = ['default', 'serif', 'mono'] as const;
 
@@ -106,6 +107,7 @@ export function PageTopbar({ page }: { page: PageDto }) {
       </span>
       {!page.deletedAt && (
         <>
+          {(page.kind === 'PAGE' || page.kind === 'DATABASE') && <SharePopover page={page} />}
           <Tooltip label={page.isFavorite ? t('unfavorite') : t('favorite')}>
             <IconButton
               aria-label={page.isFavorite ? t('unfavorite') : t('favorite')}

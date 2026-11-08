@@ -315,3 +315,20 @@ function TreeItem({ node, depth }: { node: PageTreeNodeDto; depth: number }) {
     </div>
   );
 }
+
+/** Phase 10: "Mit mir geteilt" (fremde Seiten mit Freigabe); erscheint nur, wenn es welche gibt. */
+export function SharedSection({ title, nodes }: { title: string; nodes: PageTreeNodeDto[] }) {
+  if (!nodes.length) return null;
+  return (
+    <div className="mt-4" data-testid="section-SHARED">
+      <div className="flex h-[26px] items-center px-2">
+        <span className="text-[12px] font-medium text-fg-subtle">{title}</span>
+      </div>
+      <div role="tree" aria-label={title}>
+        {nodes.map((n) => (
+          <TreeItem key={n.id} node={n} depth={0} />
+        ))}
+      </div>
+    </div>
+  );
+}
