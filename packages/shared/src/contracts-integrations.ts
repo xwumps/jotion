@@ -4,7 +4,19 @@ import { z } from 'zod';
 
 const id = z.uuid();
 
-export const CONNECTOR_TYPES = ['ical', 'caldav', 'iserv'] as const;
+export const CONNECTOR_TYPES = [
+  'ical',
+  'caldav',
+  'iserv',
+  // Phase 11
+  'icloud',
+  'nextcloud',
+  'webdav',
+  'google',
+  'microsoft',
+  'dropbox',
+  'telegram',
+] as const;
 export type ConnectorType = (typeof CONNECTOR_TYPES)[number];
 
 export const CONNECTION_STATUSES = ['active', 'paused', 'error'] as const;
@@ -46,6 +58,10 @@ export const RECORD_FIELDS = {
     'status',
     'url',
   ],
+  /** Phase 11: E-Mail und Telegram */
+  message: ['title', 'description', 'date', 'from', 'to', 'categories', 'read', 'url'],
+  /** Phase 11: Drive, OneDrive, Dropbox, WebDAV */
+  file: ['title', 'path', 'size', 'mime', 'date', 'url'],
 } as const;
 
 /** Sync-Intervall in Minuten: 15 min bis 24 h */
