@@ -9,6 +9,7 @@ x-app-env: &app-env
   JOTION_PUBLIC_URL: ${JOTION_PUBLIC_URL:-http://localhost:8080}
   JOTION_DEFAULT_LOCALE: ${JOTION_DEFAULT_LOCALE:-de}
   JOTION_MASTER_KEY: ${JOTION_MASTER_KEY:?JOTION_MASTER_KEY fehlt}
+  JOTION_MASTER_KEY_PREVIOUS: ${JOTION_MASTER_KEY_PREVIOUS:-}
   AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET fehlt}
   # Phase 3: Upload-Grenze (MB) und Freigaben für serverseitige Abrufe trotz privater Adresse
   JOTION_MAX_UPLOAD_MB: ${JOTION_MAX_UPLOAD_MB:-100}

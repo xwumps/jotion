@@ -71,6 +71,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: bash scripts/init.sh
+      # Phase 8: der E2E-Test startet Radicale im Docker-Netz des Stacks
+      - run: sed -i "s/^JOTION_SSRF_ALLOWLIST=.*/JOTION_SSRF_ALLOWLIST=radicale/" .env
       - name: Stack bauen und starten
         run: docker compose up -d --build --wait --wait-timeout 300
       - name: Healthchecks prüfen

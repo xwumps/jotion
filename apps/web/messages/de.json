@@ -167,7 +167,8 @@
     "tabs": {
       "account": "Mein Konto",
       "workspace": "Workspace",
-      "members": "Mitglieder"
+      "members": "Mitglieder",
+      "integrations": "Integrationen"
     },
     "profile": "Profil",
     "name": "Name",
@@ -1110,5 +1111,155 @@
       "note": "Schnellnotiz",
       "links": "Links"
     }
+  },
+  "integrations": {
+    "title": "Integrationen",
+    "intro": "Kalender und Aufgaben aus IServ, CalDAV-Servern (z. B. Nextcloud) oder iCal-Feeds regelmäßig in eine Datenbank übernehmen. Lokale Änderungen bleiben erhalten.",
+    "privacy": "Hinweis: Synchronisierte Schuldaten werden nur auf diesem Jotion-Server gespeichert. Zugangsdaten werden verschlüsselt abgelegt und nie angezeigt.",
+    "add": "Verbindung hinzufügen",
+    "loading": "Wird geladen …",
+    "empty": "Noch keine Verbindungen.",
+    "addTitle": "Verbindung hinzufügen",
+    "addDescription": "Zugangsdaten werden verschlüsselt gespeichert.",
+    "type": "Art",
+    "types": {
+      "iserv": "IServ",
+      "caldav": "CalDAV",
+      "ical": "iCal-Feed"
+    },
+    "typeHints": {
+      "iserv": "Kalender deines IServ-Kontos über CalDAV. Die genaue Adresse wird automatisch ermittelt. Mit Zwei-Faktor-Anmeldung ggf. ein App-Passwort verwenden. Das Modul „Aufgaben“ hat keine Schnittstelle und wird nicht angebunden.",
+      "caldav": "Beliebiger CalDAV-Server, z. B. Nextcloud, Radicale oder iCloud (mit app-spezifischem Passwort).",
+      "ical": "Abo-Link eines Kalenders (.ics, webcal://). Nur lesend, wird vollständig abgeglichen."
+    },
+    "name": "Name",
+    "urlLabel": {
+      "iserv": "Serveradresse",
+      "caldav": "Serveradresse",
+      "ical": "Feed-URL"
+    },
+    "urlPlaceholder": {
+      "iserv": "https://deine-schule.example",
+      "caldav": "https://cloud.example/remote.php/dav",
+      "ical": "https://… oder webcal://…"
+    },
+    "username": "Benutzername",
+    "usernameOptional": "Benutzername (optional)",
+    "password": "Passwort",
+    "passwordOptional": "Passwort (optional)",
+    "passwordHint": "Oder App-Passwort bzw. Token",
+    "newPassword": "Neues Passwort",
+    "passwordStored": "Ein Passwort ist gespeichert. Leer lassen, um es zu behalten.",
+    "test": "Verbindung testen",
+    "testing": "Teste …",
+    "save": "Speichern",
+    "saving": "Speichere …",
+    "cancel": "Abbrechen",
+    "testOk": "Verbunden als {account}",
+    "testFailed": "Verbindung fehlgeschlagen",
+    "noSources": "Keine Kalender gefunden.",
+    "created": "Verbindung gespeichert. Wähle jetzt für jeden Kalender eine Ziel-Datenbank.",
+    "kinds": {
+      "event": "Termine",
+      "task": "Aufgaben"
+    },
+    "status": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "error": "Fehler"
+    },
+    "runStatus": {
+      "running": "Läuft",
+      "succeeded": "Erfolgreich",
+      "partial": "Mit Fehlern",
+      "failed": "Fehlgeschlagen"
+    },
+    "trigger": {
+      "manual": "manuell",
+      "schedule": "geplant"
+    },
+    "stats": "{created} neu, {updated} geändert, {deleted} entfernt, {conflicts} Konflikte, {errors} Fehler",
+    "syncNow": "Jetzt synchronisieren",
+    "syncQueued": "Synchronisierung gestartet",
+    "edit": "Bearbeiten",
+    "editTitle": "Verbindung bearbeiten",
+    "savedConnection": "Verbindung gespeichert",
+    "disconnect": "Trennen",
+    "disconnected": "Verbindung getrennt",
+    "disconnectTitle": "„{name}“ trennen?",
+    "disconnectDescription": "Zugangsdaten und Zuordnungen werden gelöscht. Synchronisierte Zeilen werden nie gelöscht.",
+    "disconnectRows": {
+      "keep": "Synchronisierte Zeilen behalten",
+      "archive": "Synchronisierte Zeilen archivieren"
+    },
+    "retest": "Erneut prüfen",
+    "autoSync": "Automatisch synchronisieren",
+    "interval": "Intervall",
+    "minutes": "alle {n} Minuten",
+    "hours": "{n, plural, one {stündlich} other {alle # Stunden}}",
+    "showRuns": "Letzte Synchronisierungen",
+    "hideRuns": "Verlauf ausblenden",
+    "conflictsCount": "{n, plural, one {# Konflikt} other {# Konflikte}}",
+    "untitled": "Ohne Titel",
+    "noTarget": "keine Ziel-Datenbank",
+    "entityCount": "{n} Einträge",
+    "changeTarget": "Ziel ändern",
+    "chooseTarget": "Ziel-Datenbank wählen",
+    "mapping": "Zuordnung",
+    "databaseCreated": "Datenbank „{title}“ angelegt",
+    "createDatabase": "Neue Datenbank „{title}“ mit Vorschlag anlegen",
+    "searchDatabase": "Bestehende Datenbank suchen …",
+    "deletionPolicy": "Remote gelöscht:",
+    "deletion": {
+      "mark": "als „Entfernt“ markieren",
+      "archive": "archivieren",
+      "trash": "in den Papierkorb"
+    },
+    "expandRecurring": "Serien als Einzeltermine ({past} Tage zurück, {future} voraus)",
+    "lastSynced": "Zuletzt: {date, date, short} {date, time, short}",
+    "mappingTitle": "Zuordnung für „{name}“",
+    "mappingDescription": "Welche Felder der Quelle in welche Properties geschrieben werden. Nicht zugeordnete Properties werden nie verändert.",
+    "property": "Property",
+    "sourceField": "Feld der Quelle",
+    "ownership": "Bei Änderungen",
+    "titleProperty": "Titel",
+    "notMapped": "nicht zuordnen",
+    "template": "Vorlage …",
+    "ownerships": {
+      "local_preserve": "lokale Änderung behalten",
+      "remote": "immer von der Quelle",
+      "once": "nur beim Anlegen"
+    },
+    "ownershipHint": "„Lokale Änderung behalten“: Hat jemand den Wert in Jotion geändert, überschreibt die Quelle ihn nicht. Ändern sich beide, bleibt die lokale Version und es entsteht ein Konflikt zum Prüfen.",
+    "syncStatusProperty": "Sync-Status in",
+    "none": "keins",
+    "descriptionToContent": "Beschreibung beim Anlegen als Seiteninhalt übernehmen",
+    "mappingSaved": "Zuordnung gespeichert",
+    "preview": "Vorschau",
+    "previewTitle": "Vorschau: erste {n} Einträge",
+    "newOption": "neu: {names}",
+    "newOptionsHint": "Neue Optionen werden angelegt: {list}",
+    "fields": {
+      "title": "Titel",
+      "description": "Beschreibung",
+      "date": "Datum (Zeitraum)",
+      "start": "Beginn",
+      "end": "Ende",
+      "allDay": "Ganztägig",
+      "location": "Ort",
+      "organizer": "Organisator",
+      "url": "Link",
+      "categories": "Kategorien",
+      "status": "Status",
+      "due": "Fällig",
+      "completed": "Erledigt",
+      "priority": "Priorität",
+      "source": "Quelle (Kalendername)"
+    },
+    "conflictsHint": "Lokal und in der Quelle geändert. Die lokale Version wurde behalten.",
+    "localValue": "Lokal",
+    "remoteValue": "Quelle",
+    "takeRemote": "Quelle übernehmen",
+    "keepLocal": "Lokal behalten"
   }
 }

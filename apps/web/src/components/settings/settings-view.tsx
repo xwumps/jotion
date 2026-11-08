@@ -22,11 +22,12 @@ import { useMe } from '../app/providers';
 import { IconPicker } from '../page/icon-picker';
 import { PageIcon } from '../page/page-icon';
 import { Field, FormError } from '../ui/field';
+import { IntegrationsSettings } from './integrations';
 import { IconButton } from '../ui/icon-button';
 import { Tooltip } from '../ui/tooltip';
 
-export type SettingsTab = 'account' | 'workspace' | 'members';
-const TABS: SettingsTab[] = ['account', 'workspace', 'members'];
+export type SettingsTab = 'account' | 'workspace' | 'members' | 'integrations';
+const TABS: SettingsTab[] = ['account', 'workspace', 'members', 'integrations'];
 
 const primaryBtn =
   'h-8 rounded-md bg-accent px-3 text-[14px] font-medium text-white hover:bg-accent-hover disabled:opacity-50';
@@ -77,6 +78,7 @@ export function SettingsView({ ws, tab }: { ws: string; tab: SettingsTab }) {
         {tab === 'account' && <AccountSettings />}
         {tab === 'workspace' && <WorkspaceSettings ws={ws} />}
         {tab === 'members' && <MemberSettings ws={ws} />}
+        {tab === 'integrations' && <IntegrationsSettings ws={ws} />}
       </div>
     </div>
   );

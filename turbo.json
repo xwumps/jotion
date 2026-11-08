@@ -18,7 +18,14 @@
     },
     "test": {
       "dependsOn": ["^build", "^generate", "generate"],
-      "env": ["DATABASE_URL", "REDIS_URL", "JOTION_PUBLIC_URL", "JOTION_MASTER_KEY", "AUTH_SECRET"]
+      "env": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "JOTION_PUBLIC_URL",
+        "JOTION_MASTER_KEY",
+        "AUTH_SECRET",
+        "JOTION_RADICALE_URL"
+      ]
     },
     "dev": {
       "cache": false,
