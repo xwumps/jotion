@@ -34,7 +34,7 @@ export function WidgetBody({
   ws: string;
   widget: Widget;
   editing: boolean;
-  onChange: (w: Widget) => void;
+  onChange: (patch: Partial<Widget>) => void;
 }) {
   switch (widget.type) {
     case 'upcoming':
@@ -147,17 +147,33 @@ function FavoritesWidget({ ws }: { ws: string }) {
   );
 }
 
-function NoteWidget({ widget, onChange }: { widget: Widget; onChange: (w: Widget) => void }) {
+function NoteWidget({
+  widget,
+  onChange,
+}: {
+  widget: Widget;
+  onChange: (patch: Partial<Widget>) => void;
+}) {
   const t = useTranslations('dashboard');
   const [text, setText] = useState(widget.text);
-  const latest = useRef(widget);
-  latest.current = widget;
-  useEffect(() => setText(widget.text), [widget.text]);
+  const saved = useRef(widget.text);
+  const save = useRef(onChange);
+  save.current = onChange;
   useEffect(() => {
-    if (text === latest.current.text) return;
-    const h = setTimeout(() => onChange({ ...latest.current, text }), 600);
+    // Fremde Änderung (anderer Tab) übernehmen, solange hier nichts ungespeichert ist
+    if (widget.text !== saved.current) {
+      saved.current = widget.text;
+      setText(widget.text);
+    }
+  }, [widget.text]);
+  useEffect(() => {
+    if (text === saved.current) return;
+    const h = setTimeout(() => {
+      saved.current = text;
+      save.current({ text });
+    }, 600);
     return () => clearTimeout(h);
-  }, [text, onChange]);
+  }, [text]);
   return (
     <textarea
       value={text}

@@ -991,7 +991,10 @@ export const chartConfigSchema = z
     x: chartAxisSchema.nullable().default(null),
     /** Y-Wert: Anzahl oder Berechnung über ein Zahl-Property (auch Formel, Rollup) */
     y: z
-      .object({ measure: z.enum(CHART_MEASURES).default('count'), propertyId: id.nullable().default(null) })
+      .object({
+        measure: z.enum(CHART_MEASURES).default('count'),
+        propertyId: id.nullable().default(null),
+      })
       .strict()
       .default({ measure: 'count', propertyId: null }),
     /** Gruppierung in Serien (gestapelt oder nebeneinander) */
@@ -1006,8 +1009,16 @@ export const chartConfigSchema = z
       .object({
         propertyId: id,
         range: z.enum(CHART_DATE_RANGES).default('last_30_days'),
-        from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
-        to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+        from: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
+        to: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
       })
       .strict()
       .nullable()
@@ -1261,7 +1272,10 @@ export const queryRowsSchema = z
     /** Vorschau aus dem Seiteninhalt mitliefern (Karten in Board und Gallery) */
     preview: z.boolean().optional(),
     /** Drilldown: nur Zeilen eines Diagrammpunkts (X-Gruppe und Serie der Chart-Ansicht) */
-    chartPoint: z.object({ x: z.string().max(200).optional(), series: z.string().max(200).optional() }).strict().optional(),
+    chartPoint: z
+      .object({ x: z.string().max(200).optional(), series: z.string().max(200).optional() })
+      .strict()
+      .optional(),
     /** Nur Zeilen einer Gruppe (und Untergruppe) der Ansicht */
     group: groupKey.optional(),
     subGroup: groupKey.optional(),

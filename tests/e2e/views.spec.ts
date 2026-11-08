@@ -338,6 +338,8 @@ test('Zeitleiste: Balken verschieben und Ende ziehen, Heute-Linie', async () => 
   // Ende einen Tag weiter ziehen
   const b2 = (await bar.boundingBox())!;
   const handle = bar.getByTestId('timeline-resize-end');
+  // Je nach heutigem Datum liegt das Ende rechts außerhalb des sichtbaren Bereichs
+  await handle.scrollIntoViewIfNeeded();
   const h = (await handle.boundingBox())!;
   await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
   await page.mouse.down();

@@ -381,7 +381,7 @@ describe('Abfragen, Ansichten, Berechnungen', () => {
     await owner.patch(`/api/databases/${d.id}/views/${view.id}`, { beforeId: views[0].id });
     expect((await owner.get(`/api/databases/${d.id}`)).body.views[0].id).toBe(view.id);
     expect(
-      (await owner.post(`/api/databases/${d.id}/views`, { name: 'Chart', type: 'chart' })).status,
+      (await owner.post(`/api/databases/${d.id}/views`, { name: 'Gantt', type: 'gantt' })).status,
     ).toBe(422);
     await owner.del(`/api/databases/${d.id}/views/${views[0].id}`);
     expect((await owner.del(`/api/databases/${d.id}/views/${view.id}`)).status).toBe(409);

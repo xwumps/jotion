@@ -13,7 +13,7 @@ import { cn } from '@jotion/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Check, GripVertical, LayoutGrid, Pencil, Plus, Settings2, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Responsive, WidthProvider, type Layout } from 'react-grid-layout';
 import { apiGet } from '@/lib/api-client';
 import { useDatabase } from '../database/use-database';
@@ -50,27 +50,45 @@ export function Dashboard({ ws }: { ws: string }) {
   const widgets = useMemo(() => q.data?.widgets ?? [], [q.data?.widgets]);
   const canEdit = q.data?.canEdit ?? false;
 
-  const persist = useCallback((next: Widget[]) => save.mutate(next), [save]);
+  // Immer vom neuesten Stand aus ändern: Notiz, Layout und Widgets können kurz nacheinander
+  // gespeichert werden; mit dem Stand eines älteren Renderns ginge sonst eine Änderung verloren.
+  const current = useRef<Widget[]>([]);
+  useEffect(() => {
+    current.current = widgets;
+  }, [widgets]);
+  const persist = useCallback(
+    (fn: (cur: Widget[]) => Widget[]) => {
+      const next = fn(current.current);
+      current.current = next;
+      save.mutate(next);
+    },
+    [save],
+  );
+  /** Nur die angegebenen Felder eines Widgets ändern (Position und Rest bleiben aktuell). */
   const update = useCallback(
-    (w: Widget) => persist(widgets.map((x) => (x.id === w.id ? w : x))),
-    [persist, widgets],
+    (id: string, patch: Partial<Widget>) =>
+      persist((cur) => cur.map((x) => (x.id === id ? { ...x, ...patch } : x))),
+    [persist],
   );
 
   const onLayout = (layout: Layout[]) => {
     if (!editing) return;
     const byId = new Map(layout.map((l) => [l.i, l]));
-    let changed = false;
-    const next = widgets.map((w) => {
+    const moved = current.current.some((w) => {
       const l = byId.get(w.id);
-      if (!l || (l.x === w.x && l.y === w.y && l.w === w.w && l.h === w.h)) return w;
-      changed = true;
-      return { ...w, x: l.x, y: l.y, w: l.w, h: l.h };
+      return l && (l.x !== w.x || l.y !== w.y || l.w !== w.w || l.h !== w.h);
     });
-    if (changed) persist(next);
+    if (!moved) return;
+    persist((cur) =>
+      cur.map((w) => {
+        const l = byId.get(w.id);
+        return l ? { ...w, x: l.x, y: l.y, w: l.w, h: l.h } : w;
+      }),
+    );
   };
 
   const add = (type: WidgetType) => {
-    const y = widgets.reduce((m, w) => Math.max(m, w.y + w.h), 0);
+    const y = current.current.reduce((m, w) => Math.max(m, w.y + w.h), 0);
     const widget: Widget = {
       id: `${type}-${crypto.randomUUID().slice(0, 8)}`,
       type,
@@ -84,7 +102,7 @@ export function Dashboard({ ws }: { ws: string }) {
       text: '',
       links: [],
     };
-    persist([...widgets, widget]);
+    persist((cur) => [...cur, widget]);
   };
 
   const layouts = {
@@ -205,10 +223,10 @@ export function Dashboard({ ws }: { ws: string }) {
               </span>
               {editing && (
                 <div className="ml-auto flex items-center">
-                  <WidgetSettings ws={ws} widget={w} onChange={update} />
+                  <WidgetSettings ws={ws} widget={w} onChange={(patch) => update(w.id, patch)} />
                   <button
                     type="button"
-                    onClick={() => persist(widgets.filter((x) => x.id !== w.id))}
+                    onClick={() => persist((cur) => cur.filter((x) => x.id !== w.id))}
                     aria-label={t('remove')}
                     className="rounded p-1 text-fg-subtle hover:bg-hover"
                     data-testid="remove-widget"
@@ -219,7 +237,12 @@ export function Dashboard({ ws }: { ws: string }) {
               )}
             </div>
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">
-              <WidgetBody ws={ws} widget={w} editing={editing} onChange={update} />
+              <WidgetBody
+                ws={ws}
+                widget={w}
+                editing={editing}
+                onChange={(patch) => update(w.id, patch)}
+              />
             </div>
           </div>
         ))}
@@ -239,7 +262,7 @@ function WidgetSettings({
 }: {
   ws: string;
   widget: Widget;
-  onChange: (w: Widget) => void;
+  onChange: (patch: Partial<Widget>) => void;
 }) {
   const t = useTranslations('dashboard');
   const [title, setTitle] = useState(widget.title);
@@ -272,7 +295,7 @@ function WidgetSettings({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => title !== widget.title && onChange({ ...widget, title })}
+            onBlur={() => title !== widget.title && onChange({ title })}
             placeholder={t(`types.${widget.type}`)}
             className={inputCls}
           />
@@ -294,7 +317,7 @@ function WidgetSettings({
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => onChange({ ...widget, databaseId: d.id, viewId: null })}
+                  onClick={() => onChange({ databaseId: d.id, viewId: null })}
                   className={cn(
                     'flex h-8 w-full items-center rounded-md px-2 text-left text-[14px] hover:bg-hover',
                     widget.databaseId === d.id && 'bg-active',
@@ -311,7 +334,7 @@ function WidgetSettings({
                 {t('view')}
                 <select
                   value={widget.viewId ?? ''}
-                  onChange={(e) => onChange({ ...widget, viewId: e.target.value || null })}
+                  onChange={(e) => onChange({ viewId: e.target.value || null })}
                   className={inputCls}
                   data-testid="widget-view"
                 >
@@ -331,7 +354,7 @@ function WidgetSettings({
             {t('days')}
             <select
               value={widget.days}
-              onChange={(e) => onChange({ ...widget, days: Number(e.target.value) })}
+              onChange={(e) => onChange({ days: Number(e.target.value) })}
               className={inputCls}
             >
               {[7, 14, 30, 90].map((d) => (
@@ -350,9 +373,7 @@ function WidgetSettings({
                 <button
                   type="button"
                   aria-label={t('remove')}
-                  onClick={() =>
-                    onChange({ ...widget, links: widget.links.filter((_, j) => j !== i) })
-                  }
+                  onClick={() => onChange({ links: widget.links.filter((_, j) => j !== i) })}
                   className="rounded p-1 text-fg-subtle hover:bg-hover"
                 >
                   <X className="size-3.5" />
@@ -378,7 +399,6 @@ function WidgetSettings({
               disabled={!/^https?:\/\/\S+|^\/\S*/i.test(link.url.trim())}
               onClick={() => {
                 onChange({
-                  ...widget,
                   links: [...widget.links, { title: link.title.trim(), url: link.url.trim() }],
                 });
                 setLink({ title: '', url: '' });

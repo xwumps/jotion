@@ -1,4 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { PrismaClient } from '@jotion/db';
 import { EMPTY_GROUP } from '@jotion/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { addMember, type Client, createTestApp, resetState, setupOwner } from './helpers';
@@ -8,12 +9,13 @@ import { addMember, type Client, createTestApp, resetState, setupOwner } from '.
  * Dashboard (persönlich und geteilt) und Agenda über mehrere Datenbanken.
  */
 let app: NestFastifyApplication;
+let prisma: PrismaClient;
 let owner: Client;
 let member: Client;
 let ws: string;
 
 beforeAll(async () => {
-  ({ app } = await createTestApp());
+  ({ app, db: prisma } = await createTestApp());
 });
 afterAll(async () => {
   await app?.close();
@@ -296,4 +298,83 @@ describe('Dashboard und Agenda', () => {
       'Privat morgen',
     ]);
   });
+});
+
+describe('Leistung', () => {
+  it('Diagramm über 50.000 Zeilen in unter 500 ms (ohne Cache)', async () => {
+    const d = (
+      await owner.post(`/api/workspaces/${ws}/databases`, { scope: 'TEAM', title: 'Groß' })
+    ).body;
+    const amount = (
+      await owner.post(`/api/databases/${d.id}/properties`, { name: 'Betrag', type: 'number' })
+    ).body;
+    const sel = (
+      await owner.post(`/api/databases/${d.id}/properties`, {
+        name: 'Kategorie',
+        type: 'select',
+        config: {
+          options: Array.from({ length: 8 }, (_, i) => ({
+            id: crypto.randomUUID(),
+            name: `K${i}`,
+            color: 'blue',
+          })),
+        },
+      })
+    ).body;
+    const opts = (sel.config.options as { id: string }[]).map((o) => o.id);
+    const first = (await owner.post(`/api/databases/${d.id}/rows`, { title: 'Vorlage' })).body;
+    const tpl = await prisma.page.findUniqueOrThrow({ where: { id: first.id } });
+    // 50.000 Zeilen direkt per SQL (schnell), Werte für Betrag und Kategorie
+    await prisma.$executeRaw`
+      INSERT INTO pages (id, workspace_id, parent_id, database_id, kind, position, title, owner_id, created_by_id, last_edited_by_id, scope)
+      SELECT gen_random_uuid(), ${ws}::uuid, ${d.id}::uuid, ${d.id}::uuid, 'DATABASE_ROW', 'b' || lpad(g::text, 6, '0'),
+             'Z' || g, ${tpl.ownerId}::uuid, ${tpl.createdById}::uuid, ${tpl.createdById}::uuid, 'TEAM'
+        FROM generate_series(1, 50000) g`;
+    await prisma.$executeRaw`
+      INSERT INTO property_values (row_id, property_id, database_id, v_number)
+      SELECT id, ${amount.id}::uuid, ${d.id}::uuid, (row_number() OVER (ORDER BY id)) % 97
+        FROM pages WHERE database_id = ${d.id}::uuid AND kind = 'DATABASE_ROW'`;
+    await prisma.$executeRaw`
+      INSERT INTO property_values (row_id, property_id, database_id, v_option_ids)
+      SELECT id, ${sel.id}::uuid, ${d.id}::uuid, ARRAY[(${opts}::text[])[1 + (row_number() OVER (ORDER BY id)) % 8]]::uuid[]
+        FROM pages WHERE database_id = ${d.id}::uuid AND kind = 'DATABASE_ROW'`;
+    await prisma.$executeRaw`ANALYZE property_values`;
+    await prisma.$executeRaw`ANALYZE pages`;
+    const view = (
+      await owner.post(`/api/databases/${d.id}/views`, { name: 'Chart', type: 'chart' })
+    ).body;
+    const timings: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      // Jede Änderung der Ansicht ergibt einen neuen Cache-Schlüssel: gemessen wird ohne Cache
+      await owner.patch(`/api/databases/${d.id}/views/${view.id}`, {
+        config: {
+          chart: {
+            type: 'bar',
+            x: { propertyId: sel.id },
+            y: { measure: 'sum', propertyId: amount.id },
+            topN: 8 + i,
+          },
+        },
+      });
+      const t0 = performance.now();
+      const res = await owner.post(`/api/databases/${d.id}/chart`, {
+        viewId: view.id,
+        timeZone: 'Europe/Berlin',
+      });
+      timings.push(performance.now() - t0);
+      expect(res.body.points).toHaveLength(8);
+      expect(res.body.total).toBeGreaterThan(2_000_000);
+    }
+    timings.sort((a, b) => a - b);
+    console.log(
+      `Diagramm über 50.000 Zeilen (ohne Cache): ${timings.map((x) => x.toFixed(0)).join(', ')} ms`,
+    );
+    expect(timings[2]!).toBeLessThan(500);
+    const t1 = performance.now();
+    await owner.post(`/api/databases/${d.id}/chart`, {
+      viewId: view.id,
+      timeZone: 'Europe/Berlin',
+    });
+    console.log(`Aus dem Cache: ${(performance.now() - t1).toFixed(0)} ms`);
+  }, 120_000);
 });
