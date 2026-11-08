@@ -105,6 +105,8 @@ export class SearchService {
     const filters: Prisma.Sql[] = [
       Prisma.sql`p.workspace_id = ${workspaceId}::uuid`,
       Prisma.sql`p.deleted_at IS NULL`,
+      // Zeilen-Vorlagen sind keine eigenständigen Seiten
+      Prisma.sql`p.kind <> 'ROW_TEMPLATE'`,
       Prisma.sql`(p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)`,
     ];
     if (query.scope === 'private')

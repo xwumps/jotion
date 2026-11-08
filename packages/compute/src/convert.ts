@@ -57,6 +57,8 @@ export function formulaType(p: ComputeProperty): Type {
       const rt = (p.config.resultType as ResultType | undefined) ?? 'empty';
       return rt === 'list' ? listOf('any') : rt;
     }
+    case 'button':
+      return 'empty';
   }
 }
 

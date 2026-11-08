@@ -7,3 +7,4 @@ export * from './contracts-content';
 export * from './contracts-database';
 export * from './contracts-dashboard';
 export * from './contracts-integrations';
+export * from './contracts-templates';

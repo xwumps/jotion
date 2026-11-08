@@ -573,7 +573,8 @@
       "unique_id": "ID",
       "relation": "Relation",
       "rollup": "Rollup",
-      "formula": "Formula"
+      "formula": "Formula",
+      "button": "Button"
     },
     "statusGroups": {
       "todo": "To-do",

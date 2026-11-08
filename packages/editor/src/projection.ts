@@ -1,5 +1,5 @@
 import * as Y from 'yjs';
-import { DOC_FRAGMENT, PAGE_REFERENCE_NODES } from './constants';
+import { BLOCK_NODE_TYPES, DOC_FRAGMENT, PAGE_REFERENCE_NODES } from './constants';
 import { mentionText } from './nodes/inline';
 import { fileIdFromUrl } from './urls';
 
@@ -307,4 +307,141 @@ export function removeSubpageBlocks(doc: Y.Doc, pageId: string): number {
     visit(doc.getXmlFragment(DOC_FRAGMENT));
   }, 'jotion-server');
   return removed;
+}
+
+/** Attribute, die auf Seiten, Datenbanken oder Ansichten zeigen (beim Kopieren umschreiben). */
+const ID_ATTRIBUTES = ['pageId', 'databaseId', 'viewId', 'targetId'] as const;
+
+/**
+ * Phase 9: Verweise in einem kopierten Dokument auf die Kopien umschreiben. Unterseiten- und
+ * Datenbank-Blöcke ohne Kopie werden entfernt (sie gehörten zum Original); Erwähnungen und Links
+ * auf Seiten außerhalb der Kopie bleiben.
+ */
+export function remapDocIds(doc: Y.Doc, map: Map<string, string>): void {
+  doc.transact(() => {
+    const visit = (parent: Y.XmlFragment | Y.XmlElement) => {
+      const children = parent.toArray();
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child instanceof Y.XmlText) {
+          // Inline-Erwähnungen stehen als Einbettungen im Text
+          continue;
+        }
+        if (!(child instanceof Y.XmlElement)) continue;
+        let owned = false;
+        let missing = false;
+        for (const key of ID_ATTRIBUTES) {
+          const v = child.getAttribute(key);
+          if (typeof v !== 'string' || !v) continue;
+          const target = map.get(v.toLowerCase());
+          if (target) {
+            child.setAttribute(key, target);
+            owned = true;
+          } else if (key === 'pageId' || key === 'databaseId') missing = true;
+        }
+        if (missing && !owned && (child.nodeName === 'subpage' || child.nodeName === 'database')) {
+          parent.delete(i, 1);
+          continue;
+        }
+        visit(child);
+      }
+    };
+    visit(doc.getXmlFragment(DOC_FRAGMENT));
+  }, 'jotion-server');
+}
+
+/**
+ * Phase 9: Platzhalter im Text ersetzen (z. B. "@heute" → Datum). Formatierungen bleiben,
+ * ersetzt wird je zusammenhängendem Textstück.
+ */
+export function replaceTextVariables(doc: Y.Doc, vars: Record<string, string>): number {
+  const names = Object.keys(vars).sort((a, b) => b.length - a.length);
+  if (!names.length) return 0;
+  const re = new RegExp(names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+  let count = 0;
+  doc.transact(() => {
+    const visitText = (text: Y.XmlText) => {
+      const delta = text.toDelta() as { insert: unknown; attributes?: Record<string, unknown> }[];
+      let offset = 0;
+      const edits: { at: number; len: number; value: string; attrs?: Record<string, unknown> }[] =
+        [];
+      for (const op of delta) {
+        if (typeof op.insert !== 'string') {
+          offset += 1;
+          continue;
+        }
+        for (const m of op.insert.matchAll(re))
+          edits.push({
+            at: offset + m.index!,
+            len: m[0].length,
+            value: vars[m[0]]!,
+            attrs: op.attributes,
+          });
+        offset += op.insert.length;
+      }
+      // Von hinten, damit die Positionen stimmen
+      for (const e of edits.reverse()) {
+        text.delete(e.at, e.len);
+        text.insert(e.at, e.value, e.attrs ?? {});
+        count++;
+      }
+    };
+    const visit = (parent: Y.XmlFragment | Y.XmlElement) => {
+      for (const child of parent.toArray()) {
+        if (child instanceof Y.XmlText) visitText(child);
+        else if (child instanceof Y.XmlElement) visit(child);
+      }
+    };
+    visit(doc.getXmlFragment(DOC_FRAGMENT));
+  }, 'jotion-server');
+  return count;
+}
+
+/** Knoten im ProseMirror-JSON-Format (für mitgelieferte Vorlagen). */
+export interface PmNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: PmNode[];
+  text?: string;
+  marks?: { type: string; attrs?: Record<string, unknown> }[];
+}
+
+const BLOCK_TYPES = new Set<string>(BLOCK_NODE_TYPES);
+
+/**
+ * Phase 9: Inhalt aus ProseMirror-JSON ans Dokument hängen (wie y-prosemirror: Element je Knoten,
+ * Text mit Marks als Formatierung). Blöcke ohne id bekommen eine neue.
+ */
+export function appendPmContent(doc: Y.Doc, nodes: PmNode[], newId: () => string): void {
+  const build = (n: PmNode): Y.XmlElement => {
+    const el = new Y.XmlElement(n.type);
+    for (const [k, v] of Object.entries(n.attrs ?? {}))
+      if (v !== null && v !== undefined) el.setAttribute(k, v as string);
+    if (BLOCK_TYPES.has(n.type) && !n.attrs?.id) el.setAttribute('id', newId());
+    const children: (Y.XmlElement | Y.XmlText)[] = [];
+    let text: Y.XmlText | null = null;
+    // Länge selbst zählen: ein noch nicht eingehängter Text meldet immer 0
+    let textLength = 0;
+    for (const c of n.content ?? []) {
+      if (c.type === 'text') {
+        if (!text) {
+          text = new Y.XmlText();
+          textLength = 0;
+          children.push(text);
+        }
+        const attrs: Record<string, unknown> = {};
+        for (const m of c.marks ?? []) attrs[m.type] = m.attrs ?? {};
+        text.insert(textLength, c.text ?? '', attrs);
+        textLength += (c.text ?? '').length;
+      } else {
+        text = null;
+        children.push(build(c));
+      }
+    }
+    if (children.length) el.insert(0, children);
+    return el;
+  };
+  doc.transact(() => {
+    doc.getXmlFragment(DOC_FRAGMENT).push(nodes.map(build));
+  }, 'jotion-server');
 }

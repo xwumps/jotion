@@ -17,6 +17,7 @@ import {
   Hash,
   Link,
   List,
+  MousePointerClick,
   Paperclip,
   Phone,
   Sigma,
@@ -50,6 +51,7 @@ export const PROPERTY_ICONS: Record<PropertyType, LucideIcon> = {
   relation: FileText,
   rollup: Sigma,
   formula: Sigma,
+  button: MousePointerClick,
 };
 
 /** Hintergrund einer Option (Notion-Farben aus den Design-Tokens). */

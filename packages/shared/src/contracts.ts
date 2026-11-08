@@ -232,7 +232,9 @@ export interface PageDto extends PageTreeNodeDto {
   /** Rechte des aktuellen Nutzers auf dieser Seite */
   canEdit: boolean;
   /** Phase 4: Seite, Datenbank oder Datenbankzeile (databaseId bei Zeilen) */
-  kind: 'PAGE' | 'DATABASE' | 'DATABASE_ROW';
+  kind: 'PAGE' | 'DATABASE' | 'DATABASE_ROW' | 'ROW_TEMPLATE';
+  /** Phase 9: eigene Vorlage (Galerie) */
+  isTemplate: boolean;
   databaseId: string | null;
 }
 

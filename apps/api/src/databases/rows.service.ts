@@ -49,6 +49,8 @@ import type { z } from 'zod';
 import { CollabService } from '../collab/collab.service';
 import { AppError, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
+import { RowEventsBus, type ChangeContext } from '../common/row-events';
+import { PageCopier } from '../templates/page-copier';
 import { PrismaService } from '../infra/prisma.service';
 import { ChartsService } from './charts.service';
 import { ComputeService } from './compute.service';
@@ -83,6 +85,8 @@ export class RowsService {
     private readonly collab: CollabService,
     private readonly compute: ComputeService,
     private readonly charts: ChartsService,
+    private readonly copier: PageCopier,
+    private readonly events: RowEventsBus,
   ) {}
 
   private async viewConfig(databaseId: string, viewId?: string): Promise<ViewConfig | null> {
@@ -271,7 +275,10 @@ export class RowsService {
 
   async get(user: AuthUser, databaseId: string, rowId: string): Promise<RowDto> {
     const a = await this.access.requireData(user.id, databaseId, { includeTrashed: true });
-    const row = await this.requireRow(user, a.data.db.id, rowId, { includeTrashed: true });
+    const row = await this.requireRow(user, a.data.db.id, rowId, {
+      includeTrashed: true,
+      allowTemplate: true,
+    });
     const props = await this.access.properties(a.data.db.id);
     return (await this.pagesToDtos([row], props))[0]!;
   }
@@ -280,11 +287,26 @@ export class RowsService {
     user: AuthUser,
     databaseId: string,
     input: z.output<typeof createRowSchema>,
+    ctx: ChangeContext = {},
   ): Promise<RowDto> {
     const a = await this.access.requireData(user.id, databaseId);
     const data = a.data;
     const props = await this.access.properties(data.db.id);
     const values = await this.validateValues(data.page.workspaceId, props, input.values ?? {});
+
+    // Phase 9: Zeilen-Vorlage (ausdrücklich gewählt oder Standardvorlage der Datenbank)
+    const template =
+      input.templateId === 'none'
+        ? null
+        : input.templateId
+          ? await this.prisma.client.dbTemplate.findUnique({ where: { pageId: input.templateId } })
+          : await this.prisma.client.dbTemplate.findFirst({
+              where: { databaseId: data.db.id, isDefault: true },
+            });
+    if (input.templateId && input.templateId !== 'none' && template?.databaseId !== data.db.id)
+      throw notFound('Vorlage');
+    if (template)
+      return this.createFromTemplate(user, a, props, template.pageId, input, values, ctx);
 
     let extra: Record<string, string[]> = {};
     const row = await this.prisma.client.$transaction(async (tx) => {
@@ -312,6 +334,110 @@ export class RowsService {
       return page;
     });
     await this.compute.rowsChanged(data.db.id, [row.id], user.id, extra);
+    await this.events.emit({
+      kind: 'created',
+      workspaceId: data.page.workspaceId,
+      databaseId: data.db.id,
+      rowIds: [row.id],
+      changed: ['title', ...values.keys()],
+      actorId: user.id,
+      depth: ctx.depth ?? 0,
+    });
+    return (await this.pagesToDtos([row], props))[0]!;
+  }
+
+  /**
+   * Zeile als Kopie einer Zeilen-Vorlage (Werte, Inhalt, Unterseiten); dynamische Werte
+   * (heute, jetzt, Ersteller) und Platzhalter im Text werden eingesetzt, Eingaben überschreiben.
+   */
+  private async createFromTemplate(
+    user: AuthUser,
+    a: Awaited<ReturnType<DatabaseAccessService['requireData']>>,
+    props: LoadedProperty[],
+    templateId: string,
+    input: z.output<typeof createRowSchema>,
+    values: Map<string, PropertyValue>,
+    ctx: ChangeContext,
+  ): Promise<RowDto> {
+    const data = a.data;
+    const tz = this.compute.timeZone;
+    const today = dayInZone(Date.now(), tz);
+    const locale = user.locale === 'en' ? 'en-GB' : 'de-DE';
+    const vars = {
+      '@heute': new Date(`${today}T12:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }),
+      '@today': new Date(`${today}T12:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }),
+      '@ersteller': user.name,
+      '@creator': user.name,
+    };
+    const tpl = await this.prisma.client.page.findUnique({ where: { id: templateId } });
+    if (!tpl || tpl.kind !== 'ROW_TEMPLATE' || tpl.deletedAt) throw notFound('Vorlage');
+    const copy = await this.copier.copy(
+      user,
+      templateId,
+      {
+        workspaceId: data.page.workspaceId,
+        parentId: data.db.id,
+        scope: data.page.scope,
+        ownerId: data.page.ownerId,
+      },
+      { rootKind: 'DATABASE_ROW', vars, insertBlock: false, event: false },
+    );
+    // Dynamische Werte der Vorlage: { [propertyId]: 'today' | 'now' | 'creator' }
+    const dynamic = ((tpl.settings as { dynamic?: Record<string, string> } | null)?.dynamic ??
+      {}) as Record<string, string>;
+    const merged = new Map<string, PropertyValue>();
+    for (const [pid, kind] of Object.entries(dynamic)) {
+      const prop = props.find((p) => p.id === pid);
+      if (!prop || values.has(pid)) continue;
+      if (prop.type === 'date' && kind === 'today')
+        merged.set(pid, { start: today, end: null, hasTime: false, timeZone: null });
+      if (prop.type === 'date' && kind === 'now')
+        merged.set(pid, {
+          start: new Date().toISOString(),
+          end: null,
+          hasTime: true,
+          timeZone: null,
+        });
+      if (prop.type === 'person' && kind === 'creator') merged.set(pid, [user.id]);
+    }
+    for (const [k, v] of values) merged.set(k, v);
+    let extra: Record<string, string[]> = {};
+    const title = input.title !== undefined ? input.title.replace(/\s+/g, ' ').trim() : undefined;
+    const row = await this.prisma.client.$transaction(async (tx) => {
+      extra = await this.writeValues(tx, data.db.id, copy.root.id, props, merged);
+      // Fortlaufende IDs gelten je Zeile, nicht aus der Vorlage
+      await tx.propertyValue.deleteMany({
+        where: {
+          rowId: copy.root.id,
+          propertyId: { in: props.filter((p) => p.type === 'unique_id').map((p) => p.id) },
+        },
+      });
+      await this.assignUniqueIds(tx, data.db.id, copy.root.id, props);
+      const position =
+        input.afterId || input.beforeId
+          ? await this.rowPosition(tx, data.db.id, input.afterId, input.beforeId, copy.root.id)
+          : undefined;
+      const u = await tx.page.update({
+        where: { id: copy.root.id },
+        data: { ...(title !== undefined ? { title } : {}), ...(position ? { position } : {}) },
+      });
+      await this.access.event(tx, data.page, 'database.rows.changed', user.id, { rowIds: [u.id] });
+      return u;
+    });
+    await this.compute.rowsChanged(data.db.id, [row.id], user.id, extra);
+    const stored = await this.prisma.client.propertyValue.findMany({
+      where: { rowId: row.id },
+      select: { propertyId: true },
+    });
+    await this.events.emit({
+      kind: 'created',
+      workspaceId: data.page.workspaceId,
+      databaseId: data.db.id,
+      rowIds: [row.id],
+      changed: ['title', ...stored.map((v) => v.propertyId)],
+      actorId: user.id,
+      depth: ctx.depth ?? 0,
+    });
     return (await this.pagesToDtos([row], props))[0]!;
   }
 
@@ -320,9 +446,10 @@ export class RowsService {
     databaseId: string,
     rowId: string,
     input: z.output<typeof updateRowSchema>,
+    ctx: ChangeContext = {},
   ): Promise<RowDto> {
     const a = await this.access.requireData(user.id, databaseId);
-    const row = await this.requireRow(user, a.data.db.id, rowId);
+    const row = await this.requireRow(user, a.data.db.id, rowId, { allowTemplate: true });
     const props = await this.access.properties(a.data.db.id);
     const values = await this.validateValues(a.data.page.workspaceId, props, input.values);
     const title = input.title !== undefined ? input.title.replace(/\s+/g, ' ').trim() : undefined;
@@ -358,6 +485,20 @@ export class RowsService {
       });
     }
     await this.compute.rowsChanged(a.data.db.id, [row.id], user.id, extra);
+    // Vorlagen lösen keine Automatisierungen aus
+    if (row.kind === 'DATABASE_ROW')
+      await this.events.emit({
+        kind: 'updated',
+        workspaceId: a.data.page.workspaceId,
+        databaseId: a.data.db.id,
+        rowIds: [row.id],
+        changed: [
+          ...(title !== undefined && title !== row.title ? ['title'] : []),
+          ...values.keys(),
+        ],
+        actorId: user.id,
+        depth: ctx.depth ?? 0,
+      });
     return (await this.pagesToDtos([updated], props))[0]!;
   }
 
@@ -432,8 +573,19 @@ export class RowsService {
       }
       return u;
     });
-    if (input.groups?.length)
+    if (input.groups?.length) {
       await this.compute.rowsChanged(a.data.db.id, [row.id], user.id, extra);
+      const titleProp = props.find((p) => p.type === 'title')?.id;
+      await this.events.emit({
+        kind: 'updated',
+        workspaceId: a.data.page.workspaceId,
+        databaseId: a.data.db.id,
+        rowIds: [row.id],
+        changed: input.groups.map((g) => (g.propertyId === titleProp ? 'title' : g.propertyId)),
+        actorId: user.id,
+        depth: 0,
+      });
+    }
     return (await this.pagesToDtos([moved], props))[0]!;
   }
 
@@ -477,6 +629,15 @@ export class RowsService {
         visible.map((r) => r.id),
         user.id,
       );
+      await this.events.emit({
+        kind: 'trashed',
+        workspaceId: a.data.page.workspaceId,
+        databaseId: a.data.db.id,
+        rowIds: visible.map((r) => r.id),
+        changed: [],
+        actorId: user.id,
+        depth: 0,
+      });
     }
     return { trashed: visible.length };
   }
@@ -487,13 +648,15 @@ export class RowsService {
     user: AuthUser,
     dataId: string,
     rowId: string,
-    opts: { includeTrashed?: boolean } = {},
+    opts: { includeTrashed?: boolean; allowTemplate?: boolean } = {},
   ): Promise<Page> {
     const row = await this.prisma.client.page.findUnique({ where: { id: rowId } });
+    // Phase 9: Zeilen-Vorlagen lassen sich wie Zeilen lesen und bearbeiten
+    const isTemplate =
+      opts.allowTemplate && row?.kind === 'ROW_TEMPLATE' && row.parentId === dataId;
     if (
       !row ||
-      row.kind !== 'DATABASE_ROW' ||
-      row.databaseId !== dataId ||
+      (!isTemplate && (row.kind !== 'DATABASE_ROW' || row.databaseId !== dataId)) ||
       !(row.scope === 'TEAM' || row.ownerId === user.id) ||
       (row.deletedAt && !opts.includeTrashed)
     )
