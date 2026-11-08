@@ -197,3 +197,42 @@ export function needsRefresh(secrets: Record<string, string>, now: number): bool
   const exp = Number(secrets.expiresAt ?? 0);
   return !secrets.accessToken || !Number.isFinite(exp) || exp - now < 60_000;
 }
+
+/** Umgebungsvariablen der OAuth-Apps (Ausschnitt der Server-Konfiguration) */
+export interface OAuthEnv {
+  NODE_ENV: string;
+  JOTION_GOOGLE_CLIENT_ID: string;
+  JOTION_GOOGLE_CLIENT_SECRET: string;
+  JOTION_MICROSOFT_CLIENT_ID: string;
+  JOTION_MICROSOFT_CLIENT_SECRET: string;
+  JOTION_MICROSOFT_TENANT: string;
+  JOTION_DROPBOX_CLIENT_ID: string;
+  JOTION_DROPBOX_CLIENT_SECRET: string;
+  JOTION_INTEGRATION_ENDPOINTS: Record<string, string>;
+}
+
+/** Testumgebung: Basis-URLs der Dienste überschreiben (in production ignoriert) */
+export function endpointsFromEnv(env: OAuthEnv): Record<string, string> | undefined {
+  if (env.NODE_ENV === 'production') return undefined;
+  return Object.keys(env.JOTION_INTEGRATION_ENDPOINTS).length
+    ? env.JOTION_INTEGRATION_ENDPOINTS
+    : undefined;
+}
+
+export function oauthClientFromEnv(env: OAuthEnv, provider: OAuthProviderId): OAuthClient | null {
+  const ids: Record<OAuthProviderId, [string, string]> = {
+    google: [env.JOTION_GOOGLE_CLIENT_ID, env.JOTION_GOOGLE_CLIENT_SECRET],
+    microsoft: [env.JOTION_MICROSOFT_CLIENT_ID, env.JOTION_MICROSOFT_CLIENT_SECRET],
+    dropbox: [env.JOTION_DROPBOX_CLIENT_ID, env.JOTION_DROPBOX_CLIENT_SECRET],
+  };
+  const [clientId, secret] = ids[provider];
+  if (!clientId.trim()) return null;
+  const e = endpointsFromEnv(env) ?? {};
+  return {
+    clientId: clientId.trim(),
+    clientSecret: secret.trim() || null,
+    tenant: provider === 'microsoft' ? env.JOTION_MICROSOFT_TENANT : undefined,
+    authorizeUrl: e[`oauth:${provider}:authorize`],
+    tokenUrl: e[`oauth:${provider}:token`],
+  };
+}

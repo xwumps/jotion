@@ -30,8 +30,16 @@ import {
 } from './mapping';
 import type { SafeHttpClient } from './safe-http';
 import {
+  needsRefresh,
+  OAUTH_PROVIDERS,
+  refreshTokens,
+  tokensToSecrets,
+  type OAuthClient,
+} from './oauth';
+import {
   ConnectorError,
   type ConnectorContext,
+  type OAuthProviderId,
   type ConnectorDefinition,
   type ExternalRecord,
   type SourceOptions,
@@ -61,6 +69,10 @@ export interface SyncEngineOptions {
   onRowsChanged?: (databaseId: string, rowIds: string[], actorId: string) => Promise<void>;
   /** Tests: wird nach jedem Datensatz aufgerufen (Abbruch simulieren) */
   afterRecord?: (count: number) => void | Promise<void>;
+  /** Phase 11: OAuth-Client je Anbieter (aus der Umgebung); null = nicht eingerichtet */
+  oauthClient?: (provider: OAuthProviderId) => OAuthClient | null;
+  /** Phase 11: Basis-URLs der Dienste überschreiben (Tests) */
+  endpoints?: Record<string, string>;
   /** Dauer der Sperre; wird während des Laufs verlängert */
   lockMs?: number;
 }
@@ -178,8 +190,64 @@ export class SyncEngine {
     return JSON.parse(plain) as Record<string, string>;
   }
 
-  context(config: Record<string, unknown>, secrets: Record<string, string>): ConnectorContext {
-    return { config, secrets, http: this.o.http(), timeZone: this.o.timeZone, now: this.now };
+  context(
+    config: Record<string, unknown>,
+    secrets: Record<string, string>,
+    opts: { type?: string; connectionId?: string } = {},
+  ): ConnectorContext {
+    const ctx: ConnectorContext = {
+      config,
+      secrets,
+      http: this.o.http(),
+      timeZone: this.o.timeZone,
+      now: this.now,
+      endpoints: this.o.endpoints,
+    };
+    const def = opts.type ? this.connector(opts.type) : null;
+    if (def?.authKind === 'oauth2' && def.oauth) {
+      const providerId = def.oauth.provider;
+      let current = { ...secrets };
+      let pending: Promise<string> | null = null;
+      // Phase 11: Token bei Bedarf erneuern und verschlüsselt speichern (einmal je Kontext gleichzeitig)
+      const refresh = async (): Promise<string> => {
+        if (!current.refreshToken)
+          throw new ConnectorError('auth', 'Anmeldung abgelaufen, bitte neu verbinden');
+        const client = this.o.oauthClient?.(providerId) ?? null;
+        if (!client)
+          throw new ConnectorError(
+            'config',
+            `${OAUTH_PROVIDERS[providerId].displayName} ist auf diesem Server nicht eingerichtet (Client-ID fehlt)`,
+          );
+        const t = await refreshTokens(
+          ctx.http,
+          OAUTH_PROVIDERS[providerId],
+          client,
+          current.refreshToken,
+          this.now(),
+        );
+        current = { ...current, ...tokensToSecrets(t) };
+        ctx.secrets = current;
+        if (opts.connectionId)
+          await this.o.prisma.integrationConnection.update({
+            where: { id: opts.connectionId },
+            data: {
+              secrets: this.o.box.encrypt(
+                JSON.stringify(current),
+                secretsContext(opts.connectionId),
+              ),
+            },
+          });
+        return current.accessToken!;
+      };
+      ctx.accessToken = async () => {
+        if (!needsRefresh(current, this.now())) return current.accessToken!;
+        pending ??= refresh().finally(() => {
+          pending = null;
+        });
+        return pending;
+      };
+    }
+    return ctx;
   }
 
   // ---------------------------------------------------------------- Lauf
@@ -228,7 +296,10 @@ export class SyncEngine {
     let fatal: Error | null = null;
     try {
       const connector = this.connector(conn.type);
-      const ctx = this.context(conn.config as Record<string, unknown>, await this.secretsOf(conn));
+      const ctx = this.context(conn.config as Record<string, unknown>, await this.secretsOf(conn), {
+        type: conn.type,
+        connectionId: conn.id,
+      });
       const sources = await this.o.prisma.integrationSource.findMany({
         where: { connectionId, enabled: true, targetDatabaseId: { not: null } },
         orderBy: { createdAt: 'asc' },

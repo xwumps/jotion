@@ -14,7 +14,6 @@ import {
  * anderer Absender werden verworfen, damit niemand über den Bot Zeilen anlegen kann.
  */
 
-
 interface TgUser {
   id: number;
   username?: string;

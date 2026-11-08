@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   Prisma,
@@ -19,12 +19,19 @@ import {
   type ExternalRecord,
   type MapProperty,
   type RecordKind,
+  authorizeUrl,
+  exchangeCode,
+  OAUTH_PROVIDERS,
+  oauthClientFromEnv,
+  pkcePair,
+  tokensToSecrets,
 } from '@jotion/integrations';
 import {
   createConnectionSchema,
   createTargetDatabaseSchema,
   disconnectSchema,
   mappingSchema,
+  oauthStartSchema,
   resolveConflictSchema,
   sourceOptionsSchema,
   testConnectionSchema,
@@ -33,6 +40,7 @@ import {
   type ConflictDto,
   type ConnectionDto,
   type ConnectionTestDto,
+  type ConnectorInfoDto,
   type ConnectorType,
   type DeletionPolicy,
   type Mapping,
@@ -51,6 +59,7 @@ import { SERVER_ENV } from '../config/config.module';
 import { DatabaseAccessService } from '../databases/database-access';
 import { DatabasesService } from '../databases/databases.service';
 import { PrismaService } from '../infra/prisma.service';
+import { RedisService } from '../infra/redis.service';
 import { PermissionService } from '../permissions/permission.service';
 import { SyncRunnerService } from './sync-runner.service';
 
@@ -74,6 +83,18 @@ const connectorError = (err: unknown): { code: string; message: string } => {
  * Phase 8: Integrationen eines Nutzers im Workspace. Verbindungen gehören ihrem Ersteller
  * (Zugangsdaten sind persönlich); synchronisiert wird in Datenbanken, die er bearbeiten darf.
  */
+/** Phase 11: Zustand einer begonnenen OAuth-Anmeldung (Redis, 10 Minuten) */
+interface OAuthPending {
+  userId: string;
+  workspaceId: string;
+  type: string;
+  name: string | null;
+  connectionId: string | null;
+  intervalMinutes: number;
+  verifier: string;
+}
+const OAUTH_STATE = 'jotion:oauth:';
+
 @Injectable()
 export class IntegrationsService {
   constructor(
@@ -83,17 +104,128 @@ export class IntegrationsService {
     private readonly databases: DatabasesService,
     private readonly runner: SyncRunnerService,
     private readonly limits: RateLimitService,
+    private readonly redis: RedisService,
     @Inject(SERVER_ENV) private readonly env: ServerEnv,
   ) {}
 
-  connectors() {
+  connectors(): ConnectorInfoDto[] {
     return Object.values(CONNECTORS).map((c) => ({
       type: c.type,
       displayName: c.displayName,
+      authKind: c.authKind,
       configFields: c.configFields,
       secretFields: c.secretFields,
       capabilities: c.capabilities,
+      available: !c.oauth || !!oauthClientFromEnv(this.env, c.oauth.provider),
     }));
+  }
+
+  // ---------------------------------------------------------------- OAuth (Phase 11)
+
+  private redirectUri() {
+    return new URL('/api/integrations/oauth/callback', this.env.JOTION_PUBLIC_URL).toString();
+  }
+
+  /** Anmeldung beim Anbieter beginnen: Zustand 10 Minuten in Redis, Antwort ist die Anbieter-URL. */
+  async oauthStart(user: AuthUser, workspaceId: string, body: unknown): Promise<{ url: string }> {
+    await this.perms.requireMember(user.id, workspaceId);
+    const input = parse(oauthStartSchema, body);
+    await this.limits.hit(`integration-test:${user.id}`, 20, 60);
+    if (input.connectionId) {
+      const c = await this.requireConnection(user, workspaceId, input.connectionId);
+      if (c.type !== input.type) throw new AppError('validation_failed', 'Falscher Anbieter');
+    }
+    const connector = connectorFor(input.type);
+    const client = oauthClientFromEnv(this.env, connector.oauth!.provider);
+    if (!client)
+      throw new AppError(
+        'validation_failed',
+        `${connector.displayName} ist auf diesem Server nicht eingerichtet (Client-ID fehlt)`,
+      );
+    const state = randomBytes(32).toString('base64url');
+    const { verifier, challenge } = pkcePair();
+    const pending: OAuthPending = {
+      userId: user.id,
+      workspaceId,
+      type: input.type,
+      name: input.name ?? null,
+      connectionId: input.connectionId ?? null,
+      intervalMinutes: input.intervalMinutes,
+      verifier,
+    };
+    await this.redis.client.set(`${OAUTH_STATE}${state}`, JSON.stringify(pending), 'EX', 600);
+    return {
+      url: authorizeUrl(OAUTH_PROVIDERS[connector.oauth!.provider], client, {
+        redirectUri: this.redirectUri(),
+        state,
+        codeChallenge: challenge,
+        scopes: connector.oauth!.scopes,
+      }),
+    };
+  }
+
+  /**
+   * Rückkehr vom Anbieter: Zustand prüfen (einmalig, gleicher Nutzer), Code tauschen, Verbindung
+   * testen und anlegen bzw. neu anmelden. Liefert den Pfad der Einstellungsseite mit Ergebnis.
+   */
+  async oauthCallback(user: AuthUser, query: Record<string, unknown>): Promise<string> {
+    const state = typeof query.state === 'string' ? query.state.slice(0, 200) : '';
+    const raw = state ? await this.redis.client.getdel(`${OAUTH_STATE}${state}`) : null;
+    if (!raw) return '/?integrationError=state';
+    const p = JSON.parse(raw) as OAuthPending;
+    const back = (params: Record<string, string>) =>
+      `/w/${p.workspaceId}/settings?${new URLSearchParams({ tab: 'integrations', ...params })}`;
+    // Anderer Nutzer (z. B. geteilter Rechner): nichts anlegen
+    if (p.userId !== user.id) return back({ integrationError: 'user' });
+    if (typeof query.error === 'string')
+      return back({ integrationError: query.error === 'access_denied' ? 'denied' : 'provider' });
+    const code = typeof query.code === 'string' ? query.code : '';
+    if (!code) return back({ integrationError: 'provider' });
+    const connector = connectorFor(p.type);
+    const provider = OAUTH_PROVIDERS[connector.oauth!.provider];
+    const client = oauthClientFromEnv(this.env, provider.id);
+    if (!client) return back({ integrationError: 'config' });
+    let secrets: Record<string, string>;
+    try {
+      const tokens = await exchangeCode(this.runner.engine.context({}, {}).http, provider, client, {
+        code,
+        redirectUri: this.redirectUri(),
+        codeVerifier: p.verifier,
+        now: Date.now(),
+      });
+      secrets = tokensToSecrets(tokens);
+    } catch (err) {
+      return back({ integrationError: 'token', message: connectorError(err).message });
+    }
+    const config = this.validate(connector, {});
+    const test = await this.runTest(connector, config, secrets);
+    if (!test.ok) return back({ integrationError: 'test', message: test.error?.message ?? '' });
+    if (p.connectionId) {
+      const c = await this.prisma.client.integrationConnection.findUnique({
+        where: { id: p.connectionId },
+      });
+      if (!c || c.ownerId !== user.id) return back({ integrationError: 'user' });
+      await this.prisma.client.integrationConnection.update({
+        where: { id: c.id },
+        data: {
+          secrets: this.runner.box.encrypt(JSON.stringify(secrets), secretsContext(c.id)),
+          accountLabel: test.accountLabel,
+          status: 'active',
+          statusMessage: null,
+          consecutiveFailures: 0,
+        },
+      });
+      return back({ connected: c.id });
+    }
+    const created = await this.insertConnection(user, p.workspaceId, {
+      type: p.type,
+      name: p.name ?? `${connector.displayName} (${test.accountLabel ?? ''})`.replace(' ()', ''),
+      config: { ...config, account: test.accountLabel },
+      secrets,
+      intervalMinutes: p.intervalMinutes,
+      test,
+    });
+    return back({ connected: created.id });
   }
 
   // ---------------------------------------------------------------- Laden
@@ -241,9 +373,12 @@ export class IntegrationsService {
     connector: ConnectorDefinition,
     config: Record<string, unknown>,
     secrets: Record<string, string>,
+    connectionId?: string,
   ): Promise<ConnectionTestDto> {
     try {
-      const r = await connector.testConnection(this.runner.engine.context(config, secrets));
+      const r = await connector.testConnection(
+        this.runner.engine.context(config, secrets, { type: connector.type, connectionId }),
+      );
       return {
         ok: true,
         accountLabel: r.accountLabel,
@@ -281,8 +416,32 @@ export class IntegrationsService {
     const test = await this.runTest(connector, config, secrets);
     if (!test.ok)
       throw new AppError('validation_failed', test.error!.message, { connector: test.error });
+    const created = await this.insertConnection(user, workspaceId, {
+      type: input.type,
+      name: input.name,
+      config,
+      secrets,
+      intervalMinutes: input.intervalMinutes,
+      test,
+    });
+    return (await this.toDtos([created]))[0]!;
+  }
+
+  private async insertConnection(
+    user: AuthUser,
+    workspaceId: string,
+    input: {
+      type: string;
+      name: string;
+      config: Record<string, unknown>;
+      secrets: Record<string, string>;
+      intervalMinutes: number;
+      test: ConnectionTestDto;
+    },
+  ) {
+    const { config, secrets, test } = input;
     const id = randomUUID();
-    const created = await this.prisma.client.$transaction(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const c = await tx.integrationConnection.create({
         data: {
           id,
@@ -313,7 +472,6 @@ export class IntegrationsService {
         });
       return c;
     });
-    return (await this.toDtos([created]))[0]!;
   }
 
   async update(
@@ -350,7 +508,7 @@ export class IntegrationsService {
     }
     if (credentialsChanged) {
       // Neue Zugangsdaten: prüfen und Fehlerstatus aufheben
-      const test = await this.runTest(connector, config, secrets);
+      const test = await this.runTest(connector, config, secrets, c.id);
       if (!test.ok)
         throw new AppError('validation_failed', test.error!.message, { connector: test.error });
       data.accountLabel = test.accountLabel;
@@ -379,6 +537,7 @@ export class IntegrationsService {
       connector,
       c.config as Record<string, unknown>,
       await this.runner.engine.secretsOf(c),
+      c.id,
     );
     if (test.ok) {
       await this.prisma.client.$transaction(async (tx) => {
@@ -633,6 +792,7 @@ export class IntegrationsService {
     const ctx = this.runner.engine.context(
       conn.config as Record<string, unknown>,
       await this.runner.engine.secretsOf(conn),
+      { type: conn.type, connectionId: conn.id },
     );
     let records: ExternalRecord[];
     try {

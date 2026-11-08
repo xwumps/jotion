@@ -269,3 +269,28 @@ export interface MappingPreviewDto {
   newOptions: Record<string, string[]>;
   errors: string[];
 }
+
+// ---------------------------------------------------------------- Phase 11: OAuth
+
+export const OAUTH_CONNECTOR_TYPES = ['google', 'microsoft', 'dropbox'] as const;
+
+export const oauthStartSchema = z
+  .object({
+    type: z.enum(OAUTH_CONNECTOR_TYPES),
+    name: z.string().trim().min(1).max(100).optional(),
+    /** Bestehende Verbindung neu anmelden (abgelaufene oder widerrufene Freigabe) */
+    connectionId: id.optional(),
+    intervalMinutes: z.number().int().min(15).max(1440).default(60),
+  })
+  .strict();
+
+export interface ConnectorInfoDto {
+  type: string;
+  displayName: string;
+  authKind: 'basic' | 'none' | 'token' | 'oauth2';
+  configFields: string[];
+  secretFields: string[];
+  capabilities: { kinds: string[]; incremental: boolean; write: boolean };
+  /** OAuth: auf diesem Server eingerichtet (Client-ID vorhanden) */
+  available: boolean;
+}

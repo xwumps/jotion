@@ -1,6 +1,12 @@
 import { ComputeEngine } from '@jotion/compute';
 import type { PrismaClient } from '@jotion/db';
-import { SafeHttpClient, SecretBox, SyncEngine } from '@jotion/integrations';
+import {
+  SafeHttpClient,
+  SecretBox,
+  SyncEngine,
+  endpointsFromEnv,
+  oauthClientFromEnv,
+} from '@jotion/integrations';
 import { COMPUTE_JOBS, INTEGRATION_JOBS, type PropagateJob, type SyncJob } from '@jotion/shared';
 import type { ServerEnv } from '@jotion/shared/env';
 import type { Job, Queue } from 'bullmq';
@@ -29,6 +35,9 @@ export function createSyncEngine(
         accept: 'text/calendar, application/xml, text/xml, */*;q=0.5',
       }),
     timeZone: env.JOTION_TIMEZONE,
+    // Phase 11: OAuth-Apps und (nur Tests) Basis-URLs der Dienste
+    oauthClient: (provider) => oauthClientFromEnv(env, provider),
+    endpoints: endpointsFromEnv(env),
     onRowsChanged: async (databaseId, rowIds, actorId) => {
       void redis.incr(`jotion:chartv:${databaseId}`).catch(() => undefined);
       // Formeln und Rollups der geänderten Zeilen sofort, abhängige Zeilen über die Queue
