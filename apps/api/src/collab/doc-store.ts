@@ -12,6 +12,10 @@ import { PrismaService } from '../infra/prisma.service';
  *  - compact(): schreibt den Gesamtzustand, entfernt nur Updates, die nachweislich darin
  *    enthalten sind (Y.snapshotContainsUpdate), und aktualisiert die Block-Projektion.
  */
+/** Phase 10: Abstand automatischer Versionen und Höchstzahl je Seite */
+export const SNAPSHOT_INTERVAL_MS = 10 * 60_000;
+export const MAX_SNAPSHOTS = 100;
+
 @Injectable()
 export class DocStore {
   private readonly logger = new Logger('DocStore');
@@ -93,6 +97,8 @@ export class DocStore {
       }
       await this.writeProjection(tx, pageId, projection);
       await this.notifyMentions(tx, page, before, projection, editorUserId);
+      // Phase 10: Version für die Seitenhistorie, höchstens eine je Intervall und nur nach Änderungen
+      if (contained.length) await this.maybeSnapshot(tx, pageId, state, editorUserId);
       if (editorUserId) {
         await tx.page.update({
           where: { id: pageId },
@@ -100,6 +106,32 @@ export class DocStore {
         });
       }
     });
+  }
+
+  /** Legt eine Version an, wenn die letzte älter als SNAPSHOT_INTERVAL_MS ist; behält die neuesten. */
+  private async maybeSnapshot(
+    tx: Prisma.TransactionClient,
+    pageId: string,
+    state: Uint8Array,
+    userId: string | null,
+  ): Promise<void> {
+    const last = await tx.pageSnapshot.findFirst({
+      where: { pageId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (last && Date.now() - last.createdAt.getTime() < SNAPSHOT_INTERVAL_MS) return;
+    const page = await tx.page.findUniqueOrThrow({
+      where: { id: pageId },
+      select: { title: true },
+    });
+    await tx.pageSnapshot.create({
+      data: { pageId, state: Buffer.from(state), title: page.title, createdById: userId },
+    });
+    await tx.$executeRaw`
+      DELETE FROM page_snapshots WHERE page_id = ${pageId}::uuid AND id NOT IN (
+        SELECT id FROM page_snapshots WHERE page_id = ${pageId}::uuid
+         ORDER BY created_at DESC LIMIT ${MAX_SNAPSHOTS})`;
   }
 
   /**

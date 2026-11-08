@@ -84,3 +84,34 @@ export const markReadSchema = z
     all: z.boolean().optional(),
   })
   .strict();
+
+// ---------------------------------------------------------------- Seitenhistorie
+
+export interface PageVersionDto {
+  id: string;
+  title: string;
+  /** auto: beim Bearbeiten, restore: Stand vor einer Wiederherstellung */
+  reason: 'auto' | 'restore';
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+}
+
+export type BlockDiffStatus = 'added' | 'removed' | 'changed' | 'same';
+
+export interface BlockDiffDto {
+  id: string;
+  type: string;
+  status: BlockDiffStatus;
+  /** Text in dieser Version */
+  text: string;
+  /** Text im Vergleichsstand (bei changed und removed) */
+  before: string | null;
+}
+
+export interface PageVersionDetailDto {
+  version: PageVersionDto;
+  /** Inhalt der Version als ProseMirror-JSON */
+  doc: { type: string; content?: unknown[] };
+  /** Vergleich mit der vorherigen Version (älteste: mit leerem Dokument) */
+  diff: BlockDiffDto[];
+}

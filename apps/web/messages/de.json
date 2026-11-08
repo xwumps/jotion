@@ -1469,5 +1469,19 @@
     "delete": "Löschen",
     "cancel": "Abbrechen",
     "send": "Senden"
+  },
+  "presence": {
+    "label": "Gerade hier: {names}"
+  },
+  "history": {
+    "title": "Versionsverlauf",
+    "empty": "Noch keine Versionen. Versionen entstehen beim Bearbeiten, höchstens alle 10 Minuten.",
+    "beforeRestore": "Stand vor Wiederherstellung",
+    "system": "System",
+    "preview": "Vorschau",
+    "diff": "Änderungen",
+    "restore": "Diese Version wiederherstellen",
+    "restored": "Version wiederhergestellt",
+    "noChanges": "Keine Änderungen gegenüber der vorherigen Version"
   }
 }

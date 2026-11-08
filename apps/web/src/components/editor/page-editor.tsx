@@ -4,6 +4,7 @@ import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { DOC_FRAGMENT, jotionExtensions } from '@jotion/editor';
 import type { PageDto } from '@jotion/shared';
 import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCaret from '@tiptap/extension-collaboration-caret';
 import { Selection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,8 @@ import { toast } from 'sonner';
 import type { PageDto as CreatedPage } from '@jotion/shared';
 import { apiPost, errorMessage } from '@/lib/api-client';
 import { invalidateTree } from '@/lib/hooks';
+import { setPresence, userColor, type PresenceUser } from '@/lib/presence-store';
+import { useMe } from '../app/providers';
 import { pickPage } from '@/lib/quick-search-store';
 import { EditorBubbleMenu } from './bubble-menu';
 import { BlockHandle } from './block-handle';
@@ -83,6 +86,8 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     const tdb = useTranslations('databaseCommands');
     const qc = useQueryClient();
     const [scope, setScope] = useState<'read-write' | 'readonly' | null>(null);
+    const me = useMe();
+    usePresenceSync(page.id, session);
     const canWrite = editable && scope !== 'readonly';
     useTrackSaveState(session.provider, editable);
 
@@ -176,6 +181,11 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
                   : '',
           extra: [
             Collaboration.configure({ document: session.doc, field: 'default' }),
+            // Phase 10: Live-Cursor und Auswahl anderer Personen
+            CollaborationCaret.configure({
+              provider: session.provider,
+              user: { userId: me.user.id, name: me.user.name, color: userColor(me.user.id) },
+            }),
             createSlashCommand(
               () => labelsRef.current,
               () => ctxRef.current,
@@ -256,6 +266,29 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
     );
   },
 );
+
+/** Phase 10: Personen auf der Seite aus dem Awareness-Zustand (ohne doppelte Tabs). */
+function usePresenceSync(pageId: string, session: PageSession) {
+  useEffect(() => {
+    const awareness = session.provider.awareness;
+    if (!awareness) return;
+    const update = () => {
+      const seen = new Map<string, PresenceUser>();
+      for (const s of awareness.getStates().values()) {
+        const u = (s as { user?: Partial<PresenceUser> }).user;
+        if (u?.userId && u.name && !seen.has(u.userId))
+          seen.set(u.userId, { userId: u.userId, name: u.name, color: u.color ?? '#999' });
+      }
+      setPresence(pageId, [...seen.values()]);
+    };
+    update();
+    awareness.on('change', update);
+    return () => {
+      awareness.off('change', update);
+      setPresence(pageId, []);
+    };
+  }, [pageId, session]);
+}
 
 /** Springt zu #<block-id> aus der URL, sobald der Inhalt geladen ist, und hebt den Block kurz hervor. */
 function useScrollToHashBlock(editor: Editor | null, session: PageSession) {

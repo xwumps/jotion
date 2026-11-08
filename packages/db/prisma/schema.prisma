@@ -199,6 +199,11 @@ model Page {
   relationsFrom    RelationLink[]   @relation("RelationFrom")
   relationsTo      RelationLink[]   @relation("RelationTo")
   externalEntities ExternalEntity[]
+  permissions      PagePermission[]
+  shareLink        PageShareLink?
+  comments         Comment[]
+  notifications    Notification[]
+  snapshots        PageSnapshot[]
 
   @@index([workspaceId, parentId, position])
   @@index([databaseId, position])
@@ -773,6 +778,7 @@ model PagePermission {
   updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
   @@index([pageId])
@@ -785,6 +791,7 @@ model PageShareLink {
   token       String   @unique
   createdById String   @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@map("page_share_links")
 }
@@ -810,6 +817,7 @@ model Comment {
   resolvedById String?   @map("resolved_by_id") @db.Uuid
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId, threadId, createdAt])
   @@map("comments")
@@ -831,6 +839,7 @@ model Notification {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  page      Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([userId, workspaceId, createdAt])
   @@map("notifications")
@@ -846,6 +855,7 @@ model PageSnapshot {
   reason      String   @default("auto")
   createdById String?  @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId, createdAt])
   @@map("page_snapshots")

@@ -1469,5 +1469,19 @@
     "delete": "Delete",
     "cancel": "Cancel",
     "send": "Send"
+  },
+  "presence": {
+    "label": "Here now: {names}"
+  },
+  "history": {
+    "title": "Version history",
+    "empty": "No versions yet. Versions are saved while editing, at most every 10 minutes.",
+    "beforeRestore": "State before restore",
+    "system": "System",
+    "preview": "Preview",
+    "diff": "Changes",
+    "restore": "Restore this version",
+    "restored": "Version restored",
+    "noChanges": "No changes compared to the previous version"
   }
 }
