@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { pageIconSchema } from './contracts';
+import type { pageIconSchema } from './contracts';
 
 /** Phase 9: Vorlagen (Galerie, eigene Vorlagen, Zeilen-Vorlagen von Datenbanken). */
 
