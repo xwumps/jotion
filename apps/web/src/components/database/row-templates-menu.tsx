@@ -65,7 +65,14 @@ export function NewRowButton({
         <Plus className="size-4" />
         {t('toolbar.new')}
       </button>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          // Titel können sich im Peek geändert haben
+          if (o) void templates.refetch();
+        }}
+      >
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -76,7 +83,12 @@ export function NewRowButton({
             <ChevronDown className="size-3.5" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-[300px] p-1 text-fg">
+        <PopoverContent
+          align="end"
+          className="w-[300px] p-1 text-fg"
+          // Fokus nicht zurückgeben: der Peek der neuen Zeile würde sich sonst schließen
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <div className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-fg-subtle">
             {tt('rowTemplates')}
           </div>
@@ -199,7 +211,12 @@ function TemplateItem({
             <MoreHorizontal className="size-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" side="right" className="w-[260px] p-1">
+        <PopoverContent
+          align="start"
+          side="right"
+          className="w-[260px] p-1"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <button
             type="button"
             onClick={() => {
