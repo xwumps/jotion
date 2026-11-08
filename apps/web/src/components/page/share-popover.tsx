@@ -57,9 +57,8 @@ export function SharePopover({ page }: { page: PageDto }) {
   const manage = d?.canManage ?? false;
   const own = d?.entries.filter((e) => e.userId) ?? [];
   const candidates =
-    d?.members.filter(
-      (m) => !own.some((e) => e.userId === m.userId && !e.inherited) && m.level !== 'full',
-    ) ?? [];
+    d?.members.filter((m) => !m.fixed && !own.some((e) => e.userId === m.userId && !e.inherited)) ??
+    [];
   const levelLabel = (l: PermissionLevel) => t(`level.${l}`);
 
   return (

@@ -15,6 +15,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -39,17 +40,25 @@ interface CommentsUi {
   clearDraft: () => void;
 }
 
+/** Ereignis (detail = Seiten-ID), das die Kommentarleiste öffnet */
+export const OPEN_COMMENTS_EVENT = 'jotion:open-comments';
+
 const Ctx = createContext<CommentsUi | null>(null);
 export const useCommentsUi = () => useContext(Ctx);
 
 /** Phase 10: Zustand der Kommentarleiste einer Seite (offen, Entwurf für einen Block). */
-export function CommentsProvider({ children }: { children: ReactNode }) {
+export function CommentsProvider({ pageId, children }: { pageId: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  // Link aus dem Posteingang (#comment-<thread>) öffnet die Leiste
+  // Link aus dem Posteingang (#comment-<thread>) öffnet die Leiste, auch auf der offenen Seite
   useEffect(() => {
     if (window.location.hash.startsWith('#comment-')) setOpen(true);
-  }, []);
+    const onOpen = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === pageId) setOpen(true);
+    };
+    window.addEventListener(OPEN_COMMENTS_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_COMMENTS_EVENT, onOpen);
+  }, [pageId]);
   const value = useMemo<CommentsUi>(
     () => ({
       open,
@@ -125,13 +134,14 @@ export function CommentsPanel({ page }: { page: PageDto }) {
     .join(',');
 
   // Sprung aus dem Posteingang
+  const panelOpen = ui?.open ?? false;
   useEffect(() => {
     const m = window.location.hash.match(/^#comment-([0-9a-f-]{36})$/);
-    if (!m || !comments.data) return;
+    if (!m || !comments.data || !panelOpen) return;
     const el = document.querySelector(`[data-thread-id="${m[1]}"]`);
     el?.scrollIntoView({ block: 'center' });
     el?.classList.add('jt-flash');
-  }, [comments.data]);
+  }, [comments.data, panelOpen]);
 
   if (!ui?.open) return null;
   return (
@@ -444,7 +454,14 @@ function Composer({
   );
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
+  const [caret, setCaret] = useState<number | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    if (caret === null || !ref.current) return;
+    ref.current.focus();
+    ref.current.setSelectionRange(caret, caret);
+    setCaret(null);
+  }, [caret]);
 
   const matches =
     query === null
@@ -467,10 +484,8 @@ function Composer({
     setText(next);
     setMentioned(new Map(mentioned).set(m.userId, m.name));
     setQuery(null);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(before.length, before.length);
-    });
+    // Cursor nach dem Rendern direkt hinter die Erwähnung setzen
+    setCaret(before.length);
   };
 
   const submit = () => {

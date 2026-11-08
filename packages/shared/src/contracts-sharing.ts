@@ -49,7 +49,14 @@ export interface SharingDto {
   general: PermissionLevel;
   entries: PermissionEntryDto[];
   /** Effektive Stufe je Mitglied */
-  members: { userId: string; name: string; email: string; level: PermissionLevel }[];
+  members: {
+    userId: string;
+    name: string;
+    email: string;
+    level: PermissionLevel;
+    /** Stufe lässt sich nicht ändern (Workspace-Owner auf Team-Seiten, Owner privater Seiten) */
+    fixed: boolean;
+  }[];
   shareLink: { token: string; url: string } | null;
 }
 

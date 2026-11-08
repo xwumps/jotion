@@ -118,8 +118,24 @@ test('Freigabe "kommentieren": Mitglied liest, kommentiert mit Erwähnung, Owner
   ).toBeVisible({ timeout: 15_000 });
 
   // Text markieren, kommentieren und den Owner erwähnen
-  await memberEditor.getByText('Samstag').dblclick();
-  await member.getByRole('button', { name: 'Kommentieren' }).click();
+  // Wort "Samstag" markieren
+  await memberEditor.evaluate((el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const i = node.textContent?.indexOf('Samstag') ?? -1;
+      if (i >= 0) {
+        const range = document.createRange();
+        range.setStart(node, i);
+        range.setEnd(node, i + 'Samstag'.length);
+        const sel = window.getSelection()!;
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+    }
+  });
+  await member.getByTestId('readonly-comment').click();
   const draft = member.getByTestId('comment-draft');
   await expect(draft).toBeVisible();
   const input = draft.getByTestId('comment-input');
@@ -165,8 +181,12 @@ test('Kein Zugriff: Seite verschwindet für das Mitglied, auch aus der Suche', a
   await api(owner, 'PUT', `/pages/${page.id}/permissions`, { userId: memberId, level: 'none' });
   await member.goto(`/w/${ws}/p/${page.id}`);
   await expect(member.getByTestId('page-not-found')).toBeVisible();
-  const found = await api(member, 'GET', `/workspaces/${ws}/search/content?q=Geschenkideen`);
-  expect(found).toEqual([]);
+  const found = await api(
+    member,
+    'GET',
+    `/workspaces/${ws}/search/content?q=Geschenkideen%20${RUN}`,
+  );
+  expect(found.map((r: { id: string }) => r.id)).not.toContain(page.id);
 });
 
 test('Synced Block: gleicher Inhalt auf zwei Seiten, Änderungen erscheinen überall', async () => {
@@ -224,7 +244,8 @@ test('Lese-Link zeigt die Seite ohne Anmeldung', async ({ browser }) => {
   });
   await owner.goto(`/w/${ws}/p/${page.id}`);
   await owner.getByTestId('share-button').click();
-  await owner.getByTestId('share-link-toggle').check();
+  await owner.getByTestId('share-link-toggle').click();
+  await expect(owner.getByTestId('share-link-url')).toBeVisible();
   const url = await owner.getByTestId('share-link-url').inputValue();
   await owner.keyboard.press('Escape');
   const anon = await browser.newPage(ctxOptions);

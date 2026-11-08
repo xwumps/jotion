@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { pageHref, relativeTime } from '@/lib/format';
 import { qk } from '@/lib/query-keys';
+import { OPEN_COMMENTS_EVENT } from '../comments/comments-panel';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 /** Phase 10: Posteingang (Erwähnungen in Seiten und Kommentaren, Antworten). */
@@ -38,6 +39,15 @@ export function InboxButton({ ws }: { ws: string }) {
     if (!n.page) return;
     const hash = n.threadId ? `#comment-${n.threadId}` : n.blockId ? `#${n.blockId}` : '';
     router.push(`${pageHref(ws, n.page.id)}${hash}`);
+    if (n.threadId) {
+      const pageId = n.page.id;
+      // Seite ist evtl. schon offen: Leiste per Ereignis öffnen (nach dem Seitenwechsel erneut)
+      window.dispatchEvent(new CustomEvent(OPEN_COMMENTS_EVENT, { detail: pageId }));
+      setTimeout(
+        () => window.dispatchEvent(new CustomEvent(OPEN_COMMENTS_EVENT, { detail: pageId })),
+        500,
+      );
+    }
   };
 
   return (

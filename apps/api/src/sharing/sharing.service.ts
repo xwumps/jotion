@@ -100,6 +100,7 @@ export class SharingService {
             name: m.user.name,
             email: m.user.email,
             level: levels.get(m.userId) ?? 'none',
+            fixed: page.scope === 'TEAM' ? m.role === 'OWNER' : m.userId === page.ownerId,
           }))
         : [],
       shareLink: link ? { token: link.token, url: this.url(link.token) } : null,

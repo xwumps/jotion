@@ -43,7 +43,7 @@ export function PageView({ pageId }: { pageId: string }) {
   if (!query.data) return <div className="h-full" aria-busy="true" />;
   return (
     <SaveStatusProvider>
-      <CommentsProvider key={query.data.id}>
+      <CommentsProvider key={query.data.id} pageId={query.data.id}>
         <PageBody page={query.data} />
       </CommentsProvider>
     </SaveStatusProvider>

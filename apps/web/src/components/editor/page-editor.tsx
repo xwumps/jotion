@@ -33,6 +33,7 @@ import { createMediaPaste } from './media-paste';
 import { createMentionSuggestion, type MentionLabels } from './mention-menu';
 import { TableMenu } from './table-menu';
 import { SyncedPaste } from './synced-block-view';
+import { ReadonlyCommentButton } from './readonly-comment-button';
 
 export interface PageEditorHandle {
   focusStart: () => void;
@@ -264,7 +265,7 @@ const EditorInner = forwardRef<PageEditorHandle, Props & { session: PageSession 
         <div className={cn('relative', !canWrite && 'jt-readonly')}>
           {editor && canWrite && <EditorBubbleMenu editor={editor} onComment={onComment} />}
           {editor && !canWrite && onComment && (
-            <EditorBubbleMenu editor={editor} onComment={onComment} commentOnly />
+            <ReadonlyCommentButton editor={editor} onComment={onComment} />
           )}
           {editor && canWrite && (
             <BlockHandle editor={editor} ctx={ctxRef.current} blockUrl={blockUrl} />
