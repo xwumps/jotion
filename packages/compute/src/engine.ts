@@ -349,6 +349,46 @@ export class ComputeEngine {
     return this.astCache.get(key)!;
   }
 
+  /**
+   * Phase 9: Formelausdruck für eine Zeile auswerten (Automatisierungen). Ohne Zeile stehen nur
+   * now()/today() und Konstanten zur Verfügung. Wirft FormulaError bei Syntax- oder Typfehlern.
+   */
+  async evaluateFor(
+    databaseId: string | null,
+    rowId: string | null,
+    expression: string,
+  ): Promise<Value> {
+    const node = parse(expression);
+    const now = this.opts.now?.() ?? Date.now();
+    if (!databaseId || !rowId)
+      return evaluate(node, { props: {}, pageProp: () => null, now, timeZone: this.opts.timeZone });
+    const props = await this.properties(databaseId);
+    const data = await this.load([rowId]);
+    const page = data.pages.get(rowId);
+    const scope: Record<string, Value> = {};
+    for (const p of props) scope[p.name] = this.valueOf(p, rowId, data);
+    const related = new RowData();
+    const linked = new Set<string>();
+    for (const r of props.filter((p) => p.type === 'relation'))
+      for (const pg of data.links.get(rowId)?.get(r.id) ?? []) linked.add(pg.id);
+    if (linked.size) await this.load([...linked], related);
+    const propsOf = new Map<string, ComputeProperty[]>();
+    for (const pg of related.pages.values())
+      if (!propsOf.has(pg.database_id))
+        propsOf.set(pg.database_id, await this.properties(pg.database_id));
+    return evaluate(node, {
+      props: scope,
+      pageProp: (pv: PageVal, name: string) => {
+        const row = related.pages.get(pv.id);
+        const p = row ? propsOf.get(row.database_id)?.find((x) => x.name === name) : undefined;
+        return p ? this.valueOf(p, pv.id, related) : null;
+      },
+      self: page ? { kind: 'page', id: rowId, title: page.title } : undefined,
+      now,
+      timeZone: this.opts.timeZone,
+    });
+  }
+
   // ---------------------------------------------------------------- Berechnen
 
   private async batch(

@@ -97,6 +97,11 @@ export const serverEnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /** Phase 9: Automatisierungen direkt ausführen statt über die Queue (für Tests) */
+  JOTION_AUTOMATIONS_INLINE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
