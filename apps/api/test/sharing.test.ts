@@ -2,7 +2,10 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PERMISSION_LEVELS, type PermissionLevel } from '@jotion/shared';
+import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { RealtimeService } from '../src/events/realtime.service';
+import { PrismaService } from '../src/infra/prisma.service';
 import { addMember, Client, createTestApp, resetState, setupOwner } from './helpers';
 
 /**
@@ -311,5 +314,43 @@ describe('Lese-Link', () => {
     // Deaktivieren macht den Link ungültig
     expect((await owner.del(`/api/pages/${page.id}/share-link`)).status).toBe(204);
     expect((await anon.get(`/api/share/${link.token}`)).status).toBe(404);
+  });
+});
+
+describe('Echtzeit', () => {
+  it('Ereignisse gesperrter Seiten erreichen nur Mitglieder mit Zugriff', async () => {
+    const page = (await create(owner, { title: 'Bonusliste', scope: 'TEAM' })).body;
+    await share(owner, page.id, null, 'none');
+    await share(owner, page.id, otherId, 'view');
+    const realtime = app.get(RealtimeService);
+    // Bisherige Ereignisse veröffentlichen, dann nur die Titeländerung betrachten
+    await app
+      .get(PrismaService)
+      .client.changeEvent.updateMany({ data: { publishedAt: new Date() } });
+    const sub = new Redis(process.env.REDIS_URL!);
+    const raw: string[] = [];
+    await sub.subscribe(`jotion:events:${ws}`);
+    sub.on('message', (_ch, msg) => raw.push(msg));
+    await owner.patch(`/api/pages/${page.id}`, { title: 'Bonusliste 2027' });
+    await realtime.relayOnce();
+    await new Promise((r) => setTimeout(r, 100));
+    sub.disconnect();
+    expect(raw).toHaveLength(1);
+
+    const got = new Map<string, unknown[]>();
+    const unsub = [ownerId, memberId, otherId].map((userId) =>
+      realtime.subscribe(ws, {
+        userId,
+        send: (e) => got.set(userId, [...(got.get(userId) ?? []), e]),
+      }),
+    );
+    // Verteilung wie bei einer Nachricht aus Redis
+    (realtime as unknown as { dispatch: (w: string, m: string) => void }).dispatch(ws, raw[0]!);
+    unsub.forEach((u) => u());
+    expect(got.get(ownerId)).toHaveLength(1);
+    expect(got.get(otherId)).toHaveLength(1);
+    expect(got.get(memberId)).toBeUndefined();
+    // Die Zielgruppe selbst wird nicht an Clients weitergegeben
+    expect(JSON.stringify(got.get(ownerId))).not.toContain('audience');
   });
 });
