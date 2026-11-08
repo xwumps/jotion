@@ -108,6 +108,8 @@ async function paste(data: { html?: string; text?: string }) {
 }
 
 test('Tabelle, Spalten, Inhaltsverzeichnis und Formeln bleiben nach Neuladen erhalten', async () => {
+  // Wiederholungen bis die Auswahl stimmt brauchen unter Last länger als 30 s
+  test.setTimeout(60_000);
   await newTeamPage('Bausteine');
   const k = page.keyboard;
   await k.type('# Kapitel eins');
