@@ -19,7 +19,7 @@ curl -H "Authorization: Bearer jtn_…" https://jotion.example.org/api/auth/me
 ## Regeln
 
 - Ein Token handelt mit den Rechten deines Kontos: dieselben Workspaces, Seiten und Zugriffsstufen.
-- **Nur lesen** erlaubt ausschließlich `GET`-Anfragen. Abfragen von Datenbankzeilen (`POST …/query`) brauchen deshalb derzeit ein Token mit Schreibrecht.
+- **Nur lesen** erlaubt `GET`-Anfragen und die Abfragen von Datenbanken (`POST …/query`, `…/calculate`, `…/chart`, `…/groups`), aber nichts, was Daten ändert.
 - Nie mit Token erreichbar: Anmeldung und Konto (außer `GET /api/auth/me`), Token-Verwaltung, Admin-Bereich, Anmeldung bei Integrationen. Ein gestohlenes Token kann also weder das Passwort ändern noch neue Tokens anlegen.
 - Höchstens 600 Anfragen pro Minute und Token.
 - Widerrufen jederzeit unter Einstellungen → Konto. Wird ein Konto gesperrt, werden seine Tokens gelöscht.
