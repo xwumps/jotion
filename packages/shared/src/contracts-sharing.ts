@@ -131,6 +131,8 @@ export interface AdminBackupDto {
 
 export interface AdminStatusDto {
   version: string;
+  /** Phase 12.2: neuestes Release (null = Prüfung aus oder nicht erreichbar) */
+  update: { latest: string; url: string; available: boolean } | null;
   uptimeSeconds: number;
   checks: Record<string, { status: 'ok' | 'error'; message?: string }>;
   counts: { users: number; workspaces: number; pages: number; databases: number; files: number };

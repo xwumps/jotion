@@ -35,6 +35,16 @@ export const serverEnvSchema = z.object({
   JOTION_BACKUP_DIR: z.string().min(1).default('/data/backups'),
   /** Phase 12: Bearer-Token für /api/metrics (Prometheus); leer = Endpunkt aus */
   JOTION_METRICS_TOKEN: z.string().default(''),
+  /** Phase 12.2: Admin-Bereich fragt neue Releases bei GitHub ab (false = nie) */
+  JOTION_UPDATE_CHECK: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  /** Repository für die Update-Prüfung (owner/name) */
+  JOTION_UPDATE_REPO: z
+    .string()
+    .regex(/^[\w.-]+\/[\w.-]+$/, 'owner/name')
+    .default('xwumps/jotion'),
   /** Zusätzlich erlaubte Origins für schreibende Requests (kommagetrennt), z. B. Dev-Server */
   JOTION_ALLOWED_ORIGINS: z
     .string()

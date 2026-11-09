@@ -22,6 +22,15 @@ import { API_VERSION } from '../version';
 
 const ARCHIVE = /^jotion-(\d{8})-(\d{6})-([a-z-]+)\.tar$/;
 const started = Date.now();
+const UPDATE_KEY = 'jotion:update-check';
+
+/** Vergleicht Versionen der Form 1.2.3: positiv, wenn a neuer ist als b. */
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  return 0;
+}
 
 /**
  * Phase 12: Admin-Bereich für Instanz-Admins: Zustand des Servers, Sicherungen (Liste, jetzt
@@ -60,12 +69,47 @@ export class AdminService {
     ]);
     return {
       version: API_VERSION,
+      update: await this.updateInfo(),
       uptimeSeconds: Math.round((Date.now() - started) / 1000),
       checks: { database, redis, worker },
       counts: { users, workspaces, pages, databases, files: files._count },
       storage: { filesBytes: files._sum.size ?? 0, databaseBytes: Number(sizes[0]?.bytes ?? 0) },
       backups: await this.backups(),
     };
+  }
+
+  /**
+   * Phase 12.2: neuestes Release bei GitHub, höchstens einmal am Tag abgefragt (Ergebnis in Redis)
+   * und nur, wenn ein Admin den Bereich öffnet. Gesendet wird nur die Anfrage selbst.
+   */
+  private async updateInfo(): Promise<AdminStatusDto['update']> {
+    if (!this.env.JOTION_UPDATE_CHECK) return null;
+    let info: { latest: string; url: string } | null = null;
+    const cached = await this.redis.client.get(UPDATE_KEY);
+    if (cached !== null) {
+      info = JSON.parse(cached) as typeof info;
+    } else {
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/${this.env.JOTION_UPDATE_REPO}/releases/latest`,
+          {
+            headers: { accept: 'application/vnd.github+json', 'user-agent': 'jotion-update-check' },
+            signal: AbortSignal.timeout(5000),
+          },
+        );
+        if (res.ok) {
+          const body = (await res.json()) as { tag_name?: string; html_url?: string };
+          const latest = String(body.tag_name ?? '').replace(/^v/, '');
+          if (/^\d+\.\d+\.\d+$/.test(latest)) info = { latest, url: String(body.html_url ?? '') };
+        }
+      } catch {
+        info = null;
+      }
+      // Fehlschläge nur 6 Stunden merken, damit ein neues Release bald auftaucht
+      await this.redis.client.set(UPDATE_KEY, JSON.stringify(info), 'EX', info ? 86_400 : 21_600);
+    }
+    if (!info) return null;
+    return { ...info, available: compareVersions(info.latest, API_VERSION) > 0 };
   }
 
   private async backups(): Promise<AdminStatusDto['backups']> {

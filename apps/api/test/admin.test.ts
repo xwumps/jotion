@@ -2,7 +2,8 @@ import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { compareVersions } from '../src/admin/admin.service';
 import { addMember, Client, createTestApp, resetState, setupOwner } from './helpers';
 
 /** Phase 12: Admin-Bereich (Status, Sicherungen, Konten) und Prometheus-Metriken. */
@@ -10,6 +11,16 @@ let app: NestFastifyApplication;
 let owner: Client;
 let ws: string;
 const BACKUPS = mkdtempSync(join(tmpdir(), 'jotion-backups-'));
+// Phase 12.2: GitHub-Abfrage der Update-Prüfung nachgestellt (kein Netz im Test)
+let release: { status: number; body?: unknown } = { status: 404 };
+const githubCalls: string[] = [];
+const realFetch = globalThis.fetch;
+vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+  const url = String(input instanceof Request ? input.url : input);
+  if (!url.startsWith('https://api.github.com/')) return realFetch(input, init);
+  githubCalls.push(url);
+  return new Response(JSON.stringify(release.body ?? {}), { status: release.status });
+});
 
 beforeAll(async () => {
   process.env.JOTION_BACKUP_DIR = BACKUPS;
@@ -93,6 +104,35 @@ describe('Admin-Bereich', () => {
       ).status,
     ).toBe(200);
     expect((await m2.get('/api/admin/status')).status).toBe(200);
+  });
+});
+
+describe('Update-Hinweis', () => {
+  it('neues Release erscheint, höchstens eine Abfrage pro Tag', async () => {
+    githubCalls.length = 0;
+    release = {
+      status: 200,
+      body: { tag_name: 'v99.0.0', html_url: 'https://github.com/xwumps/jotion/releases/v99.0.0' },
+    };
+    const s = (await owner.get('/api/admin/status')).body;
+    expect(s.update).toEqual({
+      latest: '99.0.0',
+      url: 'https://github.com/xwumps/jotion/releases/v99.0.0',
+      available: true,
+    });
+    await owner.get('/api/admin/status');
+    expect(githubCalls).toEqual(['https://api.github.com/repos/xwumps/jotion/releases/latest']);
+  });
+
+  it('kein Release oder nicht erreichbar: kein Hinweis', async () => {
+    release = { status: 404 };
+    expect((await owner.get('/api/admin/status')).body.update).toBeNull();
+  });
+
+  it('Versionsvergleich', () => {
+    expect(compareVersions('1.10.0', '1.9.3')).toBeGreaterThan(0);
+    expect(compareVersions('1.0.0', '1.0.0')).toBe(0);
+    expect(compareVersions('0.9.9', '1.0.0')).toBeLessThan(0);
   });
 });
 

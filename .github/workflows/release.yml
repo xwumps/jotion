@@ -1,0 +1,88 @@
+# Phase 12.2: Release. Ein Tag v<Version> (z. B. v1.0.0) baut die Images für x86 (amd64) und
+# ARM (arm64), veröffentlicht sie in der GitHub Container Registry und legt ein GitHub-Release
+# mit dem passenden Abschnitt aus CHANGELOG.md an.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Version prüfen
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Tag, package.json und CHANGELOG stimmen überein
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for f in package.json apps/api/package.json apps/web/package.json apps/worker/package.json; do
+            got="$(node -p "require('./$f').version")"
+            [ "$got" = "$VERSION" ] || { echo "::error::$f hat Version $got, Tag ist $VERSION"; exit 1; }
+          done
+          grep -q "^## \[$VERSION\]" CHANGELOG.md || { echo "::error::CHANGELOG.md hat keinen Abschnitt [$VERSION]"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  images:
+    name: Image ${{ matrix.target }}
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [api, web, worker, backup]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bauen und veröffentlichen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.target }}:${{ needs.check.outputs.version }}
+            ghcr.io/${{ github.repository }}/${{ matrix.target }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.check.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  release:
+    name: GitHub-Release
+    needs: [check, images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release mit Änderungen aus CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "Jotion $VERSION" --notes-file notes.md --verify-tag

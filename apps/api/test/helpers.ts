@@ -50,6 +50,7 @@ export async function resetState(app: NestFastifyApplication): Promise<void> {
   const redis = app.get(RedisService).client;
   const keys = await redis.keys('jotion:rl:*');
   if (keys.length) await redis.del(...keys);
+  await redis.del('jotion:update-check');
 }
 
 interface Res {

@@ -8,11 +8,25 @@ Beim ersten Aufruf führt Jotion durch die Einrichtung: Das erste Konto wird Own
 
 ## Schnellstart (Docker)
 
-Voraussetzung: Docker mit Compose v2.
+Voraussetzung: Docker mit Compose v2 auf einem 64-Bit-System (x86 oder ARM, zum Beispiel PC, Server, NAS, Raspberry Pi 4 oder 5 mit 64-Bit-System), Richtwert 2 CPU-Kerne und 4 GB RAM.
+
+```bash
+git clone https://github.com/xwumps/jotion.git && cd jotion
+```
 
 ```bash
 bash scripts/init.sh
 ```
+
+**Mit fertigen Images** (empfohlen, ab dem ersten Release): in der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen, dann
+
+```bash
+bash scripts/update.sh
+```
+
+Das Skript wählt das neueste Release, lädt die Images und startet Jotion.
+
+**Aus dem Quellcode bauen** (zum Beispiel für eigene Änderungen):
 
 ```bash
 docker compose up -d --build --wait
@@ -28,14 +42,16 @@ Danach ist Jotion unter http://localhost:8080 erreichbar.
 | ---------- | ------------------------------------------------------------- |
 | `caddy`    | Reverse Proxy, optional automatisches HTTPS                   |
 | `web`      | Oberfläche (Next.js)                                          |
-| `api`      | REST-API (NestJS), ab Phase 2 auch Echtzeit-Bearbeitung       |
+| `api`      | REST-API (NestJS) und Echtzeit-Bearbeitung                    |
 | `worker`   | Hintergrundjobs (Synchronisation, Automatisierungen, Wartung) |
 | `migrate`  | Einmaliger Job: Datenbankmigrationen vor jedem Start          |
 | `postgres` | Datenbank                                                     |
 | `redis`    | Job-Queue und Cache                                           |
+| `backup`   | Tägliche, verschlüsselte Sicherung von Datenbank und Dateien  |
 
 ## Weitere Dokumentation
 
 - [Entwicklung](docs/development.md): lokale Einrichtung, Tests, Projektaufbau
 - [Betrieb](docs/operations.md): Docker, Backups, Updates
+- [Änderungen](CHANGELOG.md): neue Versionen und Hinweise zum Update
 - [Technischer Bauplan](docs/README.md): Architektur, Datenmodell, Integrationen, Roadmap
