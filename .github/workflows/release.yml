@@ -1,6 +1,6 @@
 # Phase 12.2: Release. Ein Tag v<Version> (z. B. v1.0.0) baut die Images für x86 (amd64) und
 # ARM (arm64), veröffentlicht sie in der GitHub Container Registry und legt ein GitHub-Release
-# mit dem passenden Abschnitt aus CHANGELOG.md an.
+# mit dem passenden Abschnitt aus CHANGELOG.md an (oder ergänzt ein auf der Website angelegtes).
 name: Release
 
 on:
@@ -85,4 +85,9 @@ jobs:
             on && /^## \[/ { exit }
             on { print }
           ' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "Jotion $VERSION" --notes-file notes.md --verify-tag
+          # Auch für Releases, die auf der GitHub-Website angelegt wurden (Tag beim Veröffentlichen)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "Jotion $VERSION" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --title "Jotion $VERSION" --notes-file notes.md --verify-tag
+          fi
