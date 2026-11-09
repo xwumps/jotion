@@ -1,0 +1,44 @@
+# Veröffentlicht den Ordner wiki/ im GitHub-Wiki des Repositorys (bei Änderungen auf main).
+# Einmalig nötig: Im Repository unter "Wiki" die erste Seite anlegen, damit das Wiki existiert.
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths: ['wiki/**', '.github/workflows/wiki.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Wiki veröffentlichen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wiki-Repository holen
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo; then
+            echo "::error::Das Wiki existiert noch nicht. Im Repository unter 'Wiki' einmal eine erste Seite anlegen und den Workflow erneut starten."
+            exit 1
+          fi
+      - name: Seiten übertragen
+        run: |
+          find wiki-repo -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a wiki/. wiki-repo/
+          cd wiki-repo
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Wiki aus ${GITHUB_SHA::7}"
+          git push -q origin HEAD
