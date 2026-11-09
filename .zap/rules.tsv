@@ -1,1 +1,9 @@
 # ZAP-Regeln: Regel-ID, Aktion (IGNORE, INFO, WARN, FAIL), Begründung
+10044	INFO	(Weiterleitungen der App zur Anmeldung, ohne vertrauliche Inhalte)
+10049	IGNORE	(Nicht speicherbare Antworten sind für eine angemeldete App gewollt)
+10094	INFO	(Base64 in Next.js-Daten, keine Geheimnisse)
+10109	IGNORE	(Hinweis: moderne Web-App)
+10111	IGNORE	(Hinweis: Anmeldeanfrage erkannt)
+10202	IGNORE	(Kein Formular-Token: Schutz über SameSite-Cookies und Origin-Prüfung der API)
+90004	IGNORE	(COEP würde eingebettete Inhalte blockieren)
+90005	IGNORE	(Sec-Fetch-Dest ist ein Anfrage-Header des Browsers, kein Fehler des Servers)
