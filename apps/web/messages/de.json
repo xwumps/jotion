@@ -1140,12 +1140,26 @@
     "types": {
       "iserv": "IServ",
       "caldav": "CalDAV",
-      "ical": "iCal-Feed"
+      "ical": "iCal-Feed",
+      "icloud": "Apple iCloud",
+      "nextcloud": "Nextcloud",
+      "webdav": "WebDAV-Dateien",
+      "google": "Google",
+      "microsoft": "Microsoft 365",
+      "dropbox": "Dropbox",
+      "telegram": "Telegram-Bot"
     },
     "typeHints": {
       "iserv": "Kalender deines IServ-Kontos über CalDAV. Die genaue Adresse wird automatisch ermittelt. Mit Zwei-Faktor-Anmeldung ggf. ein App-Passwort verwenden. Das Modul „Aufgaben“ hat keine Schnittstelle und wird nicht angebunden.",
       "caldav": "Beliebiger CalDAV-Server, z. B. Nextcloud, Radicale oder iCloud (mit app-spezifischem Passwort).",
-      "ical": "Abo-Link eines Kalenders (.ics, webcal://). Nur lesend, wird vollständig abgeglichen."
+      "ical": "Abo-Link eines Kalenders (.ics, webcal://). Nur lesend, wird vollständig abgeglichen.",
+      "icloud": "Kalender und Erinnerungen aus iCloud. Mit Apple-ID und einem app-spezifischen Passwort (appleid.apple.com → Anmeldung und Sicherheit).",
+      "nextcloud": "Kalender, Aufgaben und Dateien einer Nextcloud. Ein App-Passwort anlegen (Einstellungen → Sicherheit). Ohne Ordner wird der ganze Dateibereich gelesen.",
+      "webdav": "Dateien eines Ordners auf einem WebDAV-Server, z. B. die IServ-Dateien. Nur Namen und Angaben der Dateien, kein Inhalt.",
+      "google": "Google-Kalender, Gmail (Posteingang und markierte Nachrichten, nur lesend) und Google Drive (nur Dateiangaben). Anmeldung bei Google.",
+      "microsoft": "Outlook-Kalender, Posteingang (letzte 30 Tage) und OneDrive über Microsoft 365 oder Outlook.com. Anmeldung bei Microsoft.",
+      "dropbox": "Dateien deiner Dropbox (nur Namen und Angaben). Anmeldung bei Dropbox.",
+      "telegram": "Nachrichten an deinen Bot werden zu Zeilen, z. B. in einer Inbox-Datenbank. Bot bei @BotFather anlegen und das Token hier eintragen."
     },
     "name": "Name",
     "urlLabel": {
@@ -1176,7 +1190,9 @@
     "created": "Verbindung gespeichert. Wähle jetzt für jeden Kalender eine Ziel-Datenbank.",
     "kinds": {
       "event": "Termine",
-      "task": "Aufgaben"
+      "task": "Aufgaben",
+      "message": "Nachrichten",
+      "file": "Dateien"
     },
     "status": {
       "active": "Aktiv",
@@ -1269,13 +1285,92 @@
       "due": "Fällig",
       "completed": "Erledigt",
       "priority": "Priorität",
-      "source": "Quelle (Kalendername)"
+      "source": "Quelle (Kalendername)",
+      "from": "Von",
+      "to": "An",
+      "read": "Gelesen",
+      "path": "Pfad",
+      "size": "Größe (Bytes)",
+      "mime": "Dateityp"
     },
     "conflictsHint": "Lokal und in der Quelle geändert. Die lokale Version wurde behalten.",
     "localValue": "Lokal",
     "remoteValue": "Quelle",
     "takeRemote": "Quelle übernehmen",
-    "keepLocal": "Lokal behalten"
+    "keepLocal": "Lokal behalten",
+    "groups": {
+      "calendar": "Kalender",
+      "cloud": "Konten",
+      "files": "Dateien",
+      "messages": "Nachrichten"
+    },
+    "inputs": {
+      "baseUrl": "Serveradresse",
+      "serverUrl": "Serveradresse",
+      "url": "Feed-URL",
+      "folderUrl": "Ordner-Adresse",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "botToken": "Bot-Token",
+      "allowedUsers": "Erlaubte Absender",
+      "folder": "Ordner"
+    },
+    "inputsOptional": {
+      "username": "Benutzername (optional)",
+      "password": "Passwort (optional)",
+      "folder": "Ordner (optional)"
+    },
+    "placeholders": {
+      "iserv": {
+        "baseUrl": "https://schule.example.de"
+      },
+      "caldav": {
+        "serverUrl": "https://dav.example.de"
+      },
+      "ical": {
+        "url": "https://… oder webcal://…"
+      },
+      "icloud": {
+        "username": "name@icloud.com"
+      },
+      "nextcloud": {
+        "serverUrl": "https://cloud.example.de",
+        "folder": "Schule"
+      },
+      "webdav": {
+        "folderUrl": "https://schule.example.de/webdav/files/"
+      },
+      "telegram": {
+        "allowedUsers": "@jarne, @anna",
+        "botToken": "123456789:ABC…"
+      }
+    },
+    "hints": {
+      "icloud": {
+        "password": "App-spezifisches Passwort, nicht das Apple-ID-Passwort"
+      },
+      "nextcloud": {
+        "password": "App-Passwort aus Einstellungen → Sicherheit"
+      },
+      "telegram": {
+        "allowedUsers": "Telegram-Benutzernamen oder Nutzer-IDs, kommagetrennt. Nachrichten anderer werden verworfen.",
+        "botToken": "Von @BotFather"
+      }
+    },
+    "oauthConnect": "Bei {provider} anmelden",
+    "oauthReconnect": "Bei {provider} neu anmelden",
+    "oauthUnavailable": "{provider} ist auf diesem Server noch nicht eingerichtet. Der Admin trägt dazu Client-ID und Secret ein (siehe Betriebsanleitung).",
+    "oauthConnected": "Verbindung hergestellt. Jetzt für jede Quelle eine Ziel-Datenbank wählen.",
+    "oauthErrors": {
+      "state": "Die Anmeldung ist abgelaufen. Bitte erneut versuchen.",
+      "user": "Die Anmeldung gehört zu einem anderen Konto.",
+      "denied": "Die Anmeldung wurde abgelehnt.",
+      "provider": "Der Anbieter hat die Anmeldung nicht abgeschlossen.",
+      "token": "Die Anmeldung konnte nicht abgeschlossen werden.",
+      "test": "Verbunden, aber der Zugriff schlug fehl.",
+      "config": "Der Anbieter ist auf diesem Server nicht eingerichtet."
+    },
+    "newBotToken": "Neues Bot-Token"
   },
   "templates": {
     "gallery": "Vorlagen",

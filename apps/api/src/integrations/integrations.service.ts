@@ -174,7 +174,7 @@ export class IntegrationsService {
     if (!raw) return '/?integrationError=state';
     const p = JSON.parse(raw) as OAuthPending;
     const back = (params: Record<string, string>) =>
-      `/w/${p.workspaceId}/settings?${new URLSearchParams({ tab: 'integrations', ...params })}`;
+      `/w/${p.workspaceId}/settings/integrations?${new URLSearchParams(params)}`;
     // Anderer Nutzer (z. B. geteilter Rechner): nichts anlegen
     if (p.userId !== user.id) return back({ integrationError: 'user' });
     if (typeof query.error === 'string')

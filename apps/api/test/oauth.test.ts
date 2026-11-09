@@ -77,7 +77,7 @@ describe('OAuth-Anmeldung', () => {
     );
     expect(start.searchParams.get('code_challenge')).toMatch(/^[\w-]{43}$/);
     expect(cb.status).toBe(302);
-    expect(location).toMatch(new RegExp(`^/w/${ws}/settings\\?tab=integrations&connected=`));
+    expect(location).toMatch(new RegExp(`^/w/${ws}/settings/integrations\\?connected=`));
     const id = new URL(location, 'http://x').searchParams.get('connected')!;
 
     const conn = await prisma.integrationConnection.findUniqueOrThrow({ where: { id } });

@@ -1140,12 +1140,26 @@
     "types": {
       "iserv": "IServ",
       "caldav": "CalDAV",
-      "ical": "iCal feed"
+      "ical": "iCal feed",
+      "icloud": "Apple iCloud",
+      "nextcloud": "Nextcloud",
+      "webdav": "WebDAV files",
+      "google": "Google",
+      "microsoft": "Microsoft 365",
+      "dropbox": "Dropbox",
+      "telegram": "Telegram bot"
     },
     "typeHints": {
       "iserv": "Calendars of your IServ account via CalDAV. The exact address is discovered automatically. With two-factor login, use an app password if available. The “Tasks” module has no interface and is not connected.",
       "caldav": "Any CalDAV server, e.g. Nextcloud, Radicale or iCloud (with an app-specific password).",
-      "ical": "Subscription link of a calendar (.ics, webcal://). Read only, fully reconciled."
+      "ical": "Subscription link of a calendar (.ics, webcal://). Read only, fully reconciled.",
+      "icloud": "Calendars and reminders from iCloud. Use your Apple ID and an app-specific password (appleid.apple.com → Sign-In and Security).",
+      "nextcloud": "Calendars, tasks and files from Nextcloud. Create an app password (Settings → Security). Without a folder, all files are read.",
+      "webdav": "Files of a folder on a WebDAV server, e.g. IServ files. Only names and details, no content.",
+      "google": "Google Calendar, Gmail (inbox and starred, read-only) and Google Drive (file details only). Sign in with Google.",
+      "microsoft": "Outlook calendars, inbox (last 30 days) and OneDrive via Microsoft 365 or Outlook.com. Sign in with Microsoft.",
+      "dropbox": "Files in your Dropbox (names and details only). Sign in with Dropbox.",
+      "telegram": "Messages to your bot become rows, e.g. in an inbox database. Create a bot with @BotFather and enter its token."
     },
     "name": "Name",
     "urlLabel": {
@@ -1176,7 +1190,9 @@
     "created": "Connection saved. Now choose a target database for each calendar.",
     "kinds": {
       "event": "Events",
-      "task": "Tasks"
+      "task": "Tasks",
+      "message": "Messages",
+      "file": "Files"
     },
     "status": {
       "active": "Active",
@@ -1269,13 +1285,92 @@
       "due": "Due",
       "completed": "Completed",
       "priority": "Priority",
-      "source": "Source (calendar name)"
+      "source": "Source (calendar name)",
+      "from": "From",
+      "to": "To",
+      "read": "Read",
+      "path": "Path",
+      "size": "Size (bytes)",
+      "mime": "File type"
     },
     "conflictsHint": "Changed locally and at the source. The local version was kept.",
     "localValue": "Local",
     "remoteValue": "Source",
     "takeRemote": "Use source",
-    "keepLocal": "Keep local"
+    "keepLocal": "Keep local",
+    "groups": {
+      "calendar": "Calendars",
+      "cloud": "Accounts",
+      "files": "Files",
+      "messages": "Messages"
+    },
+    "inputs": {
+      "baseUrl": "Server address",
+      "serverUrl": "Server address",
+      "url": "Feed URL",
+      "folderUrl": "Folder address",
+      "username": "Username",
+      "password": "Password",
+      "botToken": "Bot token",
+      "allowedUsers": "Allowed senders",
+      "folder": "Folder"
+    },
+    "inputsOptional": {
+      "username": "Username (optional)",
+      "password": "Password (optional)",
+      "folder": "Folder (optional)"
+    },
+    "placeholders": {
+      "iserv": {
+        "baseUrl": "https://school.example.com"
+      },
+      "caldav": {
+        "serverUrl": "https://dav.example.com"
+      },
+      "ical": {
+        "url": "https://… or webcal://…"
+      },
+      "icloud": {
+        "username": "name@icloud.com"
+      },
+      "nextcloud": {
+        "serverUrl": "https://cloud.example.com",
+        "folder": "School"
+      },
+      "webdav": {
+        "folderUrl": "https://school.example.com/webdav/files/"
+      },
+      "telegram": {
+        "allowedUsers": "@jarne, @anna",
+        "botToken": "123456789:ABC…"
+      }
+    },
+    "hints": {
+      "icloud": {
+        "password": "App-specific password, not your Apple ID password"
+      },
+      "nextcloud": {
+        "password": "App password from Settings → Security"
+      },
+      "telegram": {
+        "allowedUsers": "Telegram usernames or user IDs, comma-separated. Messages from others are discarded.",
+        "botToken": "From @BotFather"
+      }
+    },
+    "oauthConnect": "Sign in with {provider}",
+    "oauthReconnect": "Sign in with {provider} again",
+    "oauthUnavailable": "{provider} is not set up on this server yet. The admin adds a client ID and secret (see the operations guide).",
+    "oauthConnected": "Connected. Now choose a target database for each source.",
+    "oauthErrors": {
+      "state": "The sign-in expired. Please try again.",
+      "user": "The sign-in belongs to a different account.",
+      "denied": "The sign-in was declined.",
+      "provider": "The provider did not complete the sign-in.",
+      "token": "The sign-in could not be completed.",
+      "test": "Connected, but access failed.",
+      "config": "The provider is not set up on this server."
+    },
+    "newBotToken": "New bot token"
   },
   "templates": {
     "gallery": "Templates",

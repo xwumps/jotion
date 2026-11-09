@@ -16,6 +16,7 @@ import {
   type MappingPreviewDto,
   type SourceDto,
   type SyncRunDto,
+  type ConnectorInfoDto,
 } from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +30,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { apiDelete, apiGet, apiPatch, apiPost, errorMessage } from '@/lib/api-client';
 import { useDatabase } from '../database/use-database';
@@ -74,6 +75,18 @@ export function IntegrationsSettings({ ws }: { ws: string }) {
     refetchInterval: 15_000,
   });
   const [adding, setAdding] = useState(false);
+  // Phase 11: Rückkehr von der Anmeldung beim Anbieter (Ergebnis in der URL)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const err = q.get('integrationError');
+    if (q.get('connected')) toast.success(t('oauthConnected'));
+    else if (err)
+      toast.error(
+        t.has(`oauthErrors.${err}`) ? t(`oauthErrors.${err}`) : t('oauthErrors.provider'),
+        { description: q.get('message') ?? undefined },
+      );
+    if (q.get('connected') || err) window.history.replaceState(null, '', window.location.pathname);
+  }, [t]);
   return (
     <div>
       <div className="flex items-start justify-between gap-4 border-b border-border pb-6">
@@ -110,12 +123,80 @@ export function IntegrationsSettings({ ws }: { ws: string }) {
 
 // ------------------------------------------------------------------ Hinzufügen
 
-const TYPES: ConnectorType[] = ['iserv', 'caldav', 'ical'];
-const URL_FIELD: Record<ConnectorType, string> = {
+/** Phase 11: Felder je Connector-Typ (Konfiguration oder Geheimnis) */
+interface FieldDef {
+  key: string;
+  secret?: boolean;
+  required?: boolean;
+  kind: 'url' | 'text' | 'password';
+}
+
+const TYPE_GROUPS: { id: string; types: ConnectorType[] }[] = [
+  { id: 'calendar', types: ['iserv', 'caldav', 'ical', 'icloud'] },
+  { id: 'cloud', types: ['google', 'microsoft', 'nextcloud'] },
+  { id: 'files', types: ['dropbox', 'webdav'] },
+  { id: 'messages', types: ['telegram'] },
+];
+
+const OAUTH_TYPES = new Set<ConnectorType>(['google', 'microsoft', 'dropbox']);
+
+const FIELDS: Record<ConnectorType, FieldDef[]> = {
+  iserv: [
+    { key: 'baseUrl', kind: 'url', required: true },
+    { key: 'username', kind: 'text', required: true },
+    { key: 'password', kind: 'password', secret: true, required: true },
+  ],
+  caldav: [
+    { key: 'serverUrl', kind: 'url', required: true },
+    { key: 'username', kind: 'text', required: true },
+    { key: 'password', kind: 'password', secret: true, required: true },
+  ],
+  ical: [
+    { key: 'url', kind: 'url', required: true },
+    { key: 'username', kind: 'text' },
+    { key: 'password', kind: 'password', secret: true },
+  ],
+  icloud: [
+    { key: 'username', kind: 'text', required: true },
+    { key: 'password', kind: 'password', secret: true, required: true },
+  ],
+  nextcloud: [
+    { key: 'serverUrl', kind: 'url', required: true },
+    { key: 'username', kind: 'text', required: true },
+    { key: 'password', kind: 'password', secret: true, required: true },
+    { key: 'folder', kind: 'text' },
+  ],
+  webdav: [
+    { key: 'folderUrl', kind: 'url', required: true },
+    { key: 'username', kind: 'text' },
+    { key: 'password', kind: 'password', secret: true },
+  ],
+  telegram: [
+    { key: 'botToken', kind: 'password', secret: true, required: true },
+    { key: 'allowedUsers', kind: 'text', required: true },
+  ],
+  google: [],
+  microsoft: [],
+  dropbox: [],
+};
+
+/** Feld mit der Adresse (Beschreibung im Bearbeiten-Dialog) */
+const URL_FIELD: Partial<Record<ConnectorType, string>> = {
   iserv: 'baseUrl',
   caldav: 'serverUrl',
   ical: 'url',
+  nextcloud: 'serverUrl',
+  webdav: 'folderUrl',
 };
+
+/** Phase 11: Anmeldung beim Anbieter beginnen (Weiterleitung) */
+export async function startOAuth(
+  ws: string,
+  body: { type: ConnectorType; name?: string; connectionId?: string },
+) {
+  const r = await apiPost<{ url: string }>(`/workspaces/${ws}/integrations/oauth/start`, body);
+  window.location.assign(r.url);
+}
 
 function AddConnectionDialog({
   ws,
@@ -130,26 +211,40 @@ function AddConnectionDialog({
   const invalidate = useInvalidate(ws);
   const [type, setType] = useState<ConnectorType>('iserv');
   const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ConnectionTestDto | null>(null);
-  const body = () => ({
-    type,
-    config: { [URL_FIELD[type]]: url, ...(username ? { username } : {}) },
-    secrets: password ? { password } : {},
+  const connectors = useQuery({
+    queryKey: ['connectors', ws],
+    queryFn: () => apiGet<ConnectorInfoDto[]>(`/workspaces/${ws}/integrations/connectors`),
+    enabled: open,
+    staleTime: 60_000,
   });
+  const available = (x: ConnectorType) =>
+    connectors.data?.find((c) => c.type === x)?.available ?? !OAUTH_TYPES.has(x);
+  const fields = FIELDS[type];
+  const isOAuth = OAUTH_TYPES.has(type);
+  const body = () => {
+    const config: Record<string, string> = {};
+    const secrets: Record<string, string> = {};
+    for (const f of fields) {
+      const v = (values[f.key] ?? '').trim();
+      if (!v) continue;
+      (f.secret ? secrets : config)[f.key] = v;
+    }
+    return { type, config, secrets };
+  };
+  const fail = (e: unknown) =>
+    setResult({
+      ok: false,
+      accountLabel: null,
+      sources: [],
+      capabilities: {},
+      error: { code: 'error', message: errorMessage(e) },
+    });
   const test = useMutation({
     mutationFn: () => apiPost<ConnectionTestDto>(`/workspaces/${ws}/integrations/test`, body()),
     onSuccess: setResult,
-    onError: (e) =>
-      setResult({
-        ok: false,
-        accountLabel: null,
-        sources: [],
-        capabilities: {},
-        error: { code: 'error', message: errorMessage(e) },
-      }),
+    onError: fail,
   });
   const create = useMutation({
     mutationFn: () =>
@@ -162,56 +257,64 @@ function AddConnectionDialog({
       void invalidate();
       onOpenChange(false);
       setResult(null);
-      setPassword('');
-      setUrl('');
+      setValues({});
       setName('');
     },
-    onError: (e) =>
-      setResult({
-        ok: false,
-        accountLabel: null,
-        sources: [],
-        capabilities: {},
-        error: { code: 'error', message: errorMessage(e) },
-      }),
+    onError: fail,
   });
-  const needsAuth = type !== 'ical';
+  const oauth = useMutation({
+    mutationFn: () => startOAuth(ws, { type, ...(name.trim() ? { name: name.trim() } : {}) }),
+    onError: fail,
+  });
+  const complete = fields.every((f) => !f.required || (values[f.key] ?? '').trim());
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         title={t('addTitle')}
         description={t('addDescription')}
-        className="max-w-[520px]"
+        className="max-w-[600px]"
       >
         <form
           method="post"
           className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            create.mutate();
+            if (isOAuth) oauth.mutate();
+            else create.mutate();
           }}
         >
-          <div className="flex gap-1.5" role="radiogroup" aria-label={t('type')}>
-            {TYPES.map((x) => (
-              <button
-                key={x}
-                type="button"
-                role="radio"
-                aria-checked={type === x}
-                onClick={() => {
-                  setType(x);
-                  setResult(null);
-                }}
-                className={cn(
-                  'flex-1 rounded-md border px-2 py-2 text-[13px]',
-                  type === x
-                    ? 'border-accent bg-accent/10 font-medium'
-                    : 'border-border hover:bg-hover',
-                )}
-                data-testid={`integration-type-${x}`}
-              >
-                {t(`types.${x}`)}
-              </button>
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label={t('type')}>
+            {TYPE_GROUPS.map((g) => (
+              <div key={g.id}>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-fg-subtle">
+                  {t(`groups.${g.id}`)}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {g.types.map((x) => (
+                    <button
+                      key={x}
+                      type="button"
+                      role="radio"
+                      aria-checked={type === x}
+                      onClick={() => {
+                        setType(x);
+                        setResult(null);
+                        setValues({});
+                      }}
+                      className={cn(
+                        'rounded-md border px-2 py-2 text-[13px]',
+                        type === x
+                          ? 'border-accent bg-accent/10 font-medium'
+                          : 'border-border hover:bg-hover',
+                        !available(x) && 'opacity-60',
+                      )}
+                      data-testid={`integration-type-${x}`}
+                    >
+                      {t(`types.${x}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
           <p className="text-[12px] text-fg-subtle">{t(`typeHints.${type}`)}</p>
@@ -222,56 +325,69 @@ function AddConnectionDialog({
             placeholder={t(`types.${type}`)}
             maxLength={100}
           />
-          <Field
-            label={t(`urlLabel.${type}`)}
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setResult(null);
-            }}
-            placeholder={t(`urlPlaceholder.${type}`)}
-            required
-            inputMode="url"
-            data-testid="integration-url"
-          />
-          <div className="grid grid-cols-2 gap-3">
+          {fields.map((f) => (
             <Field
-              label={needsAuth ? t('username') : t('usernameOptional')}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              required={needsAuth}
-              data-testid="integration-username"
+              key={`${type}-${f.key}`}
+              label={t(f.required ? `inputs.${f.key}` : `inputsOptional.${f.key}`)}
+              value={values[f.key] ?? ''}
+              onChange={(e) => {
+                setValues({ ...values, [f.key]: e.target.value });
+                setResult(null);
+              }}
+              type={f.kind === 'password' ? 'password' : 'text'}
+              inputMode={f.kind === 'url' ? 'url' : undefined}
+              autoComplete={
+                f.kind === 'password'
+                  ? 'current-password'
+                  : f.key === 'username'
+                    ? 'username'
+                    : 'off'
+              }
+              placeholder={
+                t.has(`placeholders.${type}.${f.key}`)
+                  ? t(`placeholders.${type}.${f.key}`)
+                  : undefined
+              }
+              hint={t.has(`hints.${type}.${f.key}`) ? t(`hints.${type}.${f.key}`) : undefined}
+              required={f.required}
+              data-testid={`integration-field-${f.key}`}
             />
-            <Field
-              label={needsAuth ? t('password') : t('passwordOptional')}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              hint={needsAuth ? t('passwordHint') : undefined}
-              data-testid="integration-password"
-            />
-          </div>
+          ))}
+          {isOAuth && !available(type) && (
+            <FormError>{t('oauthUnavailable', { provider: t(`types.${type}`) })}</FormError>
+          )}
           {result && <TestResult result={result} />}
           <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              className={secondaryBtn}
-              disabled={!url || test.isPending}
-              onClick={() => test.mutate()}
-              data-testid="integration-test"
-            >
-              {test.isPending ? t('testing') : t('test')}
-            </button>
-            <button
-              type="submit"
-              className={primaryBtn}
-              disabled={!url || create.isPending}
-              data-testid="integration-save"
-            >
-              {create.isPending ? t('saving') : t('save')}
-            </button>
+            {isOAuth ? (
+              <button
+                type="submit"
+                className={primaryBtn}
+                disabled={!available(type) || oauth.isPending}
+                data-testid="integration-oauth"
+              >
+                {t('oauthConnect', { provider: t(`types.${type}`) })}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={secondaryBtn}
+                  disabled={!complete || test.isPending}
+                  onClick={() => test.mutate()}
+                  data-testid="integration-test"
+                >
+                  {test.isPending ? t('testing') : t('test')}
+                </button>
+                <button
+                  type="submit"
+                  className={primaryBtn}
+                  disabled={!complete || create.isPending}
+                  data-testid="integration-save"
+                >
+                  {create.isPending ? t('saving') : t('save')}
+                </button>
+              </>
+            )}
           </div>
         </form>
       </DialogContent>
@@ -509,12 +625,22 @@ function EditConnectionDialog({
   const [name, setName] = useState(conn.name);
   const [username, setUsername] = useState(String(conn.config.username ?? ''));
   const [password, setPassword] = useState('');
+  // Phase 11: Telegram (Bot-Token, erlaubte Absender), OAuth (nur Name, neu anmelden)
+  const isOAuth = OAUTH_TYPES.has(conn.type);
+  const isTelegram = conn.type === 'telegram';
+  const hasUsername = !isOAuth && !isTelegram;
+  const [allowed, setAllowed] = useState(
+    Array.isArray(conn.config.allowedUsers)
+      ? (conn.config.allowedUsers as string[]).join(', ')
+      : '',
+  );
   const save = useMutation({
     mutationFn: () =>
       apiPatch(`/workspaces/${ws}/integrations/${conn.id}`, {
         name,
-        ...(conn.type !== 'ical' || username ? { config: { username } } : {}),
-        ...(password ? { secrets: { password } } : {}),
+        ...(hasUsername && (conn.type !== 'ical' || username) ? { config: { username } } : {}),
+        ...(isTelegram ? { config: { allowedUsers: allowed } } : {}),
+        ...(password ? { secrets: { [isTelegram ? 'botToken' : 'password']: password } } : {}),
       }),
     onSuccess: () => {
       toast.success(t('savedConnection'));
@@ -527,7 +653,11 @@ function EditConnectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         title={t('editTitle')}
-        description={String(conn.config[URL_FIELD[conn.type]] ?? '')}
+        description={String(
+          URL_FIELD[conn.type]
+            ? (conn.config[URL_FIELD[conn.type]!] ?? '')
+            : (conn.accountLabel ?? ''),
+        )}
       >
         <form
           method="post"
@@ -544,21 +674,47 @@ function EditConnectionDialog({
             required
             maxLength={100}
           />
-          <Field
-            label={t('username')}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-          />
-          <Field
-            label={t('newPassword')}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            hint={conn.secretKeys.includes('password') ? t('passwordStored') : undefined}
-            data-testid="integration-edit-password"
-          />
+          {hasUsername && (
+            <Field
+              label={t('username')}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+            />
+          )}
+          {isTelegram && (
+            <Field
+              label={t('inputs.allowedUsers')}
+              value={allowed}
+              onChange={(e) => setAllowed(e.target.value)}
+              hint={t('hints.telegram.allowedUsers')}
+            />
+          )}
+          {!isOAuth && (
+            <Field
+              label={isTelegram ? t('newBotToken') : t('newPassword')}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              hint={conn.secretKeys.length ? t('passwordStored') : undefined}
+              data-testid="integration-edit-password"
+            />
+          )}
+          {isOAuth && (
+            <button
+              type="button"
+              className={secondaryBtn}
+              onClick={() =>
+                void startOAuth(ws, { type: conn.type, connectionId: conn.id }).catch((e) =>
+                  toast.error(errorMessage(e)),
+                )
+              }
+              data-testid="integration-reconnect"
+            >
+              {t('oauthReconnect', { provider: t(`types.${conn.type}`) })}
+            </button>
+          )}
           {save.isError && <FormError>{errorMessage(save.error)}</FormError>}
           <div className="flex justify-end">
             <button type="submit" className={primaryBtn} disabled={save.isPending}>

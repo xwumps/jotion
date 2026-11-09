@@ -103,15 +103,15 @@ test('CalDAV verbinden, synchronisieren, Mapping-Vorschau, lokale Änderung blei
   await page.getByTestId('integration-add').click();
   await page.getByTestId('integration-type-caldav').click();
   await page.getByLabel('Name', { exact: true }).fill(`Radicale ${RUN}`);
-  await page.getByTestId('integration-url').fill('http://radicale:5232');
-  await page.getByTestId('integration-username').fill('anna');
+  await page.getByTestId('integration-field-serverUrl').fill('http://radicale:5232');
+  await page.getByTestId('integration-field-username').fill('anna');
 
   // Falsches Passwort: verständliche Meldung
-  await page.getByTestId('integration-password').fill('falsch');
+  await page.getByTestId('integration-field-password').fill('falsch');
   await page.getByTestId('integration-test').click();
   await expect(page.getByRole('alert')).toContainText('Anmeldung fehlgeschlagen');
 
-  await page.getByTestId('integration-password').fill('geheim');
+  await page.getByTestId('integration-field-password').fill('geheim');
   await page.getByTestId('integration-test').click();
   await expect(page.getByTestId('integration-test-result')).toContainText(`Schule ${RUN}`);
   await page.getByTestId('integration-save').click();
