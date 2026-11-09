@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Stellt eine Sicherung wieder her. Aufruf: scripts/restore.sh <archiv|latest> [--force]
+# Stellt eine Sicherung wieder her. Aufruf: scripts/restore.sh <archiv|latest> [--force|--verify]
+# --verify prüft nur (entschlüsseln, Prüfsummen), Jotion läuft dabei weiter.
 # Archive liegen im Volume "backups" (Liste: scripts/restore.sh --list) oder als Datei auf dem Host.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -8,7 +9,7 @@ DC=(docker compose)
 
 if [[ "${1:-}" == "--list" || -z "${1:-}" ]]; then
   "${DC[@]}" run --rm --no-deps --entrypoint sh backup -c 'ls -1t /backups | grep -E "^jotion-.*\.tar$" || true'
-  [[ -z "${1:-}" ]] && echo "Aufruf: scripts/restore.sh <archiv|latest> [--force]"
+  [[ -z "${1:-}" ]] && echo "Aufruf: scripts/restore.sh <archiv|latest> [--force|--verify]"
   exit 0
 fi
 
@@ -18,6 +19,10 @@ if [[ -f "$ARCHIVE" ]]; then
   NAME="$(basename "$ARCHIVE")"
   "${DC[@]}" run --rm --no-deps -T --entrypoint sh backup -c "cat > /backups/$NAME" < "$ARCHIVE"
   ARCHIVE="$NAME"
+fi
+
+if [[ "${2:-}" == "--verify" ]]; then
+  exec "${DC[@]}" run --rm --no-deps --entrypoint /scripts/restore.sh backup "$ARCHIVE" --verify
 fi
 
 echo "Jotion wird für die Wiederherstellung angehalten …"

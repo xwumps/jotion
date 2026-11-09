@@ -90,7 +90,7 @@ jobs:
       # Phase 12: bekannte kritische Lücken mit verfügbarer Korrektur in den Images
       - name: Trivy (Images)
         run: |
-          for img in jotion/api:local jotion/web:local jotion/worker:local; do
+          for img in jotion/api:local jotion/web:local jotion/worker:local jotion/backup:local; do
             docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.1 \
               image --quiet --severity CRITICAL --ignore-unfixed --exit-code 1 --scanners vuln "$img"
           done
