@@ -7,3 +7,4 @@
 10202	IGNORE	(Kein Formular-Token: Schutz über SameSite-Cookies und Origin-Prüfung der API)
 90004	IGNORE	(COEP würde eingebettete Inhalte blockieren)
 90005	IGNORE	(Sec-Fetch-Dest ist ein Anfrage-Header des Browsers, kein Fehler des Servers)
+10055	INFO	(CSP erlaubt bewusst externe Bilder, Medien und Einbettungen über http/https sowie Inline-Skripte von Next.js, siehe ADR 129)
