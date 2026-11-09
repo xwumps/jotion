@@ -105,10 +105,10 @@ services:
 
   # Phase 12: Sicherungen (täglich und auf Anforderung) mit Werkzeugen aus dem Postgres-Image
   backup:
-    image: postgres:16-alpine
+    image: jotion/backup:${JOTION_VERSION:-local}
+    build: { context: ., dockerfile: docker/Dockerfile, target: backup, secrets: [extra_ca] }
     restart: unless-stopped
     init: true
-    entrypoint: ['/scripts/run.sh']
     environment:
       PGHOST: postgres
       PGUSER: ${POSTGRES_USER:-jotion}
@@ -116,6 +116,8 @@ services:
       PGDATABASE: ${POSTGRES_DB:-jotion}
       TZ: ${JOTION_TIMEZONE:-Europe/Berlin}
       JOTION_MASTER_KEY: ${JOTION_MASTER_KEY:?JOTION_MASTER_KEY fehlt}
+      JOTION_MASTER_KEY_PREVIOUS: ${JOTION_MASTER_KEY_PREVIOUS:-}
+      BACKUP_ENCRYPT: ${JOTION_BACKUP_ENCRYPT:-true}
       BACKUP_ENABLED: ${JOTION_BACKUP_ENABLED:-true}
       BACKUP_TIME: ${JOTION_BACKUP_TIME:-03:15}
       BACKUP_KEEP_DAILY: ${JOTION_BACKUP_KEEP_DAILY:-7}
@@ -123,8 +125,6 @@ services:
       BACKUP_KEEP_PRE_UPDATE: ${JOTION_BACKUP_KEEP_PRE_UPDATE:-3}
       BACKUP_KEEP_MANUAL: ${JOTION_BACKUP_KEEP_MANUAL:-5}
     volumes:
-      - ./docker/backup:/scripts:ro
-      - ./packages/db/prisma/migrations:/migrations:ro
       - files_data:/data/files
       - backups:/backups
     healthcheck:

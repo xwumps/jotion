@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# Ein Dockerfile für alle Jotion-Dienste. Targets: web, api, worker.
+# Ein Dockerfile für alle Jotion-Dienste. Targets: web, api, worker, backup.
 
 # Alpine enthält bereits libssl3 (für Prisma); keine Paketinstallation nötig
 ARG NODE_IMAGE=node:22-alpine
@@ -81,3 +81,20 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/web/server.js"]
+
+# ---------- backup (Phase 12.1) ----------
+# pg_dump passend zur Postgres-Version, openssl für die Verschlüsselung der Sicherungen.
+# Skripte und Migrationsliste (für die Versionsprüfung beim Wiederherstellen) liegen im Image.
+FROM postgres:16-alpine AS backup
+RUN --mount=type=secret,id=extra_ca,required=false \
+    cp /etc/ssl/certs/ca-certificates.crt /tmp/ca.bak \
+    && { [ ! -s /run/secrets/extra_ca ] || cat /run/secrets/extra_ca >> /etc/ssl/certs/ca-certificates.crt; } \
+    && apk add --no-cache openssl \
+    && cp /tmp/ca.bak /etc/ssl/certs/ca-certificates.crt && rm /tmp/ca.bak \
+    # gosu gehört zum Postgres-Entrypoint, den der Backup-Dienst nicht nutzt
+    && rm -f /usr/local/bin/gosu
+COPY docker/backup/*.sh /scripts/
+COPY packages/db/prisma/migrations /migrations
+RUN chmod 755 /scripts/*.sh
+ENTRYPOINT ["/scripts/run.sh"]
+

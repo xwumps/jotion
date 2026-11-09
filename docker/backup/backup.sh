@@ -43,19 +43,37 @@ KEYFP=""
 if [ -n "${JOTION_MASTER_KEY:-}" ]; then
   KEYFP="$(printf '%s' "$JOTION_MASTER_KEY" | sha256sum | cut -c1-16)"
 fi
+DB_BYTES=$(wc -c < "${WORK}/database.dump")
+FILES_BYTES=$(wc -c < "${WORK}/files.tar.gz")
+(cd "$WORK" && sha256sum database.dump files.tar.gz > SHA256SUMS)
+ENC_JSON='"encrypted": false'
+PARTS="database.dump files.tar.gz"
+# Phase 12.1: Inhalt mit einem aus dem Master Key abgeleiteten Schlüssel verschlüsseln
+if [ "${BACKUP_ENCRYPT:-true}" = "true" ] && [ -n "${JOTION_MASTER_KEY:-}" ]; then
+  . /scripts/crypto.sh
+  tar -cf "${WORK}/payload.tar" -C "$WORK" database.dump files.tar.gz SHA256SUMS
+  rm -f "${WORK}/database.dump" "${WORK}/files.tar.gz"
+  ENC="$(encrypt_payload "$JOTION_MASTER_KEY" "${WORK}/payload.tar" "${WORK}/payload.enc")"
+  set -- $ENC
+  rm -f "${WORK}/payload.tar"
+  ENC_JSON="\"encrypted\": true, \"cipher\": \"aes-256-cbc+hmac-sha256\", \"iv\": \"$1\", \"mac\": \"$2\""
+  PARTS="payload.enc"
+fi
 cat > "${WORK}/manifest.json" <<JSON
 {
-  "format": 1,
+  "format": 2,
   "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "trigger": "${TRIGGER}",
   "schemaVersion": "${SCHEMA}",
   "masterKeyFingerprint": "${KEYFP}",
-  "databaseBytes": $(wc -c < "${WORK}/database.dump"),
-  "filesBytes": $(wc -c < "${WORK}/files.tar.gz")
+  "databaseBytes": ${DB_BYTES},
+  "filesBytes": ${FILES_BYTES},
+  ${ENC_JSON}
 }
 JSON
-(cd "$WORK" && sha256sum manifest.json database.dump files.tar.gz > SHA256SUMS)
-tar -cf "${BACKUP_DIR}/.${NAME}.part" -C "$WORK" manifest.json database.dump files.tar.gz SHA256SUMS
+# Äußere Prüfsummen (Manifest und Inhalt); bei unverschlüsselten Sicherungen wie Format 1
+(cd "$WORK" && sha256sum manifest.json $PARTS > SHA256SUMS)
+tar -cf "${BACKUP_DIR}/.${NAME}.part" -C "$WORK" manifest.json $PARTS SHA256SUMS
 mv "${BACKUP_DIR}/.${NAME}.part" "${BACKUP_DIR}/${NAME}"
 
 /scripts/rotate.sh "$BACKUP_DIR"

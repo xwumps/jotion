@@ -31,6 +31,21 @@ echo "Seite $PAGE und Datei $FILE angelegt"
 
 bash scripts/backup.sh manual
 
+# Phase 12.1: Sicherung ist verschlüsselt, öffnet nur mit dem richtigen (auch früheren) Master Key
+DC=(docker compose)
+[[ -n "${JOTION_COMPOSE_PROJECT:-}" ]] && DC+=(-p "$JOTION_COMPOSE_PROJECT")
+LIST="$("${DC[@]}" exec -T backup sh -c 'tar -tf "/backups/$(ls -1 /backups | grep -E "^jotion-.*\.tar$" | sort | tail -1)"')"
+grep -qx payload.enc <<<"$LIST" || fail "Sicherung nicht verschlüsselt: $LIST"
+grep -q database.dump <<<"$LIST" && fail "Datenbank liegt unverschlüsselt im Archiv"
+KEY="$("${DC[@]}" exec -T backup printenv JOTION_MASTER_KEY)"
+OTHER="$(head -c 32 /dev/urandom | base64)"
+verify() { "${DC[@]}" run --rm --no-deps -e JOTION_MASTER_KEY="$1" -e JOTION_MASTER_KEY_PREVIOUS="$2" --entrypoint /scripts/restore.sh backup latest --verify; }
+verify "$OTHER" "" >/dev/null 2>&1 && fail "Sicherung ließ sich mit fremdem Schlüssel öffnen"
+OUT="$(verify "$OTHER" "$OTHER,$KEY")"
+grep -q "früheren Master Key" <<<"$OUT" || fail "Früherer Master Key wird nicht verwendet: $OUT"
+OUT="$(bash scripts/restore.sh latest --verify)"
+grep -q "lesbar und vollständig" <<<"$OUT" || fail "Prüfung mit --verify fehlgeschlagen: $OUT"
+
 api -X PATCH "$BASE/api/pages/$PAGE" -d '{"title":"Nach der Sicherung umbenannt"}' >/dev/null
 LATER="$(api -X POST "$BASE/api/workspaces/$WS/pages" -d "{\"title\":\"Nach der Sicherung $RUN\",\"scope\":\"TEAM\"}" | node -pe 'JSON.parse(require("fs").readFileSync(0)).id')"
 

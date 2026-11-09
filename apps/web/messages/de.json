@@ -1660,7 +1660,7 @@
     "filesSize": "Speicher Dateien",
     "databaseSize": "Speicher Datenbank",
     "backups": "Sicherungen",
-    "backupsHint": "Täglich automatisch (Uhrzeit in JOTION_BACKUP_TIME), 7 Tage und 4 Wochen werden aufbewahrt. Die Archive liegen im Volume backups; bitte zusätzlich extern kopieren, zusammen mit JOTION_MASTER_KEY.",
+    "backupsHint": "Täglich automatisch (Uhrzeit in JOTION_BACKUP_TIME), 7 Tage und 4 Wochen werden aufbewahrt. Die Archive liegen im Volume backups und sind mit JOTION_MASTER_KEY verschlüsselt; bitte zusätzlich extern kopieren und den Master Key getrennt davon sicher aufbewahren.",
     "backupsUnavailable": "Das Sicherungsverzeichnis ist nicht eingebunden. Läuft der Dienst backup aus compose.yml?",
     "backupNow": "Jetzt sichern",
     "backupRunning": "Sicherung läuft …",
