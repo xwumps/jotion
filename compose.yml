@@ -25,6 +25,8 @@ x-app-env: &app-env
   JOTION_DROPBOX_CLIENT_SECRET: ${JOTION_DROPBOX_CLIENT_SECRET:-}
   # Phase 12: Prometheus-Metriken unter /api/metrics (leer = abgeschaltet)
   JOTION_METRICS_TOKEN: ${JOTION_METRICS_TOKEN:-}
+  # Phase 12.2: Hinweis auf neue Releases im Admin-Bereich (false = keine Abfrage bei GitHub)
+  JOTION_UPDATE_CHECK: ${JOTION_UPDATE_CHECK:-true}
 
 services:
   postgres:
@@ -59,7 +61,7 @@ services:
   # Einmaliger Job: Datenbankmigrationen vor dem Start von api und worker
   migrate:
     init: true
-    image: jotion/api:${JOTION_VERSION:-local}
+    image: ${JOTION_IMAGE_PREFIX:-jotion}/api:${JOTION_VERSION:-local}
     build: { context: ., dockerfile: docker/Dockerfile, target: api, secrets: [extra_ca] }
     restart: 'no'
     environment: *app-env
@@ -78,7 +80,7 @@ services:
 
   api:
     init: true
-    image: jotion/api:${JOTION_VERSION:-local}
+    image: ${JOTION_IMAGE_PREFIX:-jotion}/api:${JOTION_VERSION:-local}
     build: { context: ., dockerfile: docker/Dockerfile, target: api, secrets: [extra_ca] }
     restart: unless-stopped
     environment: *app-env
@@ -92,7 +94,7 @@ services:
 
   worker:
     init: true
-    image: jotion/worker:${JOTION_VERSION:-local}
+    image: ${JOTION_IMAGE_PREFIX:-jotion}/worker:${JOTION_VERSION:-local}
     build: { context: ., dockerfile: docker/Dockerfile, target: worker, secrets: [extra_ca] }
     restart: unless-stopped
     environment: *app-env
@@ -105,7 +107,7 @@ services:
 
   # Phase 12: Sicherungen (täglich und auf Anforderung) mit Werkzeugen aus dem Postgres-Image
   backup:
-    image: jotion/backup:${JOTION_VERSION:-local}
+    image: ${JOTION_IMAGE_PREFIX:-jotion}/backup:${JOTION_VERSION:-local}
     build: { context: ., dockerfile: docker/Dockerfile, target: backup, secrets: [extra_ca] }
     restart: unless-stopped
     init: true
@@ -137,7 +139,7 @@ services:
 
   web:
     init: true
-    image: jotion/web:${JOTION_VERSION:-local}
+    image: ${JOTION_IMAGE_PREFIX:-jotion}/web:${JOTION_VERSION:-local}
     build: { context: ., dockerfile: docker/Dockerfile, target: web, secrets: [extra_ca] }
     restart: unless-stopped
     environment:

@@ -61,6 +61,22 @@ export function AdminSettings() {
           <div className="mt-3 grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
             <div className="rounded-md border border-border p-3">
               <div className="text-fg-muted">{t('version', { version: s.version })}</div>
+              {s.update?.available && (
+                <div
+                  className="mt-2 rounded-md bg-accent/10 px-2 py-1.5 text-[13px]"
+                  data-testid="admin-update"
+                >
+                  <a
+                    href={s.update.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-accent hover:underline"
+                  >
+                    {t('updateAvailable', { version: s.update.latest })}
+                  </a>
+                  <div className="text-fg-muted">{t('updateHow')}</div>
+                </div>
+              )}
               <ul className="mt-2 space-y-1">
                 {Object.entries(s.checks).map(([k, c]) => (
                   <li

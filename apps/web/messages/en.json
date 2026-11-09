@@ -1680,6 +1680,8 @@
     "workspaces": "{count, plural, one {# workspace} other {# workspaces}}",
     "isAdmin": "Admin",
     "disable": "Disable",
-    "enable": "Enable"
+    "enable": "Enable",
+    "updateAvailable": "Jotion {version} is available",
+    "updateHow": "Update on the server with scripts/update.sh (a backup is made first)."
   }
 }

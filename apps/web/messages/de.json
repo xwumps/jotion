@@ -1680,6 +1680,8 @@
     "workspaces": "{count, plural, one {# Workspace} other {# Workspaces}}",
     "isAdmin": "Admin",
     "disable": "Sperren",
-    "enable": "Entsperren"
+    "enable": "Entsperren",
+    "updateAvailable": "Jotion {version} ist verfügbar",
+    "updateHow": "Aktualisieren auf dem Server mit scripts/update.sh (vorher wird automatisch gesichert)."
   }
 }
