@@ -1,6 +1,7 @@
 # Phase 12.2: Release. Ein Tag v<Version> (z. B. v1.0.0) baut die Images für x86 (amd64) und
 # ARM (arm64), veröffentlicht sie in der GitHub Container Registry und legt ein GitHub-Release
 # mit dem passenden Abschnitt aus CHANGELOG.md an (oder ergänzt ein auf der Website angelegtes).
+# Dazu kommt das Paket jotion-<Version>.tar.gz mit den Betriebsdateien für scripts/install.sh.
 name: Release
 
 on:
@@ -91,3 +92,13 @@ jobs:
           else
             gh release create "$GITHUB_REF_NAME" --title "Jotion $VERSION" --notes-file notes.md --verify-tag
           fi
+      - name: Betriebsdateien als Paket anhängen (für scripts/install.sh und update.sh)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          tar -czf "jotion-$VERSION.tar.gz" compose.yml docker/Caddyfile docker/no-extra-ca.pem \
+            .env.example CHANGELOG.md scripts/init.sh scripts/install.sh scripts/update.sh \
+            scripts/backup.sh scripts/restore.sh
+          tar -tzf "jotion-$VERSION.tar.gz"
+          gh release upload "$GITHUB_REF_NAME" "jotion-$VERSION.tar.gz" --clobber

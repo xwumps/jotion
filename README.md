@@ -10,6 +10,16 @@ Beim ersten Aufruf führt Jotion durch die Einrichtung: Das erste Konto wird Own
 
 Voraussetzung: Docker mit Compose v2 auf einem 64-Bit-System (x86 oder ARM, zum Beispiel PC, Server, NAS, Raspberry Pi 4 oder 5 mit 64-Bit-System), Richtwert 2 CPU-Kerne und 4 GB RAM.
 
+**Installation mit einem Befehl** (empfohlen):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xwumps/jotion/main/scripts/install.sh | bash
+```
+
+Das Skript legt den Ordner `jotion/` an, lädt nur die nötigen Dateien (keine Git-Kopie, kein Quellcode), erzeugt die `.env` mit zufälligen Passwörtern und Schlüsseln, lädt die fertigen Images und startet Jotion unter http://localhost:8080. Aktualisieren später mit `cd jotion && bash scripts/update.sh`.
+
+**Aus dem Quellcode** (für eigene Änderungen):
+
 ```bash
 git clone https://github.com/xwumps/jotion.git && cd jotion
 ```
@@ -18,23 +28,11 @@ git clone https://github.com/xwumps/jotion.git && cd jotion
 bash scripts/init.sh
 ```
 
-**Mit fertigen Images** (empfohlen, ab dem ersten Release): in der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen, dann
-
-```bash
-bash scripts/update.sh
-```
-
-Das Skript wählt das neueste Release, lädt die Images und startet Jotion.
-
-**Aus dem Quellcode bauen** (zum Beispiel für eigene Änderungen):
-
 ```bash
 docker compose up -d --build --wait
 ```
 
-Danach ist Jotion unter http://localhost:8080 erreichbar.
-
-`scripts/init.sh` erzeugt eine `.env` mit zufälligen Passwörtern und Schlüsseln. **Den `JOTION_MASTER_KEY` aus der `.env` zusätzlich sicher aufbewahren**, ohne ihn sind gespeicherte Zugangsdaten von Integrationen nicht mehr lesbar.
+**Den `JOTION_MASTER_KEY` aus der `.env` zusätzlich sicher aufbewahren**, ohne ihn sind gespeicherte Zugangsdaten von Integrationen nicht mehr lesbar.
 
 ## Dienste
 

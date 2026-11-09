@@ -8,6 +8,14 @@ gesichert; zurück geht es mit `scripts/restore.sh latest` und dem alten Stand.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Installation mit einem Befehl, ohne Git und ohne Quellcode:
+  `curl -fsSL https://raw.githubusercontent.com/xwumps/jotion/main/scripts/install.sh | bash`.
+  Jedes Release enthält dafür das Paket `jotion-<Version>.tar.gz` mit Compose-Datei und Skripten;
+  `scripts/update.sh` aktualisiert solche Installationen über dieses Paket.
+- `scripts/init.sh` funktioniert auch ohne `openssl`.
+
 ## [1.0.0] - 2026-11-09
 
 ### Neu

@@ -5,17 +5,10 @@ Jotion ist ein selbst gehosteter Arbeitsbereich für Notizen, Wissen und Aufgabe
 ## Schnellstart
 
 ```bash
-git clone https://github.com/xwumps/jotion.git && cd jotion
-bash scripts/init.sh
+curl -fsSL https://raw.githubusercontent.com/xwumps/jotion/main/scripts/install.sh | bash
 ```
 
-In der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen, dann:
-
-```bash
-bash scripts/update.sh
-```
-
-Jotion läuft danach unter http://localhost:8080. Die erste Person, die sich dort einrichtet, wird Owner und Admin.
+Jotion läuft danach unter http://localhost:8080. Die erste Person, die sich dort einrichtet, wird Owner und Admin. Details unter [Installation](Installation).
 
 ## Inhalt
 
