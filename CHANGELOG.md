@@ -8,6 +8,8 @@ gesichert; zurück geht es mit `scripts/restore.sh latest` und dem alten Stand.
 
 ## [Unveröffentlicht]
 
+## [1.0.1] - 2026-11-09
+
 ### Neu
 
 - Installation mit einem Befehl, ohne Git und ohne Quellcode:
