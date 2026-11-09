@@ -90,7 +90,9 @@ RUN --mount=type=secret,id=extra_ca,required=false \
     cp /etc/ssl/certs/ca-certificates.crt /tmp/ca.bak \
     && { [ ! -s /run/secrets/extra_ca ] || cat /run/secrets/extra_ca >> /etc/ssl/certs/ca-certificates.crt; } \
     && apk add --no-cache openssl \
-    && cp /tmp/ca.bak /etc/ssl/certs/ca-certificates.crt && rm /tmp/ca.bak
+    && cp /tmp/ca.bak /etc/ssl/certs/ca-certificates.crt && rm /tmp/ca.bak \
+    # gosu gehört zum Postgres-Entrypoint, den der Backup-Dienst nicht nutzt
+    && rm -f /usr/local/bin/gosu
 COPY docker/backup/*.sh /scripts/
 COPY packages/db/prisma/migrations /migrations
 RUN chmod 755 /scripts/*.sh
