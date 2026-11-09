@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { AppProviders } from '@/components/app/providers';
+import { MobileBar } from '@/components/app/mobile-bar';
 import { RememberWorkspace } from '@/components/app/remember-workspace';
 import { Sidebar } from '@/components/app/sidebar';
 import { getMe } from '@/lib/server-api';
@@ -24,7 +25,10 @@ export default async function WorkspaceLayout({
       <RememberWorkspace ws={workspaceId} />
       <div className="flex h-dvh">
         <Sidebar ws={workspaceId} />
-        <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MobileBar ws={workspaceId} />
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+        </div>
       </div>
     </AppProviders>
   );

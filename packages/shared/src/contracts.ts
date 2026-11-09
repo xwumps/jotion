@@ -73,6 +73,8 @@ export interface UserDto {
   email: string;
   name: string;
   locale: string | null;
+  /** Phase 12: Instanz-Admin (Admin-Bereich) */
+  isAdmin?: boolean;
 }
 
 export interface WorkspaceSummaryDto {

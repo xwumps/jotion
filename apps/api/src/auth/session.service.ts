@@ -71,6 +71,7 @@ export class SessionService {
       name: user.name,
       locale: user.locale,
       sessionId: session.id,
+      isAdmin: user.isAdmin,
     };
   }
 

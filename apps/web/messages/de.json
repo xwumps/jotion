@@ -73,7 +73,9 @@
     "create": "Erstellen",
     "logout": "Abmelden",
     "templates": "Vorlagen",
-    "shared": "Mit mir geteilt"
+    "shared": "Mit mir geteilt",
+    "import": "Importieren",
+    "openMenu": "Menü öffnen"
   },
   "trash": {
     "title": "Papierkorb",
@@ -173,7 +175,8 @@
       "account": "Mein Konto",
       "workspace": "Workspace",
       "members": "Mitglieder",
-      "integrations": "Integrationen"
+      "integrations": "Integrationen",
+      "server": "Server"
     },
     "profile": "Profil",
     "name": "Name",
@@ -214,7 +217,9 @@
     "removeMember": "Aus Workspace entfernen",
     "leaveWorkspace": "Workspace verlassen",
     "confirmRemove": "{name} wirklich aus dem Workspace entfernen?",
-    "confirmLeave": "Workspace wirklich verlassen? Du brauchst danach eine neue Einladung."
+    "confirmLeave": "Workspace wirklich verlassen? Du brauchst danach eine neue Einladung.",
+    "apiTokens": "API-Tokens",
+    "apiTokensHint": "Für Skripte und andere Programme. Ein Token handelt mit deinen Rechten; nur lesende Tokens können nichts ändern. Anleitung: docs/api.md"
   },
   "theme": {
     "label": "Darstellung",
@@ -521,7 +526,10 @@
     "duplicate": "Duplizieren",
     "duplicating": "Wird dupliziert …",
     "duplicated": "{count, plural, one {Seite dupliziert} other {# Seiten dupliziert}}",
-    "print": "Drucken / Als PDF"
+    "print": "Drucken / Als PDF",
+    "exportMarkdown": "Exportieren als Markdown (ZIP)",
+    "exportHtml": "Exportieren als HTML (ZIP)",
+    "exportCsv": "Datenbank als CSV exportieren"
   },
   "contentSearch": {
     "titleOnly": "Nur Titel",
@@ -1599,5 +1607,79 @@
     "origin": "Original: {title}",
     "untitled": "Ohne Titel",
     "copy": "Kopieren und synchronisieren"
+  },
+  "apiTokens": {
+    "name": "Bezeichnung",
+    "namePlaceholder": "z. B. Backup-Skript",
+    "scope": "Umfang",
+    "scopes": {
+      "read": "Nur lesen",
+      "write": "Lesen und schreiben"
+    },
+    "days": "Gültig (Tage)",
+    "never": "unbegrenzt",
+    "create": "Token erstellen",
+    "createdOnce": "Neues Token. Es wird nur jetzt angezeigt; bitte sicher aufbewahren.",
+    "copy": "Kopieren",
+    "copied": "Token kopiert",
+    "empty": "Noch keine Tokens",
+    "lastUsed": "zuletzt benutzt {date}",
+    "neverUsed": "noch nie benutzt",
+    "expires": "läuft ab {date}",
+    "revoke": "Token widerrufen",
+    "revoked": "Token widerrufen"
+  },
+  "import": {
+    "title": "Importieren",
+    "description": "Seiten und Datenbanken aus Dateien übernehmen.",
+    "choose": "Datei wählen oder hierher ziehen",
+    "formats": "Markdown (.md), CSV (.csv) oder ZIP (Notion-Export, Markdown-Ordner)",
+    "scope": "Ablegen unter",
+    "team": "Team",
+    "private": "Privat",
+    "notionHint": "Notion: Einstellungen → Exportieren → Markdown & CSV, mit Unterseiten. Die ZIP-Datei hier hochladen.",
+    "run": "Importieren",
+    "running": "Wird importiert …",
+    "done": "Importiert: {pages} Seiten, {databases} Datenbanken, {rows} Zeilen, {images} Bilder"
+  },
+  "admin": {
+    "status": "Zustand",
+    "version": "Version {version}",
+    "checks": {
+      "database": "Datenbank",
+      "redis": "Redis",
+      "worker": "Hintergrund-Dienst"
+    },
+    "counts": {
+      "users": "Konten",
+      "workspaces": "Workspaces",
+      "pages": "Seiten",
+      "databases": "Datenbanken",
+      "files": "Dateien"
+    },
+    "filesSize": "Speicher Dateien",
+    "databaseSize": "Speicher Datenbank",
+    "backups": "Sicherungen",
+    "backupsHint": "Täglich automatisch (Uhrzeit in JOTION_BACKUP_TIME), 7 Tage und 4 Wochen werden aufbewahrt. Die Archive liegen im Volume backups; bitte zusätzlich extern kopieren, zusammen mit JOTION_MASTER_KEY.",
+    "backupsUnavailable": "Das Sicherungsverzeichnis ist nicht eingebunden. Läuft der Dienst backup aus compose.yml?",
+    "backupNow": "Jetzt sichern",
+    "backupRunning": "Sicherung läuft …",
+    "backupRequested": "Sicherung angefordert. Sie erscheint in wenigen Augenblicken.",
+    "lastOk": "Letzte Sicherung erfolgreich: {date}",
+    "lastFailed": "Letzte Sicherung fehlgeschlagen: {error}",
+    "noBackups": "Noch keine Sicherungen",
+    "triggers": {
+      "auto": "automatisch",
+      "manual": "manuell",
+      "pre-update": "vor Update"
+    },
+    "restoreHint": "Wiederherstellen auf dem Server: scripts/restore.sh latest (oder den Namen eines Archivs).",
+    "users": "Konten",
+    "lastSeen": "zuletzt aktiv {date}",
+    "neverSeen": "nie angemeldet",
+    "workspaces": "{count, plural, one {# Workspace} other {# Workspaces}}",
+    "isAdmin": "Admin",
+    "disable": "Sperren",
+    "enable": "Entsperren"
   }
 }

@@ -19,6 +19,11 @@
       "types": "./dist/cjs/paste.d.ts",
       "import": "./dist/esm/paste.js",
       "require": "./dist/cjs/paste.js"
+    },
+    "./markdown": {
+      "types": "./dist/cjs/markdown.d.ts",
+      "import": "./dist/esm/markdown.js",
+      "require": "./dist/cjs/markdown.js"
     }
   },
   "typesVersions": {
@@ -28,6 +33,9 @@
       ],
       "paste": [
         "./dist/cjs/paste.d.ts"
+      ],
+      "markdown": [
+        "./dist/cjs/markdown.d.ts"
       ]
     }
   },

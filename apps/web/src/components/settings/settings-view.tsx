@@ -22,12 +22,14 @@ import { useMe } from '../app/providers';
 import { IconPicker } from '../page/icon-picker';
 import { PageIcon } from '../page/page-icon';
 import { Field, FormError } from '../ui/field';
+import { AdminSettings } from './admin';
+import { ApiTokens } from './api-tokens';
 import { IntegrationsSettings } from './integrations';
 import { IconButton } from '../ui/icon-button';
 import { Tooltip } from '../ui/tooltip';
 
-export type SettingsTab = 'account' | 'workspace' | 'members' | 'integrations';
-const TABS: SettingsTab[] = ['account', 'workspace', 'members', 'integrations'];
+export type SettingsTab = 'account' | 'workspace' | 'members' | 'integrations' | 'server';
+const TABS: SettingsTab[] = ['account', 'workspace', 'members', 'integrations', 'server'];
 
 const primaryBtn =
   'h-8 rounded-md bg-accent px-3 text-[14px] font-medium text-white hover:bg-accent-hover disabled:opacity-50';
@@ -55,30 +57,36 @@ function Section({
 export function SettingsView({ ws, tab }: { ws: string; tab: SettingsTab }) {
   const t = useTranslations('settings');
   const router = useRouter();
+  const me = useMe();
+  // Phase 12: Server-Einstellungen nur für Instanz-Admins
+  const tabs = TABS.filter((x) => x !== 'server' || me.user.isAdmin);
   return (
-    <div className="mx-auto flex w-full max-w-[880px] gap-10 px-6 py-10 sm:px-12">
-      <nav aria-label={t('title')} className="w-40 shrink-0">
+    <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-4 py-6 sm:flex-row sm:gap-10 sm:px-12 sm:py-10">
+      <nav aria-label={t('title')} className="shrink-0 sm:w-40">
         <h1 className="mb-3 px-2 text-[13px] font-medium text-fg-subtle">{t('title')}</h1>
-        {TABS.map((id) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => router.push(`/w/${ws}/settings/${id}`)}
-            className={cn(
-              'flex h-[30px] w-full items-center rounded-md px-2 text-[14px]',
-              tab === id ? 'bg-active font-medium text-fg' : 'text-fg-muted hover:bg-hover',
-            )}
-            aria-current={tab === id ? 'page' : undefined}
-          >
-            {t(`tabs.${id}`)}
-          </button>
-        ))}
+        <div className="flex gap-1 overflow-x-auto sm:block">
+          {tabs.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => router.push(`/w/${ws}/settings/${id}`)}
+              className={cn(
+                'flex h-[30px] shrink-0 items-center whitespace-nowrap rounded-md px-2 text-[14px] sm:w-full',
+                tab === id ? 'bg-active font-medium text-fg' : 'text-fg-muted hover:bg-hover',
+              )}
+              aria-current={tab === id ? 'page' : undefined}
+            >
+              {t(`tabs.${id}`)}
+            </button>
+          ))}
+        </div>
       </nav>
       <div className="min-w-0 flex-1">
         {tab === 'account' && <AccountSettings />}
         {tab === 'workspace' && <WorkspaceSettings ws={ws} />}
         {tab === 'members' && <MemberSettings ws={ws} />}
         {tab === 'integrations' && <IntegrationsSettings ws={ws} />}
+        {tab === 'server' && me.user.isAdmin && <AdminSettings />}
       </div>
     </div>
   );
@@ -174,6 +182,9 @@ function AccountSettings() {
             {t('changePassword')}
           </button>
         </form>
+      </Section>
+      <Section title={t('apiTokens')} description={t('apiTokensHint')}>
+        <ApiTokens />
       </Section>
       <Section title={t('session')}>
         <button

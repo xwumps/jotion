@@ -48,6 +48,8 @@ model User {
   passwordHash String    @map("password_hash")
   locale       String?
   disabledAt   DateTime? @map("disabled_at") @db.Timestamptz(3)
+  /// Phase 12: Instanz-Admin (Admin-Bereich: Server, Sicherungen, Nutzer)
+  isAdmin      Boolean   @default(false) @map("is_admin")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -58,6 +60,7 @@ model User {
   resetTokens  PasswordResetToken[] @relation("ResetTokenUser")
   createdPages Page[]               @relation("PageCreatedBy")
   ownedPages   Page[]               @relation("PageOwner")
+  apiTokens    ApiToken[]
 
   @@map("users")
 }
@@ -861,4 +864,24 @@ model PageSnapshot {
 
   @@index([pageId, createdAt])
   @@map("page_snapshots")
+}
+
+/// Phase 12: persönliche Zugriffs-Tokens für die REST-API (gespeichert nur als SHA-256)
+model ApiToken {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String
+  /// Anfang des Tokens zur Wiedererkennung (z. B. "jtn_ab12cd")
+  prefix     String
+  tokenHash  String    @unique @map("token_hash")
+  /// read: nur lesende Anfragen, write: alle
+  scope      String    @default("read")
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_tokens")
 }

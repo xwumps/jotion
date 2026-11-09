@@ -91,3 +91,69 @@ export const moveToWorkspaceSchema = z
     scope: z.enum(['PRIVATE', 'TEAM']).default('PRIVATE'),
   })
   .strict();
+
+// ---------------------------------------------------------------- Phase 12: API-Tokens
+
+export const API_TOKEN_SCOPES = ['read', 'write'] as const;
+
+export const createApiTokenSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    scope: z.enum(API_TOKEN_SCOPES).default('read'),
+    /** Gültigkeit in Tagen; ohne Angabe unbegrenzt */
+    expiresInDays: z.number().int().min(1).max(3650).optional(),
+  })
+  .strict();
+
+export interface ApiTokenDto {
+  id: string;
+  name: string;
+  prefix: string;
+  scope: 'read' | 'write';
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+/** Nur direkt nach dem Anlegen: das vollständige Token */
+export interface CreatedApiTokenDto extends ApiTokenDto {
+  token: string;
+}
+
+// ---------------------------------------------------------------- Phase 12: Admin-Bereich
+
+export interface AdminBackupDto {
+  name: string;
+  size: number;
+  createdAt: string;
+  trigger: string;
+}
+
+export interface AdminStatusDto {
+  version: string;
+  uptimeSeconds: number;
+  checks: Record<string, { status: 'ok' | 'error'; message?: string }>;
+  counts: { users: number; workspaces: number; pages: number; databases: number; files: number };
+  storage: { filesBytes: number; databaseBytes: number };
+  backups: {
+    available: boolean;
+    last: { at: string; ok: boolean; file?: string; error?: string } | null;
+    requested: boolean;
+    list: AdminBackupDto[];
+  };
+}
+
+export interface AdminUserDto {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  disabled: boolean;
+  createdAt: string;
+  lastSeenAt: string | null;
+  workspaces: number;
+}
+
+export const updateAdminUserSchema = z
+  .object({ isAdmin: z.boolean().optional(), disabled: z.boolean().optional() })
+  .strict();

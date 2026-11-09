@@ -48,9 +48,12 @@ interface NodeRow {
 // Datenbankzeilen erscheinen nicht im Seitenbaum (Phase 4)
 const VISIBLE_CHILDREN = Prisma.sql`c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind IN ('PAGE', 'DATABASE')`;
 
+/** Sichtbarkeit einer Seite (Alias) als SQL-Bedingung */
+type Visible = (alias: string) => Prisma.Sql;
+
 /** Hat die Seite (Alias p) Unterseiten, die der Nutzer sieht? */
-const hasVisibleChildren = (userId: string) =>
-  Prisma.sql`EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN} AND ${PermissionService.visibleSql(userId, 'c')})`;
+const hasVisibleChildren = (visible: Visible) =>
+  Prisma.sql`EXISTS (SELECT 1 FROM pages c WHERE c.parent_id = p.id AND ${VISIBLE_CHILDREN} AND ${visible('c')})`;
 
 @Injectable()
 export class PagesService {
@@ -62,19 +65,36 @@ export class PagesService {
 
   // ---------------------------------------------------------------- Baum
 
+  /**
+   * Sichtbarkeit für Baum-Abfragen. Ohne Freigabe-Angaben im Workspace ergibt die Rechtefunktion
+   * genau "Team-Seite oder eigene Seite"; dann reicht diese Bedingung ohne Funktionsaufruf je Zeile.
+   */
+  private async visibility(userId: string, workspaceId: string): Promise<Visible> {
+    const any = await this.prisma.client.pagePermission.findFirst({
+      where: { workspaceId },
+      select: { id: true },
+    });
+    if (any) return (alias) => PermissionService.visibleSql(userId, alias);
+    return (alias) => {
+      const a = Prisma.raw(alias);
+      return Prisma.sql`(${a}.scope = 'TEAM' OR ${a}.owner_id = ${userId}::uuid)`;
+    };
+  }
+
   async sidebar(
     user: AuthUser,
     workspaceId: string,
   ): Promise<{ private: PageTreeNodeDto[]; team: PageTreeNodeDto[]; shared: PageTreeNodeDto[] }> {
     await this.perms.requireMember(user.id, workspaceId);
+    const visible = await this.visibility(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, NULL::text AS parent_id, p.position, p.title, p.icon, p.scope::text AS scope,
-             ${hasVisibleChildren(user.id)} AS has_children
+             ${hasVisibleChildren(visible)} AS has_children
         FROM pages p
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.parent_id IS NULL
          AND p.deleted_at IS NULL AND p.archived_at IS NULL
          AND (p.scope = 'TEAM' OR p.owner_id = ${user.id}::uuid)
-         AND ${PermissionService.visibleSql(user.id)}
+         AND ${visible('p')}
        ORDER BY p.position, p.id`;
     const nodes = rows.map(toNode);
     return {
@@ -96,7 +116,7 @@ export class PagesService {
     if (!any) return [];
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, NULL::text AS parent_id, p.position, p.title, p.icon, p.scope::text AS scope,
-             ${hasVisibleChildren(user.id)} AS has_children
+             ${hasVisibleChildren((a) => PermissionService.visibleSql(user.id, a))} AS has_children
         FROM pages p LEFT JOIN pages q ON q.id = p.parent_id
        WHERE p.workspace_id = ${workspaceId}::uuid
          AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind IN ('PAGE', 'DATABASE')
@@ -110,13 +130,14 @@ export class PagesService {
   }
 
   async children(user: AuthUser, pageId: string): Promise<PageTreeNodeDto[]> {
-    await this.perms.requirePage(user.id, pageId);
+    const { page } = await this.perms.requirePage(user.id, pageId);
+    const visible = await this.visibility(user.id, page.workspaceId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
-             ${hasVisibleChildren(user.id)} AS has_children
+             ${hasVisibleChildren(visible)} AS has_children
         FROM pages p
        WHERE p.parent_id = ${pageId}::uuid AND p.deleted_at IS NULL AND p.archived_at IS NULL AND p.kind IN ('PAGE', 'DATABASE')
-         AND ${PermissionService.visibleSql(user.id)}
+         AND ${visible('p')}
        ORDER BY p.position, p.id`;
     return rows.map(toNode);
   }
@@ -533,7 +554,7 @@ export class PagesService {
     await this.perms.requireMember(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<NodeRow[]>`
       SELECT p.id::text, p.parent_id::text, p.position, p.title, p.icon, p.scope::text AS scope,
-             ${hasVisibleChildren(user.id)} AS has_children
+             ${hasVisibleChildren((a) => PermissionService.visibleSql(user.id, a))} AS has_children
         FROM pages p
        WHERE p.workspace_id = ${workspaceId}::uuid AND p.archived_at IS NOT NULL AND p.deleted_at IS NULL
          AND ${PermissionService.visibleSql(user.id)}
@@ -547,7 +568,7 @@ export class PagesService {
     await this.perms.requireMember(user.id, workspaceId);
     const rows = await this.prisma.client.$queryRaw<(NodeRow & { fav_position: string })[]>`
       SELECT p.id::text, p.parent_id::text, f.position AS fav_position, p.position, p.title, p.icon, p.scope::text AS scope,
-             ${hasVisibleChildren(user.id)} AS has_children
+             ${hasVisibleChildren((a) => PermissionService.visibleSql(user.id, a))} AS has_children
         FROM favorites f JOIN pages p ON p.id = f.page_id
        WHERE f.user_id = ${user.id}::uuid AND p.workspace_id = ${workspaceId}::uuid
          AND p.deleted_at IS NULL AND ${PermissionService.visibleSql(user.id)}

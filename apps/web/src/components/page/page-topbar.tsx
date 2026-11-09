@@ -6,6 +6,7 @@ import {
   Archive,
   ArrowRightLeft,
   Copy,
+  Download,
   History,
   LayoutTemplate,
   Link2,
@@ -224,6 +225,31 @@ export function PageTopbar({ page }: { page: PageDto }) {
                 >
                   {tt('asTemplate')}
                 </MenuCheckboxItem>
+              )}
+              {/* Phase 12: Export (Seite samt Unterseiten als ZIP, Datenbank als CSV) */}
+              <MenuItem
+                icon={Download}
+                onSelect={() =>
+                  window.location.assign(`/api/pages/${page.id}/export?format=markdown`)
+                }
+                data-testid="export-markdown"
+              >
+                {tx('exportMarkdown')}
+              </MenuItem>
+              <MenuItem
+                icon={Download}
+                onSelect={() => window.location.assign(`/api/pages/${page.id}/export?format=html`)}
+              >
+                {tx('exportHtml')}
+              </MenuItem>
+              {page.kind === 'DATABASE' && (
+                <MenuItem
+                  icon={Download}
+                  onSelect={() => window.location.assign(`/api/databases/${page.id}/export.csv`)}
+                  data-testid="export-csv"
+                >
+                  {tx('exportCsv')}
+                </MenuItem>
               )}
               <MenuItem
                 icon={Printer}

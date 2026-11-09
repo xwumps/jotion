@@ -73,7 +73,9 @@
     "create": "Create",
     "logout": "Log out",
     "templates": "Templates",
-    "shared": "Shared with me"
+    "shared": "Shared with me",
+    "import": "Import",
+    "openMenu": "Open menu"
   },
   "trash": {
     "title": "Trash",
@@ -173,7 +175,8 @@
       "account": "My account",
       "workspace": "Workspace",
       "members": "Members",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "server": "Server"
     },
     "profile": "Profile",
     "name": "Name",
@@ -214,7 +217,9 @@
     "removeMember": "Remove from workspace",
     "leaveWorkspace": "Leave workspace",
     "confirmRemove": "Really remove {name} from the workspace?",
-    "confirmLeave": "Really leave this workspace? You will need a new invitation to come back."
+    "confirmLeave": "Really leave this workspace? You will need a new invitation to come back.",
+    "apiTokens": "API tokens",
+    "apiTokensHint": "For scripts and other programs. A token acts with your permissions; read-only tokens cannot change anything. Guide: docs/api.md"
   },
   "theme": {
     "label": "Appearance",
@@ -521,7 +526,10 @@
     "duplicate": "Duplicate",
     "duplicating": "Duplicating …",
     "duplicated": "{count, plural, one {Page duplicated} other {# pages duplicated}}",
-    "print": "Print / Save as PDF"
+    "print": "Print / Save as PDF",
+    "exportMarkdown": "Export as Markdown (ZIP)",
+    "exportHtml": "Export as HTML (ZIP)",
+    "exportCsv": "Export database as CSV"
   },
   "contentSearch": {
     "titleOnly": "Titles only",
@@ -1599,5 +1607,79 @@
     "origin": "Original: {title}",
     "untitled": "Untitled",
     "copy": "Copy and sync"
+  },
+  "apiTokens": {
+    "name": "Label",
+    "namePlaceholder": "e.g. backup script",
+    "scope": "Scope",
+    "scopes": {
+      "read": "Read only",
+      "write": "Read and write"
+    },
+    "days": "Valid (days)",
+    "never": "unlimited",
+    "create": "Create token",
+    "createdOnce": "New token. It is shown only now; keep it safe.",
+    "copy": "Copy",
+    "copied": "Token copied",
+    "empty": "No tokens yet",
+    "lastUsed": "last used {date}",
+    "neverUsed": "never used",
+    "expires": "expires {date}",
+    "revoke": "Revoke token",
+    "revoked": "Token revoked"
+  },
+  "import": {
+    "title": "Import",
+    "description": "Bring in pages and databases from files.",
+    "choose": "Choose a file or drop it here",
+    "formats": "Markdown (.md), CSV (.csv) or ZIP (Notion export, Markdown folder)",
+    "scope": "Place under",
+    "team": "Team",
+    "private": "Private",
+    "notionHint": "Notion: Settings → Export → Markdown & CSV, including subpages. Upload the ZIP file here.",
+    "run": "Import",
+    "running": "Importing …",
+    "done": "Imported: {pages} pages, {databases} databases, {rows} rows, {images} images"
+  },
+  "admin": {
+    "status": "Status",
+    "version": "Version {version}",
+    "checks": {
+      "database": "Database",
+      "redis": "Redis",
+      "worker": "Background worker"
+    },
+    "counts": {
+      "users": "Accounts",
+      "workspaces": "Workspaces",
+      "pages": "Pages",
+      "databases": "Databases",
+      "files": "Files"
+    },
+    "filesSize": "File storage",
+    "databaseSize": "Database storage",
+    "backups": "Backups",
+    "backupsHint": "Daily (time set in JOTION_BACKUP_TIME); 7 days and 4 weeks are kept. Archives live in the backups volume; also copy them off-site together with JOTION_MASTER_KEY.",
+    "backupsUnavailable": "The backup directory is not mounted. Is the backup service from compose.yml running?",
+    "backupNow": "Back up now",
+    "backupRunning": "Backup running …",
+    "backupRequested": "Backup requested. It will appear in a moment.",
+    "lastOk": "Last backup succeeded: {date}",
+    "lastFailed": "Last backup failed: {error}",
+    "noBackups": "No backups yet",
+    "triggers": {
+      "auto": "automatic",
+      "manual": "manual",
+      "pre-update": "before update"
+    },
+    "restoreHint": "Restore on the server: scripts/restore.sh latest (or an archive name).",
+    "users": "Accounts",
+    "lastSeen": "last active {date}",
+    "neverSeen": "never signed in",
+    "workspaces": "{count, plural, one {# workspace} other {# workspaces}}",
+    "isAdmin": "Admin",
+    "disable": "Disable",
+    "enable": "Enable"
   }
 }
