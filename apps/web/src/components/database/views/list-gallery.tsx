@@ -4,7 +4,8 @@ import type { DatabaseDto, GroupBy, MemberDto, RowDto, ViewConfig, ViewDto } fro
 import { cn } from '@jotion/ui';
 import { ChevronDown, ChevronRight, FileText, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import { useLoadMore } from '@/lib/use-load-more';
 import { PageIcon } from '../../page/page-icon';
 import { ValueDisplay } from '../cells';
 import { useRows, type DatabaseActions } from '../use-database';
@@ -96,16 +97,8 @@ function Section({
   const rows: RowDto[] = useMemo(() => q.data?.pages.flatMap((p) => p.rows) ?? [], [q.data]);
   const cfg = view.config;
   const props = cardProperties(db, cfg);
-  const sentinel = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = sentinel.current;
-    if (!el || !q.hasNextPage) return;
-    const io = new IntersectionObserver((e) => {
-      if (e.some((x) => x.isIntersecting) && !q.isFetchingNextPage) void q.fetchNextPage();
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [q]);
+  // Nachladen, sobald das Ende sichtbar wird
+  const sentinel = useLoadMore(q);
 
   const newRow = () => {
     const prop = cfg.groupBy && db.properties.find((p) => p.id === cfg.groupBy!.propertyId);

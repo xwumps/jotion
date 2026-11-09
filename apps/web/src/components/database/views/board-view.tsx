@@ -36,7 +36,8 @@ import {
   Plus,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useLoadMore } from '@/lib/use-load-more';
 import { toast } from 'sonner';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../../ui/menu';
 import { OptionChip } from '../cells';
@@ -670,16 +671,7 @@ function BoardColumn({
   const cardProps = cardProperties(db, view.config);
 
   // Nachladen, sobald das Ende der Spalte sichtbar wird
-  const sentinel = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = sentinel.current;
-    if (!el || !q.hasNextPage) return;
-    const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting) && !q.isFetchingNextPage) void q.fetchNextPage();
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [q]);
+  const sentinel = useLoadMore(q);
 
   const newCard = () => {
     const values: Record<string, unknown> = {};
