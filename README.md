@@ -52,6 +52,7 @@ Danach ist Jotion unter http://localhost:8080 erreichbar.
 ## Weitere Dokumentation
 
 - [Entwicklung](docs/development.md): lokale Einrichtung, Tests, Projektaufbau
+- [Wiki](https://github.com/xwumps/jotion/wiki): Installation, Konfiguration, Funktionen und Anleitungen
 - [Betrieb](docs/operations.md): Docker, Backups, Updates
 - [Änderungen](CHANGELOG.md): neue Versionen und Hinweise zum Update
 - [Technischer Bauplan](docs/README.md): Architektur, Datenmodell, Integrationen, Roadmap
