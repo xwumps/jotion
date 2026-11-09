@@ -82,6 +82,8 @@ services:
     environment: *app-env
     volumes:
       - files_data:/data/files
+      # Phase 12: Liste der Sicherungen und Anforderung aus dem Admin-Bereich
+      - backups:/data/backups
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
@@ -98,6 +100,36 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
+
+  # Phase 12: Sicherungen (täglich und auf Anforderung) mit Werkzeugen aus dem Postgres-Image
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    init: true
+    entrypoint: ['/scripts/run.sh']
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-jotion}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt}
+      PGDATABASE: ${POSTGRES_DB:-jotion}
+      TZ: ${JOTION_TIMEZONE:-Europe/Berlin}
+      JOTION_MASTER_KEY: ${JOTION_MASTER_KEY:?JOTION_MASTER_KEY fehlt}
+      BACKUP_ENABLED: ${JOTION_BACKUP_ENABLED:-true}
+      BACKUP_TIME: ${JOTION_BACKUP_TIME:-03:15}
+      BACKUP_KEEP_DAILY: ${JOTION_BACKUP_KEEP_DAILY:-7}
+      BACKUP_KEEP_WEEKLY: ${JOTION_BACKUP_KEEP_WEEKLY:-4}
+    volumes:
+      - ./docker/backup:/scripts:ro
+      - ./packages/db/prisma/migrations:/migrations:ro
+      - files_data:/data/files
+      - backups:/backups
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h postgres -U "$${PGUSER}" -d "$${PGDATABASE}"']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres: { condition: service_healthy }
 
   web:
     init: true
