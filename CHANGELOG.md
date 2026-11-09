@@ -16,6 +16,11 @@ gesichert; zurück geht es mit `scripts/restore.sh latest` und dem alten Stand.
   `scripts/update.sh` aktualisiert solche Installationen über dieses Paket.
 - `scripts/init.sh` funktioniert auch ohne `openssl`.
 
+### Behoben
+
+- API-Tokens mit dem Recht "nur lesen" dürfen Datenbanken abfragen (Zeilen, Berechnungen,
+  Diagramme, Gruppen). Bisher wurden diese Abfragen mit 403 abgelehnt.
+
 ## [1.0.0] - 2026-11-09
 
 ### Neu
