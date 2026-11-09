@@ -214,7 +214,9 @@
     "removeMember": "Remove from workspace",
     "leaveWorkspace": "Leave workspace",
     "confirmRemove": "Really remove {name} from the workspace?",
-    "confirmLeave": "Really leave this workspace? You will need a new invitation to come back."
+    "confirmLeave": "Really leave this workspace? You will need a new invitation to come back.",
+    "apiTokens": "API tokens",
+    "apiTokensHint": "For scripts and other programs. A token acts with your permissions; read-only tokens cannot change anything. Guide: docs/api.md"
   },
   "theme": {
     "label": "Appearance",
@@ -1599,5 +1601,26 @@
     "origin": "Original: {title}",
     "untitled": "Untitled",
     "copy": "Copy and sync"
+  },
+  "apiTokens": {
+    "name": "Label",
+    "namePlaceholder": "e.g. backup script",
+    "scope": "Scope",
+    "scopes": {
+      "read": "Read only",
+      "write": "Read and write"
+    },
+    "days": "Valid (days)",
+    "never": "unlimited",
+    "create": "Create token",
+    "createdOnce": "New token. It is shown only now; keep it safe.",
+    "copy": "Copy",
+    "copied": "Token copied",
+    "empty": "No tokens yet",
+    "lastUsed": "last used {date}",
+    "neverUsed": "never used",
+    "expires": "expires {date}",
+    "revoke": "Revoke token",
+    "revoked": "Token revoked"
   }
 }

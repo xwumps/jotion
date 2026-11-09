@@ -214,7 +214,9 @@
     "removeMember": "Aus Workspace entfernen",
     "leaveWorkspace": "Workspace verlassen",
     "confirmRemove": "{name} wirklich aus dem Workspace entfernen?",
-    "confirmLeave": "Workspace wirklich verlassen? Du brauchst danach eine neue Einladung."
+    "confirmLeave": "Workspace wirklich verlassen? Du brauchst danach eine neue Einladung.",
+    "apiTokens": "API-Tokens",
+    "apiTokensHint": "Für Skripte und andere Programme. Ein Token handelt mit deinen Rechten; nur lesende Tokens können nichts ändern. Anleitung: docs/api.md"
   },
   "theme": {
     "label": "Darstellung",
@@ -1599,5 +1601,26 @@
     "origin": "Original: {title}",
     "untitled": "Ohne Titel",
     "copy": "Kopieren und synchronisieren"
+  },
+  "apiTokens": {
+    "name": "Bezeichnung",
+    "namePlaceholder": "z. B. Backup-Skript",
+    "scope": "Umfang",
+    "scopes": {
+      "read": "Nur lesen",
+      "write": "Lesen und schreiben"
+    },
+    "days": "Gültig (Tage)",
+    "never": "unbegrenzt",
+    "create": "Token erstellen",
+    "createdOnce": "Neues Token. Es wird nur jetzt angezeigt; bitte sicher aufbewahren.",
+    "copy": "Kopieren",
+    "copied": "Token kopiert",
+    "empty": "Noch keine Tokens",
+    "lastUsed": "zuletzt benutzt {date}",
+    "neverUsed": "noch nie benutzt",
+    "expires": "läuft ab {date}",
+    "revoke": "Token widerrufen",
+    "revoked": "Token widerrufen"
   }
 }

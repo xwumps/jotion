@@ -19,6 +19,7 @@ import { PagesModule } from './pages/pages.module';
 import { SharingModule } from './sharing/sharing.module';
 import { CommentsModule } from './comments/comments.module';
 import { HistoryModule } from './history/history.module';
+import { ApiTokensModule } from './tokens/api-tokens.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 
@@ -45,6 +46,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     SharingModule,
     CommentsModule,
     HistoryModule,
+    ApiTokensModule,
   ],
 })
 export class AppModule {}

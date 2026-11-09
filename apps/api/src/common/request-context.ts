@@ -7,6 +7,10 @@ export interface AuthUser {
   name: string;
   locale: string | null;
   sessionId: string;
+  /** Phase 12: Instanz-Admin */
+  isAdmin?: boolean;
+  /** Phase 12: Anmeldung über ein API-Token (read: nur lesend) */
+  tokenScope?: 'read' | 'write';
 }
 
 declare module 'fastify' {

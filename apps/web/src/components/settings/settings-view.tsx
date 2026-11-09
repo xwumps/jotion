@@ -22,6 +22,7 @@ import { useMe } from '../app/providers';
 import { IconPicker } from '../page/icon-picker';
 import { PageIcon } from '../page/page-icon';
 import { Field, FormError } from '../ui/field';
+import { ApiTokens } from './api-tokens';
 import { IntegrationsSettings } from './integrations';
 import { IconButton } from '../ui/icon-button';
 import { Tooltip } from '../ui/tooltip';
@@ -174,6 +175,9 @@ function AccountSettings() {
             {t('changePassword')}
           </button>
         </form>
+      </Section>
+      <Section title={t('apiTokens')} description={t('apiTokensHint')}>
+        <ApiTokens />
       </Section>
       <Section title={t('session')}>
         <button

@@ -91,3 +91,31 @@ export const moveToWorkspaceSchema = z
     scope: z.enum(['PRIVATE', 'TEAM']).default('PRIVATE'),
   })
   .strict();
+
+// ---------------------------------------------------------------- Phase 12: API-Tokens
+
+export const API_TOKEN_SCOPES = ['read', 'write'] as const;
+
+export const createApiTokenSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    scope: z.enum(API_TOKEN_SCOPES).default('read'),
+    /** Gültigkeit in Tagen; ohne Angabe unbegrenzt */
+    expiresInDays: z.number().int().min(1).max(3650).optional(),
+  })
+  .strict();
+
+export interface ApiTokenDto {
+  id: string;
+  name: string;
+  prefix: string;
+  scope: 'read' | 'write';
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+/** Nur direkt nach dem Anlegen: das vollständige Token */
+export interface CreatedApiTokenDto extends ApiTokenDto {
+  token: string;
+}

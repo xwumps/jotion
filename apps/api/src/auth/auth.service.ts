@@ -50,7 +50,8 @@ export class AuthService {
       if ((await tx.user.count()) > 0)
         throw new AppError('already_set_up', 'Jotion ist bereits eingerichtet');
       const user = await tx.user.create({
-        data: { email: input.email, name: input.name, passwordHash },
+        // Phase 12: wer Jotion einrichtet, ist Instanz-Admin
+        data: { email: input.email, name: input.name, passwordHash, isAdmin: true },
       });
       await tx.workspace.create({
         data: {
@@ -203,8 +204,14 @@ export class AuthService {
   }
 }
 
-function toUserDto(u: { id: string; email: string; name: string; locale: string | null }): UserDto {
-  return { id: u.id, email: u.email, name: u.name, locale: u.locale };
+function toUserDto(u: {
+  id: string;
+  email: string;
+  name: string;
+  locale: string | null;
+  isAdmin?: boolean;
+}): UserDto {
+  return { id: u.id, email: u.email, name: u.name, locale: u.locale, isAdmin: !!u.isAdmin };
 }
 
 function isUsable(inv: {
