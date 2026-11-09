@@ -1447,7 +1447,8 @@
     "actions": {
       "set_property": "Property setzen",
       "create_row": "Zeile anlegen",
-      "webhook": "Webhook aufrufen"
+      "webhook": "Webhook aufrufen",
+      "telegram": "Telegram-Nachricht senden"
     },
     "values": {
       "static": "Wert",
@@ -1504,7 +1505,12 @@
     "automation": "Automatisierung",
     "none": "keine",
     "editAutomations": "Automatisierungen bearbeiten",
-    "createAutomation": "Automatisierung anlegen"
+    "createAutomation": "Automatisierung anlegen",
+    "telegramBot": "Telegram-Bot wählen",
+    "telegramNoBot": "Zuerst unter Einstellungen → Integrationen einen Telegram-Bot verbinden.",
+    "telegramChat": "Chat-ID oder @Kanal",
+    "telegramText": "Nachricht",
+    "telegramHint": "Platzhalter wie beim Text-Wert: Titel, Property-Namen, auslösende Person und heute in doppelten geschweiften Klammern. Die Chat-ID zeigt z. B. @userinfobot; der Empfänger muss den Bot vorher angeschrieben haben."
   },
   "sharing": {
     "button": "Teilen",

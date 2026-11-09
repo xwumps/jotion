@@ -1447,7 +1447,8 @@
     "actions": {
       "set_property": "Set property",
       "create_row": "Create row",
-      "webhook": "Call webhook"
+      "webhook": "Call webhook",
+      "telegram": "Send Telegram message"
     },
     "values": {
       "static": "Value",
@@ -1504,7 +1505,12 @@
     "automation": "Automation",
     "none": "none",
     "editAutomations": "Edit automations",
-    "createAutomation": "Create automation"
+    "createAutomation": "Create automation",
+    "telegramBot": "Choose Telegram bot",
+    "telegramNoBot": "Connect a Telegram bot under Settings → Integrations first.",
+    "telegramChat": "Chat ID or @channel",
+    "telegramText": "Message",
+    "telegramHint": "Placeholders as for text values: title, property names, triggering person and today in double curly braces. Get the chat ID e.g. from @userinfobot; the recipient must have messaged the bot first."
   },
   "sharing": {
     "button": "Share",

@@ -187,6 +187,14 @@ export class AutomationsService {
             throw new AppError('validation_failed', 'Relation der Aktion nicht gefunden');
         }
       }
+      if (a.type === 'telegram') {
+        // Phase 11: nur eigene Bot-Verbindungen dieses Workspace
+        const c = await this.prisma.client.integrationConnection.findUnique({
+          where: { id: a.connectionId },
+        });
+        if (!c || c.type !== 'telegram' || c.ownerId !== user.id || c.workspaceId !== workspaceId)
+          throw new AppError('validation_failed', 'Telegram-Verbindung nicht gefunden');
+      }
       if (a.type === 'create_row') {
         const d = await this.access.requireData(user.id, a.databaseId, { level: 'edit' });
         if (d.page.workspaceId !== workspaceId) throw notFound('Datenbank');

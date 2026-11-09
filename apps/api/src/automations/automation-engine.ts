@@ -7,7 +7,13 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { Prisma, type Automation } from '@jotion/db';
-import { SafeHttpClient, SecretBox } from '@jotion/integrations';
+import {
+  endpointsFromEnv,
+  SafeHttpClient,
+  SecretBox,
+  secretsContext as integrationSecretsContext,
+  telegramSend,
+} from '@jotion/integrations';
 import {
   addDays,
   dayInZone,
@@ -368,6 +374,36 @@ export class AutomationEngine implements OnModuleInit, OnModuleDestroy {
           ctx,
         );
         return created.id;
+      }
+      case 'telegram': {
+        // Phase 11: Verbindung muss weiter dem Ersteller gehören (läuft in dessen Namen)
+        const c = await this.prisma.client.integrationConnection.findUnique({
+          where: { id: action.connectionId },
+        });
+        if (!c || c.type !== 'telegram' || c.ownerId !== a.createdById || !c.secrets)
+          throw new Error('Telegram-Verbindung nicht verfügbar');
+        const secrets = JSON.parse(
+          this.box.decrypt(c.secrets, integrationSecretsContext(c.id)),
+        ) as Record<string, string>;
+        await telegramSend(
+          {
+            config: c.config as Record<string, unknown>,
+            secrets,
+            http: new SafeHttpClient({
+              allowlist: this.env.JOTION_SSRF_ALLOWLIST,
+              timeoutMs: 10_000,
+              maxBytes: 256 * 1024,
+              maxRedirects: 0,
+              userAgent: 'Jotion/1.0 (Automatisierung)',
+            }),
+            timeZone: this.env.JOTION_TIMEZONE,
+            now: Date.now,
+            endpoints: endpointsFromEnv(this.env),
+          },
+          action.chatId,
+          this.interpolate(action.text, row, props, job),
+        );
+        return `Telegram ${action.chatId}`;
       }
       case 'webhook': {
         const secret = a.secret ? this.box.decrypt(a.secret, secretContext(a.id)) : '';

@@ -262,6 +262,41 @@ describe('Telegram-Bot', () => {
     // Zweiter Lauf: Offset gespeichert, nichts Neues
     const run2 = await owner.post(`${base()}/${res.body.id}/sync`);
     expect(run2.body.run.stats).toMatchObject({ created: 0, updated: 0 });
+    // Automatisierung: neue Zeile → Nachricht über den Bot
+    const auto = await owner.post(`/api/workspaces/${ws}/automations`, {
+      name: 'Telegram',
+      databaseId: src.body.targetDatabaseId,
+      trigger: { type: 'row_created' },
+      actions: [
+        { type: 'telegram', connectionId: res.body.id, chatId: '7', text: 'Neu: {{title}}' },
+      ],
+    });
+    expect(auto.status).toBe(201);
+    await owner.post(`/api/databases/${src.body.targetDatabaseId}/rows`, { title: 'Brot kaufen' });
+    await expect
+      .poll(() =>
+        cloud.requests
+          .filter((r) => r.path.endsWith('/sendMessage'))
+          .map((r) => JSON.parse(r.body)),
+      )
+      .toContainEqual(expect.objectContaining({ chat_id: '7', text: 'Neu: Brot kaufen' }));
+    // Fremde Bot-Verbindung oder ungültiger Chat werden abgelehnt
+    const bad = await owner.post(`/api/workspaces/${ws}/automations`, {
+      name: 'x',
+      databaseId: src.body.targetDatabaseId,
+      trigger: { type: 'row_created' },
+      actions: [
+        { type: 'telegram', connectionId: src.body.targetDatabaseId, chatId: '7', text: 'x' },
+      ],
+    });
+    expect(bad.status).toBe(422);
+    const badChat = await owner.post(`/api/workspaces/${ws}/automations`, {
+      name: 'x',
+      databaseId: src.body.targetDatabaseId,
+      trigger: { type: 'row_created' },
+      actions: [{ type: 'telegram', connectionId: res.body.id, chatId: 'abc', text: 'x' }],
+    });
+    expect(badChat.status).toBe(422);
     const ok = await owner.post(base(), {
       type: 'telegram',
       name: 'x',

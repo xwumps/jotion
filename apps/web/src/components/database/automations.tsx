@@ -12,6 +12,7 @@ import {
   type PropertyDto,
   type RowTemplateDto,
   type ValueSpec,
+  type ConnectionDto,
 } from '@jotion/shared';
 import { cn } from '@jotion/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -275,6 +276,7 @@ function RunLog({ automation, onBack }: { automation: AutomationDto; onBack: () 
 
 function defaultAction(type: AutomationAction['type'], db: DatabaseDto | null): AutomationAction {
   if (type === 'webhook') return { type, url: 'https://', includeRow: true };
+  if (type === 'telegram') return { type, connectionId: '', chatId: '', text: '{{title}}' };
   if (type === 'create_row')
     return {
       type,
@@ -413,7 +415,7 @@ function AutomationEditor({
                 }
                 data-testid="automation-action-type"
               >
-                {(['set_property', 'create_row', 'webhook'] as const)
+                {(['set_property', 'create_row', 'webhook', 'telegram'] as const)
                   .filter((x) => x !== 'set_property' || rowContext)
                   .map((x) => (
                     <option key={x} value={x}>
@@ -689,6 +691,8 @@ function ActionFields({
   onChange: (a: AutomationAction) => void;
 }) {
   const t = useTranslations('automations');
+  if (action.type === 'telegram')
+    return <TelegramFields action={action} workspaceId={workspaceId} onChange={onChange} />;
   if (action.type === 'webhook')
     return (
       <div className="flex flex-col gap-1.5">
@@ -1116,6 +1120,63 @@ function CreateRowFields({
           </select>
         </label>
       )}
+    </div>
+  );
+}
+
+/** Phase 11: Nachricht über eine eigene Telegram-Bot-Verbindung */
+function TelegramFields({
+  action,
+  workspaceId,
+  onChange,
+}: {
+  action: Extract<AutomationAction, { type: 'telegram' }>;
+  workspaceId: string;
+  onChange: (a: AutomationAction) => void;
+}) {
+  const t = useTranslations('automations');
+  const conns = useQuery({
+    queryKey: ['integrations', workspaceId],
+    queryFn: () => apiGet<ConnectionDto[]>(`/workspaces/${workspaceId}/integrations`),
+  });
+  const bots = (conns.data ?? []).filter((c) => c.type === 'telegram');
+  return (
+    <div className="flex flex-col gap-1.5">
+      {bots.length === 0 ? (
+        <p className="text-[12px] text-fg-subtle">{t('telegramNoBot')}</p>
+      ) : (
+        <select
+          className={inputClass}
+          value={action.connectionId}
+          onChange={(e) => onChange({ ...action, connectionId: e.target.value })}
+          aria-label={t('telegramBot')}
+          data-testid="automation-telegram-bot"
+        >
+          <option value="">{t('telegramBot')}</option>
+          {bots.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name} {b.accountLabel ? `(${b.accountLabel})` : ''}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        className={inputClass}
+        value={action.chatId}
+        onChange={(e) => onChange({ ...action, chatId: e.target.value })}
+        placeholder={t('telegramChat')}
+        aria-label={t('telegramChat')}
+        data-testid="automation-telegram-chat"
+      />
+      <textarea
+        className={inputClass}
+        rows={2}
+        value={action.text}
+        onChange={(e) => onChange({ ...action, text: e.target.value })}
+        aria-label={t('telegramText')}
+        data-testid="automation-telegram-text"
+      />
+      <p className="text-[12px] text-fg-subtle">{t('telegramHint')}</p>
     </div>
   );
 }
