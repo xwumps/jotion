@@ -119,3 +119,41 @@ export interface ApiTokenDto {
 export interface CreatedApiTokenDto extends ApiTokenDto {
   token: string;
 }
+
+// ---------------------------------------------------------------- Phase 12: Admin-Bereich
+
+export interface AdminBackupDto {
+  name: string;
+  size: number;
+  createdAt: string;
+  trigger: string;
+}
+
+export interface AdminStatusDto {
+  version: string;
+  uptimeSeconds: number;
+  checks: Record<string, { status: 'ok' | 'error'; message?: string }>;
+  counts: { users: number; workspaces: number; pages: number; databases: number; files: number };
+  storage: { filesBytes: number; databaseBytes: number };
+  backups: {
+    available: boolean;
+    last: { at: string; ok: boolean; file?: string; error?: string } | null;
+    requested: boolean;
+    list: AdminBackupDto[];
+  };
+}
+
+export interface AdminUserDto {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  disabled: boolean;
+  createdAt: string;
+  lastSeenAt: string | null;
+  workspaces: number;
+}
+
+export const updateAdminUserSchema = z
+  .object({ isAdmin: z.boolean().optional(), disabled: z.boolean().optional() })
+  .strict();

@@ -21,6 +21,7 @@ import { CommentsModule } from './comments/comments.module';
 import { HistoryModule } from './history/history.module';
 import { ApiTokensModule } from './tokens/api-tokens.module';
 import { TransferModule } from './transfer/transfer.module';
+import { AdminModule } from './admin/admin.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 
@@ -49,6 +50,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     HistoryModule,
     ApiTokensModule,
     TransferModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

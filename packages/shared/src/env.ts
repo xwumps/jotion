@@ -31,6 +31,10 @@ export const serverEnvSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   /** Verzeichnis für hochgeladene Dateien (Docker-Volume) */
   JOTION_FILES_DIR: z.string().min(1).default('/data/files'),
+  /** Phase 12: Sicherungen (gemeinsames Volume mit dem Backup-Dienst) */
+  JOTION_BACKUP_DIR: z.string().min(1).default('/data/backups'),
+  /** Phase 12: Bearer-Token für /api/metrics (Prometheus); leer = Endpunkt aus */
+  JOTION_METRICS_TOKEN: z.string().default(''),
   /** Zusätzlich erlaubte Origins für schreibende Requests (kommagetrennt), z. B. Dev-Server */
   JOTION_ALLOWED_ORIGINS: z
     .string()

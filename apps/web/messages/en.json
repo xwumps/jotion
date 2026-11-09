@@ -74,7 +74,8 @@
     "logout": "Log out",
     "templates": "Templates",
     "shared": "Shared with me",
-    "import": "Import"
+    "import": "Import",
+    "openMenu": "Open menu"
   },
   "trash": {
     "title": "Trash",
@@ -174,7 +175,8 @@
       "account": "My account",
       "workspace": "Workspace",
       "members": "Members",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "server": "Server"
     },
     "profile": "Profile",
     "name": "Name",
@@ -1639,5 +1641,45 @@
     "run": "Import",
     "running": "Importing …",
     "done": "Imported: {pages} pages, {databases} databases, {rows} rows, {images} images"
+  },
+  "admin": {
+    "status": "Status",
+    "version": "Version {version}",
+    "checks": {
+      "database": "Database",
+      "redis": "Redis",
+      "worker": "Background worker"
+    },
+    "counts": {
+      "users": "Accounts",
+      "workspaces": "Workspaces",
+      "pages": "Pages",
+      "databases": "Databases",
+      "files": "Files"
+    },
+    "filesSize": "File storage",
+    "databaseSize": "Database storage",
+    "backups": "Backups",
+    "backupsHint": "Daily (time set in JOTION_BACKUP_TIME); 7 days and 4 weeks are kept. Archives live in the backups volume; also copy them off-site together with JOTION_MASTER_KEY.",
+    "backupsUnavailable": "The backup directory is not mounted. Is the backup service from compose.yml running?",
+    "backupNow": "Back up now",
+    "backupRunning": "Backup running …",
+    "backupRequested": "Backup requested. It will appear in a moment.",
+    "lastOk": "Last backup succeeded: {date}",
+    "lastFailed": "Last backup failed: {error}",
+    "noBackups": "No backups yet",
+    "triggers": {
+      "auto": "automatic",
+      "manual": "manual",
+      "pre-update": "before update"
+    },
+    "restoreHint": "Restore on the server: scripts/restore.sh latest (or an archive name).",
+    "users": "Accounts",
+    "lastSeen": "last active {date}",
+    "neverSeen": "never signed in",
+    "workspaces": "{count, plural, one {# workspace} other {# workspaces}}",
+    "isAdmin": "Admin",
+    "disable": "Disable",
+    "enable": "Enable"
   }
 }

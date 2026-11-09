@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 import { AppError } from '../common/errors';
 import { IS_PUBLIC } from '../common/request-context';
-import { ApiTokensService } from '../tokens/api-tokens.service';
+import { ApiTokensService, TOKEN_PREFIX } from '../tokens/api-tokens.service';
 import { SESSION_COOKIE, SessionService } from './session.service';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -23,7 +23,7 @@ export class AuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest<FastifyRequest>();
     // Phase 12: API-Token im Authorization-Header (ohne Cookie)
     const auth = req.headers.authorization;
-    if (auth?.startsWith('Bearer ')) {
+    if (auth?.startsWith(`Bearer ${TOKEN_PREFIX}`)) {
       const user = await this.tokens.authenticate(auth.slice(7).trim());
       if (!user) throw new AppError('unauthenticated', 'API-Token ungültig oder abgelaufen');
       const path = (req.url ?? '').split('?')[0]!;

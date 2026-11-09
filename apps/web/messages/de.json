@@ -74,7 +74,8 @@
     "logout": "Abmelden",
     "templates": "Vorlagen",
     "shared": "Mit mir geteilt",
-    "import": "Importieren"
+    "import": "Importieren",
+    "openMenu": "Menü öffnen"
   },
   "trash": {
     "title": "Papierkorb",
@@ -174,7 +175,8 @@
       "account": "Mein Konto",
       "workspace": "Workspace",
       "members": "Mitglieder",
-      "integrations": "Integrationen"
+      "integrations": "Integrationen",
+      "server": "Server"
     },
     "profile": "Profil",
     "name": "Name",
@@ -1639,5 +1641,45 @@
     "run": "Importieren",
     "running": "Wird importiert …",
     "done": "Importiert: {pages} Seiten, {databases} Datenbanken, {rows} Zeilen, {images} Bilder"
+  },
+  "admin": {
+    "status": "Zustand",
+    "version": "Version {version}",
+    "checks": {
+      "database": "Datenbank",
+      "redis": "Redis",
+      "worker": "Hintergrund-Dienst"
+    },
+    "counts": {
+      "users": "Konten",
+      "workspaces": "Workspaces",
+      "pages": "Seiten",
+      "databases": "Datenbanken",
+      "files": "Dateien"
+    },
+    "filesSize": "Speicher Dateien",
+    "databaseSize": "Speicher Datenbank",
+    "backups": "Sicherungen",
+    "backupsHint": "Täglich automatisch (Uhrzeit in JOTION_BACKUP_TIME), 7 Tage und 4 Wochen werden aufbewahrt. Die Archive liegen im Volume backups; bitte zusätzlich extern kopieren, zusammen mit JOTION_MASTER_KEY.",
+    "backupsUnavailable": "Das Sicherungsverzeichnis ist nicht eingebunden. Läuft der Dienst backup aus compose.yml?",
+    "backupNow": "Jetzt sichern",
+    "backupRunning": "Sicherung läuft …",
+    "backupRequested": "Sicherung angefordert. Sie erscheint in wenigen Augenblicken.",
+    "lastOk": "Letzte Sicherung erfolgreich: {date}",
+    "lastFailed": "Letzte Sicherung fehlgeschlagen: {error}",
+    "noBackups": "Noch keine Sicherungen",
+    "triggers": {
+      "auto": "automatisch",
+      "manual": "manuell",
+      "pre-update": "vor Update"
+    },
+    "restoreHint": "Wiederherstellen auf dem Server: scripts/restore.sh latest (oder den Namen eines Archivs).",
+    "users": "Konten",
+    "lastSeen": "zuletzt aktiv {date}",
+    "neverSeen": "nie angemeldet",
+    "workspaces": "{count, plural, one {# Workspace} other {# Workspaces}}",
+    "isAdmin": "Admin",
+    "disable": "Sperren",
+    "enable": "Entsperren"
   }
 }

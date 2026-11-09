@@ -5,8 +5,9 @@ import { FileUp, Home, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lu
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { pageHref } from '@/lib/format';
+import { setMobileNav, useMobileNav } from '@/lib/mobile-nav-store';
 import { openQuickSearch } from '@/lib/quick-search-store';
 import { useFavorites, usePageActions, useRealtime, useSidebar } from '@/lib/hooks';
 import { LanguageSwitch } from '../language-switch';
@@ -88,112 +89,130 @@ export function Sidebar({ ws }: { ws: string }) {
   const [importOpen, setImportOpen] = useState(false);
   const [gallery, setGallery] = useState(false);
   useRealtime(ws);
+  // Phase 12: auf schmalen Bildschirmen ausklappbar, schließt beim Seitenwechsel
+  const mobileOpen = useMobileNav();
+  useEffect(() => setMobileNav(false), [pathname]);
 
   return (
-    <aside
-      aria-label="Sidebar"
-      className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-bg-sidebar print:hidden"
-    >
-      <div className="px-2 pt-2">
-        <WorkspaceSwitcher ws={ws} />
-      </div>
-      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
-        <div className="mt-1 space-y-px">
-          <NavItem
-            icon={Search}
-            label={t('search')}
-            onClick={openQuickSearch}
-            testId="nav-search"
-            shortcut="Strg K"
-          />
-          <NavItem
-            icon={Home}
-            label={t('home')}
-            href={`/w/${ws}`}
-            active={pathname === `/w/${ws}`}
-            testId="nav-home"
-          />
-          <InboxButton ws={ws} />
-          <NavItem
-            icon={LayoutTemplate}
-            label={t('templates')}
-            onClick={() => setGallery(true)}
-            testId="nav-templates"
-          />
-          <NavItem
-            icon={Settings}
-            label={t('settings')}
-            href={`/w/${ws}/settings`}
-            active={pathname.startsWith(`/w/${ws}/settings`)}
-            testId="nav-settings"
-          />
-        </div>
-
-        {(favorites.data?.length ?? 0) > 0 && (
-          <div className="mt-4">
-            <div className="flex h-[26px] items-center gap-1 px-2 text-[12px] font-medium text-fg-subtle">
-              <Star className="size-3" />
-              {t('favorites')}
-            </div>
-            {favorites.data!.map((f) => {
-              const active = pathname === pageHref(ws, f.id);
-              return (
-                <Link
-                  key={f.id}
-                  href={pageHref(ws, f.id)}
-                  className={cn(
-                    'flex h-[30px] items-center gap-2 rounded-md px-2 text-[14px] text-fg-muted',
-                    active ? 'bg-active font-medium text-fg' : 'hover:bg-hover',
-                  )}
-                >
-                  <PageIcon icon={f.icon} />
-                  <span className="truncate">{f.title || tc('untitled')}</span>
-                </Link>
-              );
-            })}
-          </div>
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          onClick={() => setMobileNav(false)}
+          aria-hidden
+          data-testid="mobile-backdrop"
+        />
+      )}
+      <aside
+        aria-label="Sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 flex h-full w-[min(85vw,280px)] shrink-0 flex-col border-r border-border bg-bg-sidebar transition-transform md:static md:z-auto md:w-60 md:translate-x-0 print:hidden',
+          mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full',
         )}
-
-        <PageTreeDnd ws={ws}>
-          <TreeSection
-            scope="TEAM"
-            title={t('team')}
-            nodes={sidebar.data?.team ?? []}
-            onAdd={() => create.mutate({ scope: 'TEAM' })}
-          />
-          <TreeSection
-            scope="PRIVATE"
-            title={t('private')}
-            nodes={sidebar.data?.private ?? []}
-            onAdd={() => create.mutate({ scope: 'PRIVATE' })}
-          />
-          <SharedSection title={t('shared')} nodes={sidebar.data?.shared ?? []} />
-        </PageTreeDnd>
-
-        <div className="mt-auto pt-4">
-          <NavItem
-            icon={Trash2}
-            label={t('trash')}
-            onClick={() => setTrashOpen(true)}
-            testId="nav-trash"
-          />
-          <NavItem
-            icon={FileUp}
-            label={t('import')}
-            onClick={() => setImportOpen(true)}
-            testId="nav-import"
-          />
+        data-testid="sidebar"
+        data-open={mobileOpen ? 'true' : 'false'}
+      >
+        <div className="px-2 pt-2">
+          <WorkspaceSwitcher ws={ws} />
         </div>
-      </nav>
-      <div className="space-y-1.5 border-t border-border p-2">
-        <ThemeSwitch />
-        <LanguageSwitch />
-      </div>
-      <TrashDialog ws={ws} open={trashOpen} onOpenChange={setTrashOpen} />
-      <ImportDialog ws={ws} open={importOpen} onOpenChange={setImportOpen} />
-      <TemplateGallery ws={ws} open={gallery} onOpenChange={setGallery} />
-      <QuickSearch ws={ws} />
-      <ShortcutsDialog />
-    </aside>
+        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
+          <div className="mt-1 space-y-px">
+            <NavItem
+              icon={Search}
+              label={t('search')}
+              onClick={openQuickSearch}
+              testId="nav-search"
+              shortcut="Strg K"
+            />
+            <NavItem
+              icon={Home}
+              label={t('home')}
+              href={`/w/${ws}`}
+              active={pathname === `/w/${ws}`}
+              testId="nav-home"
+            />
+            <InboxButton ws={ws} />
+            <NavItem
+              icon={LayoutTemplate}
+              label={t('templates')}
+              onClick={() => setGallery(true)}
+              testId="nav-templates"
+            />
+            <NavItem
+              icon={Settings}
+              label={t('settings')}
+              href={`/w/${ws}/settings`}
+              active={pathname.startsWith(`/w/${ws}/settings`)}
+              testId="nav-settings"
+            />
+          </div>
+
+          {(favorites.data?.length ?? 0) > 0 && (
+            <div className="mt-4">
+              <div className="flex h-[26px] items-center gap-1 px-2 text-[12px] font-medium text-fg-subtle">
+                <Star className="size-3" />
+                {t('favorites')}
+              </div>
+              {favorites.data!.map((f) => {
+                const active = pathname === pageHref(ws, f.id);
+                return (
+                  <Link
+                    key={f.id}
+                    href={pageHref(ws, f.id)}
+                    className={cn(
+                      'flex h-[30px] items-center gap-2 rounded-md px-2 text-[14px] text-fg-muted',
+                      active ? 'bg-active font-medium text-fg' : 'hover:bg-hover',
+                    )}
+                  >
+                    <PageIcon icon={f.icon} />
+                    <span className="truncate">{f.title || tc('untitled')}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          <PageTreeDnd ws={ws}>
+            <TreeSection
+              scope="TEAM"
+              title={t('team')}
+              nodes={sidebar.data?.team ?? []}
+              onAdd={() => create.mutate({ scope: 'TEAM' })}
+            />
+            <TreeSection
+              scope="PRIVATE"
+              title={t('private')}
+              nodes={sidebar.data?.private ?? []}
+              onAdd={() => create.mutate({ scope: 'PRIVATE' })}
+            />
+            <SharedSection title={t('shared')} nodes={sidebar.data?.shared ?? []} />
+          </PageTreeDnd>
+
+          <div className="mt-auto pt-4">
+            <NavItem
+              icon={Trash2}
+              label={t('trash')}
+              onClick={() => setTrashOpen(true)}
+              testId="nav-trash"
+            />
+            <NavItem
+              icon={FileUp}
+              label={t('import')}
+              onClick={() => setImportOpen(true)}
+              testId="nav-import"
+            />
+          </div>
+        </nav>
+        <div className="space-y-1.5 border-t border-border p-2">
+          <ThemeSwitch />
+          <LanguageSwitch />
+        </div>
+        <TrashDialog ws={ws} open={trashOpen} onOpenChange={setTrashOpen} />
+        <ImportDialog ws={ws} open={importOpen} onOpenChange={setImportOpen} />
+        <TemplateGallery ws={ws} open={gallery} onOpenChange={setGallery} />
+        <QuickSearch ws={ws} />
+        <ShortcutsDialog />
+      </aside>
+    </>
   );
 }

@@ -74,6 +74,7 @@ describe('API-Tokens', () => {
     expect((await owner.del(`/api/me/tokens/${t.id}`)).status).toBe(204);
     expect((await c.get('/api/auth/me')).status).toBe(401);
     expect((await bearer('jtn_falsch').get('/api/auth/me')).status).toBe(401);
+    expect((await bearer('kein-jotion-token').get('/api/auth/me')).status).toBe(401);
 
     const e = (await owner.post('/api/me/tokens', { name: 'kurz', expiresInDays: 1 })).body;
     await db.apiToken.update({

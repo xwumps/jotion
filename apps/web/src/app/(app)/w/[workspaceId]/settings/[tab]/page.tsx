@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { SettingsView, type SettingsTab } from '@/components/settings/settings-view';
 
-const TABS = new Set<SettingsTab>(['account', 'workspace', 'members', 'integrations']);
+const TABS = new Set<SettingsTab>(['account', 'workspace', 'members', 'integrations', 'server']);
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations('settings'))('title') };
