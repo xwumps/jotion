@@ -57,7 +57,7 @@ test('Markdown importieren und als ZIP exportieren', async () => {
   await expect(page.getByTestId('page-title')).toHaveValue(`Import ${RUN}`);
   await expect(page.getByTestId('editor')).toContainText('Erste Aufgabe');
 
-  await page.getByRole('button', { name: 'Seitenmenü' }).click();
+  await page.getByRole('button', { name: 'Seitenoptionen' }).click();
   const download = page.waitForEvent('download');
   await page.getByTestId('export-markdown').click();
   const file = await download;

@@ -525,10 +525,7 @@ export class TransferService {
     const ext = format === 'html' ? 'html' : 'md';
     const used = new Set<string>();
     const fileName = (dir: string, base: string, e: string) => {
-      const safe = (base.replace(/[\\/:*?"<>|]|\p{Cc}/gu, '_').trim() || 'Ohne Titel').slice(
-        0,
-        80,
-      );
+      const safe = (base.replace(/[\\/:*?"<>|]|\p{Cc}/gu, '_').trim() || 'Ohne Titel').slice(0, 80);
       let n = `${dir}${safe}.${e}`;
       for (let i = 2; used.has(n.toLowerCase()); i++) n = `${dir}${safe} (${i}).${e}`;
       used.add(n.toLowerCase());

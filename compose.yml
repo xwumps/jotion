@@ -23,6 +23,8 @@ x-app-env: &app-env
   JOTION_MICROSOFT_TENANT: ${JOTION_MICROSOFT_TENANT:-common}
   JOTION_DROPBOX_CLIENT_ID: ${JOTION_DROPBOX_CLIENT_ID:-}
   JOTION_DROPBOX_CLIENT_SECRET: ${JOTION_DROPBOX_CLIENT_SECRET:-}
+  # Phase 12: Prometheus-Metriken unter /api/metrics (leer = abgeschaltet)
+  JOTION_METRICS_TOKEN: ${JOTION_METRICS_TOKEN:-}
 
 services:
   postgres:
@@ -118,6 +120,8 @@ services:
       BACKUP_TIME: ${JOTION_BACKUP_TIME:-03:15}
       BACKUP_KEEP_DAILY: ${JOTION_BACKUP_KEEP_DAILY:-7}
       BACKUP_KEEP_WEEKLY: ${JOTION_BACKUP_KEEP_WEEKLY:-4}
+      BACKUP_KEEP_PRE_UPDATE: ${JOTION_BACKUP_KEEP_PRE_UPDATE:-3}
+      BACKUP_KEEP_MANUAL: ${JOTION_BACKUP_KEEP_MANUAL:-5}
     volumes:
       - ./docker/backup:/scripts:ro
       - ./packages/db/prisma/migrations:/migrations:ro

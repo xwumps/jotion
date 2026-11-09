@@ -26,7 +26,14 @@ json() { node -pe "const o=JSON.parse(require('fs').readFileSync(0));$1"; }
 echo "Vorversion ${OLD_REF} vorbereiten …"
 git worktree add --detach "$OLD_DIR" "$OLD_REF" >/dev/null
 cp "$ROOT/.env" "$OLD_DIR/.env"
-(cd "$OLD_DIR" && docker compose -p "$PROJECT" up -d --build --wait --wait-timeout 300) || fail "Vorversion startet nicht"
+# Nicht versionierte Zusatzdateien aus der .env (z. B. JOTION_BUILD_CA) mitnehmen
+if [[ -d "$ROOT/docker/data" ]]; then
+  mkdir -p "$OLD_DIR/docker/data"
+  cp -a "$ROOT/docker/data/." "$OLD_DIR/docker/data/"
+fi
+# Eigene Image-Tags, damit die Vorversion die aktuellen Images nicht überschreibt
+(cd "$OLD_DIR" && JOTION_VERSION=upgrade-old docker compose -p "$PROJECT" up -d --build --wait --wait-timeout 300) ||
+  fail "Vorversion startet nicht"
 
 echo "Daten in der Vorversion anlegen …"
 api -X POST "$BASE/api/auth/setup" \
@@ -37,7 +44,7 @@ DB="$(api -X POST "$BASE/api/workspaces/$WS/databases" -d '{"title":"Aufgaben vo
 api -X POST "$BASE/api/databases/$DB/rows" -d '{"title":"Steuererklärung"}' >/dev/null
 
 echo "Auf den aktuellen Stand aktualisieren …"
-(cd "$OLD_DIR" && docker compose -p "$PROJECT" stop web api worker caddy >/dev/null)
+(cd "$OLD_DIR" && JOTION_VERSION=upgrade-old docker compose -p "$PROJECT" stop web api worker caddy >/dev/null)
 docker compose -p "$PROJECT" up -d --build --wait --wait-timeout 300 || fail "Aktueller Stand startet nach dem Update nicht"
 
 echo "Daten prüfen …"
