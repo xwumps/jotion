@@ -16,7 +16,8 @@ curl -H "Authorization: Bearer jtn_…" https://jotion.example.de/api/auth/me
 Regeln:
 
 - Ein Token handelt mit den Rechten seines Kontos (Workspaces, Freigaben, Zugriffsstufen).
-- **Nur lesen**: nur `GET`-Anfragen. Alles andere wird mit 403 abgelehnt.
+- **Nur lesen**: `GET`-Anfragen und die Abfragen von Datenbanken, die einen Filter per `POST`
+  mitschicken (`/query`, `/calculate`, `/chart`, `/groups`). Alles andere wird mit 403 abgelehnt.
 - **Lesen und schreiben**: alle Anfragen, die das Konto auch in der Oberfläche darf.
 - Nie mit Token: Konto und Anmeldung (`/api/auth/*`, außer `GET /api/auth/me`), Token-Verwaltung
   (`/api/me/tokens`), Admin-Bereich (`/api/admin/*`) und die Anmeldung bei Integrationen.
