@@ -73,7 +73,8 @@
     "create": "Erstellen",
     "logout": "Abmelden",
     "templates": "Vorlagen",
-    "shared": "Mit mir geteilt"
+    "shared": "Mit mir geteilt",
+    "import": "Importieren"
   },
   "trash": {
     "title": "Papierkorb",
@@ -523,7 +524,10 @@
     "duplicate": "Duplizieren",
     "duplicating": "Wird dupliziert …",
     "duplicated": "{count, plural, one {Seite dupliziert} other {# Seiten dupliziert}}",
-    "print": "Drucken / Als PDF"
+    "print": "Drucken / Als PDF",
+    "exportMarkdown": "Exportieren als Markdown (ZIP)",
+    "exportHtml": "Exportieren als HTML (ZIP)",
+    "exportCsv": "Datenbank als CSV exportieren"
   },
   "contentSearch": {
     "titleOnly": "Nur Titel",
@@ -1622,5 +1626,18 @@
     "expires": "läuft ab {date}",
     "revoke": "Token widerrufen",
     "revoked": "Token widerrufen"
+  },
+  "import": {
+    "title": "Importieren",
+    "description": "Seiten und Datenbanken aus Dateien übernehmen.",
+    "choose": "Datei wählen oder hierher ziehen",
+    "formats": "Markdown (.md), CSV (.csv) oder ZIP (Notion-Export, Markdown-Ordner)",
+    "scope": "Ablegen unter",
+    "team": "Team",
+    "private": "Privat",
+    "notionHint": "Notion: Einstellungen → Exportieren → Markdown & CSV, mit Unterseiten. Die ZIP-Datei hier hochladen.",
+    "run": "Importieren",
+    "running": "Wird importiert …",
+    "done": "Importiert: {pages} Seiten, {databases} Datenbanken, {rows} Zeilen, {images} Bilder"
   }
 }

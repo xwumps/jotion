@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@jotion/ui';
-import { Home, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lucide-react';
+import { FileUp, Home, LayoutTemplate, Search, Settings, Star, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -17,6 +17,7 @@ import { PageTreeDnd, SharedSection, TreeSection } from './page-tree';
 import { QuickSearch } from './quick-search';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { TemplateGallery } from './template-gallery';
+import { ImportDialog } from './import-dialog';
 import { TrashDialog } from './trash-dialog';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
@@ -84,6 +85,7 @@ export function Sidebar({ ws }: { ws: string }) {
   const favorites = useFavorites(ws);
   const { create } = usePageActions(ws);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [gallery, setGallery] = useState(false);
   useRealtime(ws);
 
@@ -175,6 +177,12 @@ export function Sidebar({ ws }: { ws: string }) {
             onClick={() => setTrashOpen(true)}
             testId="nav-trash"
           />
+          <NavItem
+            icon={FileUp}
+            label={t('import')}
+            onClick={() => setImportOpen(true)}
+            testId="nav-import"
+          />
         </div>
       </nav>
       <div className="space-y-1.5 border-t border-border p-2">
@@ -182,6 +190,7 @@ export function Sidebar({ ws }: { ws: string }) {
         <LanguageSwitch />
       </div>
       <TrashDialog ws={ws} open={trashOpen} onOpenChange={setTrashOpen} />
+      <ImportDialog ws={ws} open={importOpen} onOpenChange={setImportOpen} />
       <TemplateGallery ws={ws} open={gallery} onOpenChange={setGallery} />
       <QuickSearch ws={ws} />
       <ShortcutsDialog />

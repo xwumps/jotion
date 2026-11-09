@@ -20,6 +20,7 @@ import { SharingModule } from './sharing/sharing.module';
 import { CommentsModule } from './comments/comments.module';
 import { HistoryModule } from './history/history.module';
 import { ApiTokensModule } from './tokens/api-tokens.module';
+import { TransferModule } from './transfer/transfer.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 
@@ -47,6 +48,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
     CommentsModule,
     HistoryModule,
     ApiTokensModule,
+    TransferModule,
   ],
 })
 export class AppModule {}

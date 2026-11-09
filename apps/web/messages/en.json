@@ -73,7 +73,8 @@
     "create": "Create",
     "logout": "Log out",
     "templates": "Templates",
-    "shared": "Shared with me"
+    "shared": "Shared with me",
+    "import": "Import"
   },
   "trash": {
     "title": "Trash",
@@ -523,7 +524,10 @@
     "duplicate": "Duplicate",
     "duplicating": "Duplicating …",
     "duplicated": "{count, plural, one {Page duplicated} other {# pages duplicated}}",
-    "print": "Print / Save as PDF"
+    "print": "Print / Save as PDF",
+    "exportMarkdown": "Export as Markdown (ZIP)",
+    "exportHtml": "Export as HTML (ZIP)",
+    "exportCsv": "Export database as CSV"
   },
   "contentSearch": {
     "titleOnly": "Titles only",
@@ -1622,5 +1626,18 @@
     "expires": "expires {date}",
     "revoke": "Revoke token",
     "revoked": "Token revoked"
+  },
+  "import": {
+    "title": "Import",
+    "description": "Bring in pages and databases from files.",
+    "choose": "Choose a file or drop it here",
+    "formats": "Markdown (.md), CSV (.csv) or ZIP (Notion export, Markdown folder)",
+    "scope": "Place under",
+    "team": "Team",
+    "private": "Private",
+    "notionHint": "Notion: Settings → Export → Markdown & CSV, including subpages. Upload the ZIP file here.",
+    "run": "Import",
+    "running": "Importing …",
+    "done": "Imported: {pages} pages, {databases} databases, {rows} rows, {images} images"
   }
 }
