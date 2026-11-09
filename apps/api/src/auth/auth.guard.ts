@@ -9,6 +9,8 @@ import { SESSION_COOKIE, SessionService } from './session.service';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Pfade, die ein API-Token nie erreicht (Konto, Tokens, Admin, OAuth-Anmeldung) */
 const TOKEN_BLOCKED = ['/api/auth/', '/api/me/tokens', '/api/admin', '/api/integrations/oauth/'];
+/** Abfragen, die per POST einen Filter mitschicken, aber nichts ändern (auch für lesende Tokens) */
+const READ_ONLY_POST = /^\/api\/databases\/[0-9a-f-]{36}\/(query|calculate|chart|groups)$/i;
 
 /** Globaler Guard: jede Route verlangt eine gültige Session, außer sie ist @Public(). */
 @Injectable()
@@ -31,7 +33,9 @@ export class AuthGuard implements CanActivate {
       const whoAmI = path === '/api/auth/me' && req.method === 'GET';
       if (!whoAmI && TOKEN_BLOCKED.some((p) => path.startsWith(p)))
         throw new AppError('forbidden', 'Mit einem API-Token nicht erlaubt');
-      if (user.tokenScope === 'read' && !SAFE_METHODS.has(req.method))
+      const readOnly =
+        SAFE_METHODS.has(req.method) || (req.method === 'POST' && READ_ONLY_POST.test(path));
+      if (user.tokenScope === 'read' && !readOnly)
         throw new AppError('forbidden', 'Das API-Token darf nur lesen');
       req.user = user;
       return true;

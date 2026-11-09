@@ -45,6 +45,21 @@ describe('API-Tokens', () => {
     expect((await read.get(`/api/workspaces/${ws}/sidebar`)).status).toBe(200);
     const denied = await read.post(`/api/workspaces/${ws}/pages`, { title: 'x', scope: 'TEAM' });
     expect(denied.status).toBe(403);
+    // Abfragen per POST sind lesend erlaubt, Schreiben in die Datenbank nicht
+    const dbId = (
+      await owner.post(`/api/workspaces/${ws}/databases`, { title: 'Liste', scope: 'TEAM' })
+    ).body.id as string;
+    await owner.post(`/api/databases/${dbId}/rows`, { title: 'Erste Zeile' });
+    const rows = await read.post(`/api/databases/${dbId}/query`, {});
+    expect(rows.status).toBe(200);
+    expect(rows.body.rows.map((x: { title: string }) => x.title)).toEqual(['Erste Zeile']);
+    expect(
+      (await read.post(`/api/databases/${dbId}/calculate`, { calculations: [] })).status,
+    ).not.toBe(403);
+    expect((await read.post(`/api/databases/${dbId}/rows`, { title: 'x' })).status).toBe(403);
+    expect((await read.post(`/api/databases/${dbId}/query/../rows`, { title: 'x' })).status).toBe(
+      403,
+    );
 
     const w = (await owner.post('/api/me/tokens', { name: 'Import', scope: 'write' })).body;
     const write = bearer(w.token);
