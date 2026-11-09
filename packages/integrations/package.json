@@ -11,14 +11,14 @@
       "default": "./dist/index.js"
     },
     "./testing": {
-      "types": "./dist/testing/fake-caldav.d.ts",
-      "default": "./dist/testing/fake-caldav.js"
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
     }
   },
   "typesVersions": {
     "*": {
       "testing": [
-        "dist/testing/fake-caldav.d.ts"
+        "dist/testing/index.d.ts"
       ]
     }
   },

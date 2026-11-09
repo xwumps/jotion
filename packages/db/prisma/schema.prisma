@@ -627,6 +627,8 @@ model ExternalEntity {
   weakId          Boolean   @default(false) @map("weak_id")
   /// Ressource in der Quelle (CalDAV-href)
   remoteRef       String?   @map("remote_ref")
+  /// Phase 11: Beginn des Datensatzes (Schutz vor Löschung außerhalb des Zeitfensters)
+  remoteStart     DateTime? @map("remote_start") @db.Timestamptz(3)
   rowId           String?   @map("row_id") @db.Uuid
   /// Hash der zuletzt verarbeiteten Felder
   version         String?

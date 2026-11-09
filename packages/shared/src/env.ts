@@ -56,6 +56,44 @@ export const serverEnvSchema = z.object({
         .map((o) => o.trim().toLowerCase())
         .filter(Boolean),
     ),
+  /**
+   * Phase 11: OAuth-Apps für Google, Microsoft und Dropbox. Der Admin registriert eine eigene App
+   * beim Anbieter; Rückleitung: <JOTION_PUBLIC_URL>/api/integrations/oauth/callback.
+   * Ohne Client-ID ist der Anbieter in der Oberfläche nicht wählbar.
+   */
+  JOTION_GOOGLE_CLIENT_ID: z.string().default(''),
+  JOTION_GOOGLE_CLIENT_SECRET: z.string().default(''),
+  JOTION_MICROSOFT_CLIENT_ID: z.string().default(''),
+  JOTION_MICROSOFT_CLIENT_SECRET: z.string().default(''),
+  /** Mandant: "common" (private und Organisationskonten), "organizations" oder eine Mandanten-ID */
+  JOTION_MICROSOFT_TENANT: z
+    .string()
+    .default('common')
+    .refine((v) => /^[a-zA-Z0-9.-]{1,100}$/.test(v), 'ungültiger Mandant'),
+  JOTION_DROPBOX_CLIENT_ID: z.string().default(''),
+  /** Optional: Dropbox-Apps mit PKCE brauchen kein Secret */
+  JOTION_DROPBOX_CLIENT_SECRET: z.string().default(''),
+  /**
+   * Phase 11, nur Tests: Basis-URLs der Dienste als JSON (z. B. {"google":"http://127.0.0.1:9000/google"}),
+   * auch "oauth:<anbieter>:token" und "oauth:<anbieter>:authorize". In production ignoriert.
+   */
+  JOTION_INTEGRATION_ENDPOINTS: z
+    .string()
+    .default('')
+    .transform((v, c) => {
+      if (!v.trim()) return {} as Record<string, string>;
+      try {
+        const o = JSON.parse(v) as unknown;
+        if (o && typeof o === 'object' && !Array.isArray(o))
+          return Object.fromEntries(
+            Object.entries(o).filter(([, x]) => typeof x === 'string'),
+          ) as Record<string, string>;
+      } catch {
+        /* unten */
+      }
+      c.addIssue({ code: 'custom', message: 'muss ein JSON-Objekt sein' });
+      return z.NEVER;
+    }),
   /** Phase 6: Zeitzone für Datumsfunktionen in Formeln (now(), today(), formatDate) */
   JOTION_TIMEZONE: z
     .string()

@@ -30,8 +30,16 @@ import {
 } from './mapping';
 import type { SafeHttpClient } from './safe-http';
 import {
+  needsRefresh,
+  OAUTH_PROVIDERS,
+  refreshTokens,
+  tokensToSecrets,
+  type OAuthClient,
+} from './oauth';
+import {
   ConnectorError,
   type ConnectorContext,
+  type OAuthProviderId,
   type ConnectorDefinition,
   type ExternalRecord,
   type SourceOptions,
@@ -61,6 +69,10 @@ export interface SyncEngineOptions {
   onRowsChanged?: (databaseId: string, rowIds: string[], actorId: string) => Promise<void>;
   /** Tests: wird nach jedem Datensatz aufgerufen (Abbruch simulieren) */
   afterRecord?: (count: number) => void | Promise<void>;
+  /** Phase 11: OAuth-Client je Anbieter (aus der Umgebung); null = nicht eingerichtet */
+  oauthClient?: (provider: OAuthProviderId) => OAuthClient | null;
+  /** Phase 11: Basis-URLs der Dienste überschreiben (Tests) */
+  endpoints?: Record<string, string>;
   /** Dauer der Sperre; wird während des Laufs verlängert */
   lockMs?: number;
 }
@@ -136,6 +148,14 @@ class LockLostError extends Error {
 }
 
 /** Einzeltermin, der nur aus dem Zeitfenster gewandert ist, gilt nicht als gelöscht. */
+/** Beginn eines Datensatzes (Datumsfeld) als Zeitpunkt, für remote_start */
+export function recordStart(record: ExternalRecord): Date | null {
+  const d = record.fields.date;
+  if (!d || typeof d !== 'object' || Array.isArray(d) || !('start' in d)) return null;
+  const ms = Date.parse(d.hasTime ? d.start : `${d.start}T00:00:00Z`);
+  return Number.isFinite(ms) ? new Date(ms) : null;
+}
+
 export function agedOut(externalId: string, windowStartMs: number): boolean {
   const i = externalId.lastIndexOf('#');
   if (i < 0) return false;
@@ -170,8 +190,64 @@ export class SyncEngine {
     return JSON.parse(plain) as Record<string, string>;
   }
 
-  context(config: Record<string, unknown>, secrets: Record<string, string>): ConnectorContext {
-    return { config, secrets, http: this.o.http(), timeZone: this.o.timeZone, now: this.now };
+  context(
+    config: Record<string, unknown>,
+    secrets: Record<string, string>,
+    opts: { type?: string; connectionId?: string } = {},
+  ): ConnectorContext {
+    const ctx: ConnectorContext = {
+      config,
+      secrets,
+      http: this.o.http(),
+      timeZone: this.o.timeZone,
+      now: this.now,
+      endpoints: this.o.endpoints,
+    };
+    const def = opts.type ? this.connector(opts.type) : null;
+    if (def?.authKind === 'oauth2' && def.oauth) {
+      const providerId = def.oauth.provider;
+      let current = { ...secrets };
+      let pending: Promise<string> | null = null;
+      // Phase 11: Token bei Bedarf erneuern und verschlüsselt speichern (einmal je Kontext gleichzeitig)
+      const refresh = async (): Promise<string> => {
+        if (!current.refreshToken)
+          throw new ConnectorError('auth', 'Anmeldung abgelaufen, bitte neu verbinden');
+        const client = this.o.oauthClient?.(providerId) ?? null;
+        if (!client)
+          throw new ConnectorError(
+            'config',
+            `${OAUTH_PROVIDERS[providerId].displayName} ist auf diesem Server nicht eingerichtet (Client-ID fehlt)`,
+          );
+        const t = await refreshTokens(
+          ctx.http,
+          OAUTH_PROVIDERS[providerId],
+          client,
+          current.refreshToken,
+          this.now(),
+        );
+        current = { ...current, ...tokensToSecrets(t) };
+        ctx.secrets = current;
+        if (opts.connectionId)
+          await this.o.prisma.integrationConnection.update({
+            where: { id: opts.connectionId },
+            data: {
+              secrets: this.o.box.encrypt(
+                JSON.stringify(current),
+                secretsContext(opts.connectionId),
+              ),
+            },
+          });
+        return current.accessToken!;
+      };
+      ctx.accessToken = async () => {
+        if (!needsRefresh(current, this.now())) return current.accessToken!;
+        pending ??= refresh().finally(() => {
+          pending = null;
+        });
+        return pending;
+      };
+    }
+    return ctx;
   }
 
   // ---------------------------------------------------------------- Lauf
@@ -220,7 +296,10 @@ export class SyncEngine {
     let fatal: Error | null = null;
     try {
       const connector = this.connector(conn.type);
-      const ctx = this.context(conn.config as Record<string, unknown>, await this.secretsOf(conn));
+      const ctx = this.context(conn.config as Record<string, unknown>, await this.secretsOf(conn), {
+        type: conn.type,
+        connectionId: conn.id,
+      });
       const sources = await this.o.prisma.integrationSource.findMany({
         where: { connectionId, enabled: true, targetDatabaseId: { not: null } },
         orderBy: { createdAt: 'asc' },
@@ -394,15 +473,21 @@ export class SyncEngine {
     const windowStart = this.now() - options.windowPastDays * 86_400_000;
     const candidates = await this.o.prisma.externalEntity.findMany({
       where: { sourceId: source.id, remoteDeletedAt: null, suppressed: false },
-      select: { id: true, externalId: true, remoteRef: true },
+      select: { id: true, externalId: true, remoteRef: true, remoteStart: true },
     });
+    // Phase 11: Datensätze vor dem Zeitfenster der Quelle fehlen absichtlich, nicht gelöscht
+    const keepBefore = pulled.windowStart ? Date.parse(pulled.windowStart) : null;
+    const beforeWindow = (d: Date | null) =>
+      keepBefore !== null && d !== null && d.getTime() < keepBefore;
     const refreshed = new Set(pulled.refreshedRefs);
     const deletedRefs = new Set(pulled.deletedRefs);
     let gone = candidates.filter(
       (e) =>
-        (e.remoteRef !== null && deletedRefs.has(e.remoteRef)) ||
+        // Im selben Abruf wieder geliefert (z. B. Datei verschoben): nicht gelöscht
+        (e.remoteRef !== null && deletedRefs.has(e.remoteRef) && !seen.has(e.externalId)) ||
         (!seen.has(e.externalId) &&
           !agedOut(e.externalId, windowStart) &&
+          !beforeWindow(e.remoteStart) &&
           (pulled.complete || (e.remoteRef !== null && refreshed.has(e.remoteRef)))),
     );
     // Schutz: leere vollständige Antwort bei vorhandenen Einträgen ist eher ein Serverfehler
@@ -496,10 +581,12 @@ export class SyncEngine {
     errors: string[];
   }> {
     // Eintrag anlegen oder sperren: parallele Läufe warten hier aufeinander
+    // Phase 11: Beginn des Datensatzes merken (Schutz vor Löschung, wenn er aus dem Zeitfenster fällt)
+    const remoteStart = recordStart(record);
     await tx.$executeRaw`
-      INSERT INTO external_entities (id, source_id, external_id, weak_id, remote_ref, updated_at)
-      VALUES (${randomUUID()}::uuid, ${sourceId}::uuid, ${record.externalId}, ${record.weakId}, ${record.remoteRef}, now())
-      ON CONFLICT (source_id, external_id) DO NOTHING`;
+      INSERT INTO external_entities (id, source_id, external_id, weak_id, remote_ref, remote_start, updated_at)
+      VALUES (${randomUUID()}::uuid, ${sourceId}::uuid, ${record.externalId}, ${record.weakId}, ${record.remoteRef}, ${remoteStart}::timestamptz, now())
+      ON CONFLICT (source_id, external_id) DO UPDATE SET remote_start = EXCLUDED.remote_start`;
     const [entity] = await tx.$queryRaw<Entity[]>`
       SELECT id::text, row_id::text, version, field_state, remote_deleted_at, suppressed
         FROM external_entities WHERE source_id = ${sourceId}::uuid AND external_id = ${record.externalId} FOR UPDATE`;

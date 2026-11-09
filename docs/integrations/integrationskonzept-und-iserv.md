@@ -65,7 +65,7 @@ Hinweise: 2FA am IServ-Konto kann Basic-Auth für DAV verhindern; ob App-Passwö
 | Microsoft Outlook, OneDrive | Microsoft Graph, Delta Queries | OAuth 2.0 (Entra-App durch Admin) | Event, Message, File |
 | Dropbox | API v2, `list_folder/continue` | OAuth 2.0 PKCE | File |
 | Telegram | Bot API (Long Polling, kein öffentlicher Webhook nötig) | Bot-Token | Message (z. B. "Nachricht → Inbox-DB", Benachrichtigungen ausgehend) |
-OAuth-Callback-URL wird aus `JOTION_PUBLIC_URL` gebildet. Tokens verschlüsselt, Refresh im Worker.
+OAuth-Callback-URL wird aus `JOTION_PUBLIC_URL` gebildet (`/api/integrations/oauth/callback`). Tokens verschlüsselt, Erneuerung bei Bedarf im Sync (API oder Worker). Umgesetzt in Phase 11, siehe Roadmap und ADR 110 bis 118.
 
 ---
 

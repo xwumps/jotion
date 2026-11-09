@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { CurrentUser, type AuthUser } from '../common/request-context';
 import { UUID } from '../common/uuid.pipe';
 import { IntegrationsService } from './integrations.service';
@@ -16,6 +28,13 @@ export class IntegrationsController {
   @Get('connectors')
   connectors() {
     return this.integrations.connectors();
+  }
+
+  /** Phase 11: Anmeldung bei Google, Microsoft oder Dropbox beginnen */
+  @Post('oauth/start')
+  @HttpCode(200)
+  oauthStart(@CurrentUser() u: AuthUser, @Param('id', UUID) id: string, @Body() body: unknown) {
+    return this.integrations.oauthStart(u, id, body);
   }
 
   @Post('test')
@@ -142,5 +161,21 @@ export class IntegrationsController {
     @Body() body: unknown,
   ) {
     return this.integrations.preview(u, id, cid, sid, body);
+  }
+}
+
+/** Phase 11: Rückleitung des Anbieters (Browser-Navigation mit Session-Cookie) */
+@Controller('integrations/oauth')
+export class OAuthCallbackController {
+  constructor(private readonly integrations: IntegrationsService) {}
+
+  @Get('callback')
+  async callback(
+    @CurrentUser() u: AuthUser,
+    @Query() query: Record<string, unknown>,
+    @Res() res: FastifyReply,
+  ) {
+    const path = await this.integrations.oauthCallback(u, query);
+    return res.redirect(path, 302);
   }
 }

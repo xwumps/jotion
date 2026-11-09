@@ -1,5 +1,12 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
-import { SafeHttpClient, SecretBox, SyncEngine, type SyncOutcome } from '@jotion/integrations';
+import {
+  SafeHttpClient,
+  SecretBox,
+  SyncEngine,
+  endpointsFromEnv,
+  oauthClientFromEnv,
+  type SyncOutcome,
+} from '@jotion/integrations';
 import { INTEGRATION_JOBS, QUEUE_PREFIX, QUEUES, type SyncJob } from '@jotion/shared';
 import type { ServerEnv } from '@jotion/shared/env';
 import { Queue } from 'bullmq';
@@ -45,6 +52,9 @@ export class SyncRunnerService implements OnModuleDestroy {
       box: this.box,
       http: () => integrationHttp(env),
       timeZone: env.JOTION_TIMEZONE,
+      // Phase 11: OAuth-Apps und (nur Tests) Basis-URLs der Dienste
+      oauthClient: (provider) => oauthClientFromEnv(env, provider),
+      endpoints: endpointsFromEnv(env),
       onRowsChanged: async (databaseId, rowIds, actorId) => {
         void this.redis.client.incr(`jotion:chartv:${databaseId}`).catch(() => undefined);
         await this.compute.rowsChanged(databaseId, rowIds, actorId);

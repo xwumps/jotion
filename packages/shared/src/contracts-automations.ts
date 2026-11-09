@@ -127,6 +127,20 @@ export const actionSchema = z.discriminatedUnion('type', [
       includeRow: z.boolean().default(true),
     })
     .strict(),
+  /** Phase 11: Nachricht über eine Telegram-Bot-Verbindung des Erstellers */
+  z
+    .object({
+      type: z.literal('telegram'),
+      connectionId: id,
+      /** Chat-ID (Zahl, Gruppen negativ) oder @Kanalname */
+      chatId: z
+        .string()
+        .trim()
+        .regex(/^-?\d{1,20}$|^@[A-Za-z0-9_]{5,32}$/, 'Chat-ID oder @Kanal'),
+      /** Text mit Platzhaltern {{title}}, {{Property}}, {{user}}, {{today}} */
+      text: z.string().min(1).max(2000),
+    })
+    .strict(),
 ]);
 export type AutomationAction = z.output<typeof actionSchema>;
 

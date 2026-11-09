@@ -103,15 +103,15 @@ test('CalDAV verbinden, synchronisieren, Mapping-Vorschau, lokale Änderung blei
   await page.getByTestId('integration-add').click();
   await page.getByTestId('integration-type-caldav').click();
   await page.getByLabel('Name', { exact: true }).fill(`Radicale ${RUN}`);
-  await page.getByTestId('integration-url').fill('http://radicale:5232');
-  await page.getByTestId('integration-username').fill('anna');
+  await page.getByTestId('integration-field-serverUrl').fill('http://radicale:5232');
+  await page.getByTestId('integration-field-username').fill('anna');
 
   // Falsches Passwort: verständliche Meldung
-  await page.getByTestId('integration-password').fill('falsch');
+  await page.getByTestId('integration-field-password').fill('falsch');
   await page.getByTestId('integration-test').click();
   await expect(page.getByRole('alert')).toContainText('Anmeldung fehlgeschlagen');
 
-  await page.getByTestId('integration-password').fill('geheim');
+  await page.getByTestId('integration-field-password').fill('geheim');
   await page.getByTestId('integration-test').click();
   await expect(page.getByTestId('integration-test-result')).toContainText(`Schule ${RUN}`);
   await page.getByTestId('integration-save').click();
@@ -205,4 +205,38 @@ test('CalDAV verbinden, synchronisieren, Mapping-Vorschau, lokale Änderung blei
   await expect(card).toHaveCount(0);
   await page.goto(`/w/${ws}/p/${dbId}`);
   await expect(page.getByText(`Wandertag ${RUN}`)).toBeVisible();
+});
+
+test('Phase 11: Connector-Auswahl, OAuth ohne Einrichtung, Telegram-Felder', async () => {
+  const ws = new URL(page.url()).pathname.split('/')[2]!;
+  await page.goto(`/w/${ws}/settings/integrations`);
+  await page.getByTestId('integration-add').click();
+  for (const type of [
+    'icloud',
+    'nextcloud',
+    'webdav',
+    'google',
+    'microsoft',
+    'dropbox',
+    'telegram',
+  ])
+    await expect(page.getByTestId(`integration-type-${type}`)).toBeVisible();
+
+  // Ohne Client-ID im Stack: Hinweis für den Admin, Anmelde-Knopf gesperrt
+  await page.getByTestId('integration-type-google').click();
+  await expect(page.getByRole('alert')).toContainText('nicht eingerichtet');
+  await expect(page.getByTestId('integration-oauth')).toBeDisabled();
+
+  // Nextcloud: Ordner optional
+  await page.getByTestId('integration-type-nextcloud').click();
+  await expect(page.getByTestId('integration-field-folder')).toBeVisible();
+  await expect(page.getByTestId('integration-test')).toBeDisabled();
+
+  // Telegram: Bot-Token und erlaubte Absender; ungültiges Token mit Meldung
+  await page.getByTestId('integration-type-telegram').click();
+  await page.getByTestId('integration-field-botToken').fill('kein-token');
+  await page.getByTestId('integration-field-allowedUsers').fill('@jarne');
+  await page.getByTestId('integration-test').click();
+  await expect(page.getByRole('alert')).toContainText('Bot-Token');
+  await page.keyboard.press('Escape');
 });

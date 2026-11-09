@@ -4,7 +4,19 @@ import { z } from 'zod';
 
 const id = z.uuid();
 
-export const CONNECTOR_TYPES = ['ical', 'caldav', 'iserv'] as const;
+export const CONNECTOR_TYPES = [
+  'ical',
+  'caldav',
+  'iserv',
+  // Phase 11
+  'icloud',
+  'nextcloud',
+  'webdav',
+  'google',
+  'microsoft',
+  'dropbox',
+  'telegram',
+] as const;
 export type ConnectorType = (typeof CONNECTOR_TYPES)[number];
 
 export const CONNECTION_STATUSES = ['active', 'paused', 'error'] as const;
@@ -46,6 +58,10 @@ export const RECORD_FIELDS = {
     'status',
     'url',
   ],
+  /** Phase 11: E-Mail und Telegram */
+  message: ['title', 'description', 'date', 'from', 'to', 'categories', 'read', 'url'],
+  /** Phase 11: Drive, OneDrive, Dropbox, WebDAV */
+  file: ['title', 'path', 'size', 'mime', 'date', 'url'],
 } as const;
 
 /** Sync-Intervall in Minuten: 15 min bis 24 h */
@@ -252,4 +268,29 @@ export interface MappingPreviewDto {
   /** Optionen, die neu angelegt würden, je Property */
   newOptions: Record<string, string[]>;
   errors: string[];
+}
+
+// ---------------------------------------------------------------- Phase 11: OAuth
+
+export const OAUTH_CONNECTOR_TYPES = ['google', 'microsoft', 'dropbox'] as const;
+
+export const oauthStartSchema = z
+  .object({
+    type: z.enum(OAUTH_CONNECTOR_TYPES),
+    name: z.string().trim().min(1).max(100).optional(),
+    /** Bestehende Verbindung neu anmelden (abgelaufene oder widerrufene Freigabe) */
+    connectionId: id.optional(),
+    intervalMinutes: z.number().int().min(15).max(1440).default(60),
+  })
+  .strict();
+
+export interface ConnectorInfoDto {
+  type: string;
+  displayName: string;
+  authKind: 'basic' | 'none' | 'token' | 'oauth2';
+  configFields: string[];
+  secretFields: string[];
+  capabilities: { kinds: string[]; incremental: boolean; write: boolean };
+  /** OAuth: auf diesem Server eingerichtet (Client-ID vorhanden) */
+  available: boolean;
 }

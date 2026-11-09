@@ -1,12 +1,15 @@
 import type { SafeHttpClient } from './safe-http';
 
+export type OAuthProviderId = 'google' | 'microsoft' | 'dropbox';
+
 /**
  * Connector-SDK (Phase 8): gemeinsame Schnittstelle aller Connectoren.
  * Ein Connector liest Datensätze aus einer Quelle und normalisiert sie in ExternalRecords;
  * Mapping, Dedupe, Konflikte und Löschungen erledigt die Sync-Engine für alle gleich.
  */
 
-export type RecordKind = 'event' | 'task';
+/** Phase 11: Nachrichten (E-Mail, Telegram) und Dateien (Drive, OneDrive, Dropbox, WebDAV) */
+export type RecordKind = 'event' | 'task' | 'message' | 'file';
 
 /** Datum oder Zeitraum. Ganztägig: YYYY-MM-DD, sonst ISO-Zeitpunkt in UTC. */
 export interface DateField {
@@ -21,6 +24,9 @@ export type FieldValue = string | number | boolean | string[] | DateField | null
  * Normalisierte Felder je Kind:
  * - event: title, description, date (Zeitraum), start, end, allDay, location, organizer, url, categories, status
  * - task: title, description, date (Beginn bis Fälligkeit), due, completed, priority, categories, status, url
+ * - message: title (Betreff), description (Vorschau/Text), date (Eingang), from, to, categories
+ *   (Labels, Chat), read, url
+ * - file: title (Name), path, size (Bytes), mime, date (geändert), url
  */
 export interface ExternalRecord {
   /** Stabile ID in der Quelle (UID, bei Terminserien UID#RECURRENCE-ID) */
@@ -51,6 +57,11 @@ export interface PullResult {
    * false: nur Änderungen seit dem Cursor.
    */
   complete: boolean;
+  /**
+   * Phase 11: Beginn des abgefragten Zeitfensters (ISO). Bei complete gelten fehlende Datensätze,
+   * die vorher begannen, nicht als gelöscht (sie sind nur aus dem Fenster gefallen).
+   */
+  windowStart?: string;
   /** Neuer Cursor, wird erst nach erfolgreicher Verarbeitung gespeichert */
   cursor: Record<string, unknown> | null;
 }
@@ -72,6 +83,13 @@ export interface ConnectorContext {
   timeZone: string;
   now: () => number;
   signal?: AbortSignal;
+  /**
+   * Phase 11 (OAuth): gültiges Zugriffs-Token; erneuert es bei Bedarf über das Refresh-Token und
+   * speichert das neue Token verschlüsselt. Fehlt bei Connectoren ohne OAuth.
+   */
+  accessToken?: () => Promise<string>;
+  /** Phase 11: Basis-URLs der Dienste überschreiben (Tests mit Fake-Servern) */
+  endpoints?: Record<string, string>;
 }
 
 export interface TestResult {
@@ -83,7 +101,10 @@ export interface TestResult {
 export interface ConnectorDefinition {
   type: string;
   displayName: string;
-  authKind: 'basic' | 'none';
+  /** basic: Benutzer und Passwort, token: einzelnes Token (Telegram), oauth2: Anmeldung beim Anbieter */
+  authKind: 'basic' | 'none' | 'token' | 'oauth2';
+  /** Phase 11: OAuth-Anbieter und benötigte Berechtigungen (nur bei authKind oauth2) */
+  oauth?: { provider: OAuthProviderId; scopes: string[] };
   /** Felder der Konfiguration (nicht geheim) und der Geheimnisse, für die Oberfläche */
   configFields: string[];
   secretFields: string[];

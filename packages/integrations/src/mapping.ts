@@ -273,10 +273,26 @@ export interface SuggestedProperty {
 
 /** Properties einer neuen Ziel-Datenbank je nach Art der Datensätze. */
 export function suggestedProperties(kinds: RecordKind[]): SuggestedProperty[] {
-  const out: SuggestedProperty[] = [{ key: 'date', name: 'Datum', type: 'date' }];
+  const onlyFiles = kinds.length > 0 && kinds.every((k) => k === 'file');
+  const out: SuggestedProperty[] = [
+    {
+      key: 'date',
+      name: onlyFiles ? 'Geändert' : kinds.includes('message') ? 'Eingang' : 'Datum',
+      type: 'date',
+    },
+  ];
   if (kinds.includes('task')) out.push({ key: 'completed', name: 'Erledigt', type: 'checkbox' });
   if (kinds.includes('event')) out.push({ key: 'location', name: 'Ort', type: 'text' });
-  out.push({ key: 'categories', name: 'Kategorien', type: 'multi_select' });
+  if (kinds.includes('message')) {
+    out.push({ key: 'from', name: 'Von', type: 'text' });
+    out.push({ key: 'read', name: 'Gelesen', type: 'checkbox' });
+  }
+  if (kinds.includes('file')) {
+    out.push({ key: 'path', name: 'Pfad', type: 'text' });
+    out.push({ key: 'size', name: 'Größe (Bytes)', type: 'number' });
+    out.push({ key: 'mime', name: 'Dateityp', type: 'select' });
+  }
+  if (!onlyFiles) out.push({ key: 'categories', name: 'Kategorien', type: 'multi_select' });
   if (kinds.includes('task')) out.push({ key: 'priority', name: 'Priorität', type: 'number' });
   out.push({ key: 'url', name: 'Link', type: 'url' });
   out.push({ key: 'source', name: 'Quelle', type: 'select' });
@@ -305,6 +321,12 @@ const NAME_HINTS: Record<string, RegExp> = {
   source: /quelle|source|kalender/i,
   description: /beschreib|notiz|description|details/i,
   organizer: /organis|lehrer|veranstalt/i,
+  from: /von|absender|from|sender/i,
+  to: /an\b|empfänger|to\b|recipient/i,
+  read: /gelesen|read/i,
+  path: /pfad|path|ordner/i,
+  size: /größe|groesse|size/i,
+  mime: /typ|type|format/i,
 };
 
 const TYPE_FOR: Record<string, PropertyType[]> = {
@@ -317,6 +339,12 @@ const TYPE_FOR: Record<string, PropertyType[]> = {
   source: ['select', 'text'],
   description: ['text'],
   organizer: ['text', 'select'],
+  from: ['text', 'email', 'select'],
+  to: ['text', 'email'],
+  read: ['checkbox'],
+  path: ['text'],
+  size: ['number'],
+  mime: ['select', 'text'],
 };
 
 /** Mapping-Vorschlag für eine bestehende Datenbank: passende Typen, Name als Hinweis. */

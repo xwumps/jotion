@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import { CalDavClient, SyncTokenInvalidError, type CalendarObject } from './caldav';
 import { parseIcs } from './ical';
-import { NetworkError, SsrfError } from './safe-http';
+import { dropboxConnector } from './dropbox';
+import { googleConnector } from './google';
+import { guard } from './guard';
+import { microsoftConnector } from './microsoft';
+import { telegramConnector } from './telegram';
+import { checkWebDavFolder, pullWebDavFiles } from './webdav';
 import {
   ConnectorError,
   type ConnectorContext,
@@ -13,19 +18,7 @@ import {
   type SourceOptions,
 } from './sdk';
 
-/** Netzwerk- und SSRF-Fehler einheitlich als ConnectorError. */
-export async function guard<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof ConnectorError) throw err;
-    if (err instanceof NetworkError)
-      throw new ConnectorError('network', `Server nicht erreichbar: ${err.message}`);
-    if (err instanceof SsrfError)
-      throw new ConnectorError('config', `Adresse nicht erlaubt: ${err.message}`);
-    throw new ConnectorError('network', `Server nicht erreichbar: ${(err as Error).message}`);
-  }
-}
+export { guard } from './guard';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
@@ -256,7 +249,7 @@ function calendarSources(
     .filter((s) => s.kinds.length > 0);
 }
 
-function davConnector(
+export function davConnector(
   type: string,
   displayName: string,
   urlField: 'serverUrl' | 'baseUrl',
@@ -317,10 +310,124 @@ export const iservConnector = davConnector(
   true,
 );
 
+// ------------------------------------------------------------------ Phase 11
+
+const ICLOUD_URL = 'https://caldav.icloud.com/';
+
+/** Apple iCloud: CalDAV mit Apple-ID und app-spezifischem Passwort (feste Serveradresse). */
+export const icloudConnector: ConnectorDefinition = {
+  ...davConnector('icloud', 'Apple iCloud', 'serverUrl', [], true),
+  configFields: ['username'],
+  validateConfig(config) {
+    const username = str(config.username);
+    if (!username) throw new ConnectorError('config', 'Apple-ID fehlt');
+    return { serverUrl: ICLOUD_URL, username };
+  },
+};
+
+const ncBase = (ctx: ConnectorContext) => str(ctx.config.serverUrl).replace(/\/+$/, '');
+const ncFilesUrl = (ctx: ConnectorContext) => {
+  const folder = str(ctx.config.folder).replace(/^\/+|\/+$/g, '');
+  const user = encodeURIComponent(str(ctx.config.username));
+  const path = folder ? folder.split('/').map(encodeURIComponent).join('/') + '/' : '';
+  return `${ncBase(ctx)}/remote.php/dav/files/${user}/${path}`;
+};
+
+/**
+ * Nextcloud: Kalender und Aufgaben über CalDAV (/remote.php/dav) und Dateien eines Ordners über
+ * WebDAV. Anmeldung mit App-Passwort (Einstellungen → Sicherheit).
+ */
+export const nextcloudConnector: ConnectorDefinition = {
+  type: 'nextcloud',
+  displayName: 'Nextcloud',
+  authKind: 'basic',
+  configFields: ['serverUrl', 'username', 'folder'],
+  secretFields: ['password'],
+  capabilities: { kinds: ['event', 'task', 'file'], incremental: true, write: false },
+  validateConfig(config) {
+    const username = str(config.username);
+    if (!username) throw new ConnectorError('config', 'Benutzername fehlt');
+    const folder = str(config.folder).replace(/^\/+|\/+$/g, '');
+    if (folder.split('/').includes('..'))
+      throw new ConnectorError('config', 'Ordner: ungültiger Pfad');
+    return { serverUrl: httpUrl(config.serverUrl, 'Serveradresse'), username, folder };
+  },
+  async testConnection(ctx) {
+    const sources = await this.discoverSources(ctx);
+    return {
+      accountLabel: `${str(ctx.config.username)} @ ${new URL(ncBase(ctx)).host}`,
+      sources,
+      capabilities: {
+        caldav: sources.some((s) => s.kinds.includes('event') || s.kinds.includes('task')),
+        webdav: true,
+        incremental: true,
+      },
+    };
+  },
+  async discoverSources(ctx) {
+    const d = await guard(() => davClient(ctx).discover(`${ncBase(ctx)}/remote.php/dav/`, []));
+    await checkWebDavFolder(ctx, ncFilesUrl(ctx));
+    const folder = str(ctx.config.folder);
+    return [
+      ...calendarSources(d.calendars),
+      { remoteId: 'files', name: folder ? `Dateien: ${folder}` : 'Dateien', kinds: ['file'] },
+    ];
+  },
+  pull(ctx, source, cursor) {
+    if (source.remoteId === 'files')
+      return pullWebDavFiles(ctx, ncFilesUrl(ctx), cursor as { etag?: string } | null, {
+        webUrl: (e) => (e.fileId ? `${ncBase(ctx)}/index.php/f/${e.fileId}` : null),
+      });
+    return pullCalendar(ctx, source.remoteId, source.options, cursor as DavCursor | null);
+  },
+};
+
+/** WebDAV-Dateien (z. B. IServ-Dateien, andere Server): ein Ordner samt Unterordnern. */
+export const webdavConnector: ConnectorDefinition = {
+  type: 'webdav',
+  displayName: 'WebDAV-Dateien',
+  authKind: 'basic',
+  configFields: ['folderUrl', 'username'],
+  secretFields: ['password'],
+  capabilities: { kinds: ['file'], incremental: false, write: false },
+  validateConfig(config) {
+    return {
+      folderUrl: httpUrl(config.folderUrl, 'Ordner-Adresse'),
+      username: str(config.username) || null,
+    };
+  },
+  async testConnection(ctx) {
+    const sources = await this.discoverSources(ctx);
+    return {
+      accountLabel: new URL(str(ctx.config.folderUrl)).host,
+      sources,
+      capabilities: { webdav: true },
+    };
+  },
+  async discoverSources(ctx) {
+    const url = str(ctx.config.folderUrl);
+    await checkWebDavFolder(ctx, url);
+    const name =
+      decodeURIComponent(new URL(url).pathname.replace(/\/+$/, '').split('/').pop() || '') ||
+      new URL(url).host;
+    return [{ remoteId: url, name: `Dateien: ${name}`, kinds: ['file'] }];
+  },
+  pull(ctx, source, cursor) {
+    return pullWebDavFiles(ctx, source.remoteId, cursor as { etag?: string } | null);
+  },
+};
+
 export const CONNECTORS: Record<string, ConnectorDefinition> = {
   [icalFeedConnector.type]: icalFeedConnector,
   [caldavConnector.type]: caldavConnector,
   [iservConnector.type]: iservConnector,
+  [icloudConnector.type]: icloudConnector,
+  [nextcloudConnector.type]: nextcloudConnector,
+  [webdavConnector.type]: webdavConnector,
+  [googleConnector.type]: googleConnector,
+  [microsoftConnector.type]: microsoftConnector,
+  [dropboxConnector.type]: dropboxConnector,
+  [telegramConnector.type]: telegramConnector,
 };
 
 export function connectorFor(type: string): ConnectorDefinition {
