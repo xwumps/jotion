@@ -48,3 +48,4 @@ In der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen und `bash scrip
 2. `bash scripts/release.sh 1.2.0` setzt die Versionen, macht aus "Unveröffentlicht" den Abschnitt `[1.2.0]` und legt Commit und Tag an. Commit per Pull Request nach `main` bringen.
 3. Tag veröffentlichen: `git push origin v1.2.0`, oder auf GitHub unter Releases → "Draft a new release" den Tag `v1.2.0` auf `main` anlegen und veröffentlichen.
 4. Der Workflow "Release" baut die Images für x86 und ARM (etwa 20 bis 40 Minuten), veröffentlicht sie unter `ghcr.io/xwumps/jotion/<dienst>`, füllt das Release mit dem Text aus dem CHANGELOG und hängt das Paket `jotion-<Version>.tar.gz` mit den Betriebsdateien an (für `install.sh` und `update.sh`).
+5. Bricht ein Build ab, unter Actions → Release → "Run workflow" den Tag (zum Beispiel `v1.2.0`) eintragen: Das Release wird mit dem aktuellen Workflow neu gebaut, der Code bleibt der des Tags.
