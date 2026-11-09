@@ -9,8 +9,14 @@ if [[ -f .env ]]; then
   exit 0
 fi
 
-rand_b64() { openssl rand -base64 32 | tr -d '\n'; }
-rand_hex() { openssl rand -hex 24; }
+# Zufallswerte mit openssl, sonst direkt aus /dev/urandom (z. B. auf einem NAS ohne openssl)
+if command -v openssl >/dev/null 2>&1; then
+  rand_b64() { openssl rand -base64 32 | tr -d '\n'; }
+  rand_hex() { openssl rand -hex 24; }
+else
+  rand_b64() { head -c 32 /dev/urandom | base64 | tr -d '\n'; }
+  rand_hex() { head -c 24 /dev/urandom | od -An -v -tx1 | tr -d ' \n'; }
+fi
 
 PG_PASS="$(rand_hex)"
 REDIS_PASS="$(rand_hex)"

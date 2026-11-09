@@ -20,8 +20,9 @@ Das Skript
 
 1. legt eine Sicherung an (Anlass `pre-update`),
 2. holt den neuen Stand:
-   - **mit fertigen Images** (`JOTION_IMAGE_PREFIX` gesetzt): wechselt auf das neueste Release, trägt `JOTION_VERSION` ein und lädt die Images,
-   - **mit eigenem Build**: `git pull` und Images neu bauen,
+   - **installiert per `install.sh`**: lädt die Betriebsdateien des neuesten Releases (Compose-Datei, Skripte), trägt `JOTION_VERSION` ein und lädt die Images. Die `.env` bleibt unverändert.
+   - **Git-Kopie mit fertigen Images** (`JOTION_IMAGE_PREFIX` gesetzt): wechselt auf den Tag des Releases, trägt `JOTION_VERSION` ein und lädt die Images,
+   - **eigener Build**: `git pull` und Images neu bauen,
 3. startet alle Dienste. Der Dienst `migrate` passt die Datenbank vorher an.
 
 Eine bestimmte Version statt der neuesten: `bash scripts/update.sh 1.2.0`.
@@ -46,4 +47,4 @@ In der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen und `bash scrip
 1. Änderungen in `CHANGELOG.md` unter `## [Unveröffentlicht]` sammeln.
 2. `bash scripts/release.sh 1.2.0` setzt die Versionen, macht aus "Unveröffentlicht" den Abschnitt `[1.2.0]` und legt Commit und Tag an. Commit per Pull Request nach `main` bringen.
 3. Tag veröffentlichen: `git push origin v1.2.0`, oder auf GitHub unter Releases → "Draft a new release" den Tag `v1.2.0` auf `main` anlegen und veröffentlichen.
-4. Der Workflow "Release" baut die Images für x86 und ARM (etwa 20 bis 40 Minuten), veröffentlicht sie unter `ghcr.io/xwumps/jotion/<dienst>` und füllt das Release mit dem Text aus dem CHANGELOG.
+4. Der Workflow "Release" baut die Images für x86 und ARM (etwa 20 bis 40 Minuten), veröffentlicht sie unter `ghcr.io/xwumps/jotion/<dienst>`, füllt das Release mit dem Text aus dem CHANGELOG und hängt das Paket `jotion-<Version>.tar.gz` mit den Betriebsdateien an (für `install.sh` und `update.sh`).

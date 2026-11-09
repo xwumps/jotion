@@ -5,11 +5,43 @@
 - Ein 64-Bit-System mit x86 (amd64) oder ARM (arm64): PC, Server, NAS, Mini-PC, Raspberry Pi 4 oder 5 (bzw. Pi 3 mit 64-Bit-System), Mac mit Apple-Chip über Docker Desktop.
 - Docker mit Compose v2 (`docker compose version`).
 - Richtwert 2 CPU-Kerne und 4 GB RAM. Im Betrieb mit einigen Nutzern braucht Jotion etwa 300 MB RAM.
-- Git (zum Holen des Repositorys und für Updates).
+- `curl` und `tar` (auf fast jedem Linux vorhanden). Git nur für die Installation aus dem Quellcode.
 
 32-Bit-Systeme werden nicht unterstützt: Prisma, die Datenbank-Bibliothek von Jotion, liefert dafür keine Engine.
 
-## 1. Repository holen und konfigurieren
+## 1. Installieren mit einem Befehl (empfohlen)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xwumps/jotion/main/scripts/install.sh | bash
+```
+
+Das Skript
+
+1. prüft Docker, Compose und die Architektur,
+2. legt den Ordner `jotion/` im aktuellen Verzeichnis an,
+3. lädt aus dem neuesten Release nur die Betriebsdateien: `compose.yml`, `docker/Caddyfile`, `.env.example`, die Skripte und das Changelog (kein Git, kein Quellcode),
+4. erzeugt die `.env` mit zufälligen Passwörtern und Schlüsseln und trägt die fertigen Images ein,
+5. lädt die Images und startet Jotion.
+
+Optionen, vor `bash` als Umgebungsvariablen gesetzt:
+
+| Variable                                     | Wirkung                                             |
+| -------------------------------------------- | --------------------------------------------------- |
+| `JOTION_DIR=/opt/jotion`                     | anderer Installationsordner                         |
+| `JOTION_HTTP_PORT=8090`                      | anderer Port                                        |
+| `JOTION_PUBLIC_URL=http://192.168.1.10:8080` | Adresse, unter der Jotion im Browser erreichbar ist |
+
+Beispiel: `curl -fsSL …/install.sh | JOTION_DIR=/opt/jotion bash`. Eine bestimmte Version: `… | bash -s -- 1.2.0`.
+
+Braucht Docker auf dem Rechner `sudo`, das Skript mit `sudo bash` statt `bash` starten.
+
+> **Wichtig:** Den Wert von `JOTION_MASTER_KEY` aus `jotion/.env` zusätzlich an einem sicheren Ort aufbewahren (Passwortmanager, Ausdruck). Ohne ihn lassen sich Sicherungen nicht einspielen und gespeicherte Zugangsdaten von Integrationen nicht mehr lesen.
+
+Weitere Einstellungen stehen unter [Konfiguration](Konfiguration). Für den Anfang reichen die Standardwerte. Pro Rechner ist eine Jotion-Installation vorgesehen (Docker-Projektname `jotion`).
+
+## 2. Alternative: aus dem Quellcode
+
+Für eigene Änderungen am Code oder wenn die GitHub Container Registry nicht erreichbar ist:
 
 ```bash
 git clone https://github.com/xwumps/jotion.git && cd jotion
@@ -19,37 +51,11 @@ git clone https://github.com/xwumps/jotion.git && cd jotion
 bash scripts/init.sh
 ```
 
-`scripts/init.sh` legt eine `.env` mit zufälligen Passwörtern und Schlüsseln an. Eine bestehende `.env` wird nie überschrieben.
-
-> **Wichtig:** Den Wert von `JOTION_MASTER_KEY` aus der `.env` zusätzlich an einem sicheren Ort aufbewahren (Passwortmanager, Ausdruck). Ohne ihn lassen sich Sicherungen nicht einspielen und gespeicherte Zugangsdaten von Integrationen nicht mehr lesen.
-
-Weitere Einstellungen stehen unter [Konfiguration](Konfiguration). Für den Anfang reichen die Standardwerte.
-
-## 2a. Starten mit fertigen Images (empfohlen)
-
-In der `.env` setzen:
-
-```
-JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion
-```
-
-Dann:
-
-```bash
-bash scripts/update.sh
-```
-
-Das Skript sucht das neueste Release, wechselt im Repository auf dessen Stand, trägt `JOTION_VERSION` in die `.env` ein, lädt die Images und startet alle Dienste. Eine bestimmte Version: `bash scripts/update.sh 1.0.0`.
-
-## 2b. Starten mit eigenem Build
-
-Ohne `JOTION_IMAGE_PREFIX` baut Docker die Images aus dem Quellcode. Das dauert beim ersten Mal einige Minuten (auf einem Raspberry Pi deutlich länger):
-
 ```bash
 docker compose up -d --build --wait
 ```
 
-Sinnvoll für eigene Änderungen am Code oder wenn die GitHub Container Registry nicht erreichbar ist.
+Docker baut die Images dabei selbst. Das dauert beim ersten Mal einige Minuten, auf einem Raspberry Pi deutlich länger. Mit einer Git-Kopie lassen sich auch fertige Images nutzen: in der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen und `bash scripts/update.sh` ausführen.
 
 ## 3. Einrichten
 
