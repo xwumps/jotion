@@ -18,15 +18,9 @@ curl -fsSL https://raw.githubusercontent.com/xwumps/jotion/main/scripts/install.
 
 Das Skript legt den Ordner `jotion/` an, lädt nur die nötigen Dateien (keine Git-Kopie, kein Quellcode), erzeugt die `.env` mit zufälligen Passwörtern und Schlüsseln, lädt die fertigen Images und startet Jotion unter http://localhost:8080. Aktualisieren später mit `cd jotion && bash scripts/update.sh`.
 
-**Aus dem Quellcode** (für eigene Änderungen):
+**Mit Git-Kopie**: `bash scripts/init.sh` legt die `.env` an, die ebenfalls die fertigen Images nutzt, dann `bash scripts/update.sh` (wählt das neueste Release und startet).
 
-```bash
-git clone https://github.com/xwumps/jotion.git && cd jotion
-```
-
-```bash
-bash scripts/init.sh
-```
+**Selbst bauen** (nur für eigene Änderungen am Code): in der `.env` `JOTION_IMAGE_PREFIX=` (leer) und `JOTION_VERSION=local` setzen, dann
 
 ```bash
 docker compose up -d --build --wait

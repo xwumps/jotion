@@ -71,6 +71,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: bash scripts/init.sh
+      # CI baut die Images aus diesem Stand, statt die veröffentlichten zu laden
+      - run: sed -i -e 's|^JOTION_IMAGE_PREFIX=.*|JOTION_IMAGE_PREFIX=|' -e 's|^JOTION_VERSION=.*|JOTION_VERSION=local|' .env
       # Phase 8: der E2E-Test startet Radicale im Docker-Netz des Stacks
       - run: sed -i "s/^JOTION_SSRF_ALLOWLIST=.*/JOTION_SSRF_ALLOWLIST=radicale/" .env
       - name: Stack bauen und starten
@@ -128,5 +130,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: bash scripts/init.sh
+      # CI baut die Images aus diesem Stand, statt die veröffentlichten zu laden
+      - run: sed -i -e 's|^JOTION_IMAGE_PREFIX=.*|JOTION_IMAGE_PREFIX=|' -e 's|^JOTION_VERSION=.*|JOTION_VERSION=local|' .env
       - name: Upgrade-Test
         run: bash tests/ops/upgrade-test.sh "${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}"

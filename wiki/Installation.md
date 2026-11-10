@@ -39,9 +39,7 @@ Braucht Docker auf dem Rechner `sudo`, das Skript mit `sudo bash` statt `bash` s
 
 Weitere Einstellungen stehen unter [Konfiguration](Konfiguration). Für den Anfang reichen die Standardwerte. Pro Rechner ist eine Jotion-Installation vorgesehen (Docker-Projektname `jotion`).
 
-## 2. Alternative: aus dem Quellcode
-
-Für eigene Änderungen am Code oder wenn die GitHub Container Registry nicht erreichbar ist:
+## 2. Alternative: mit Git-Kopie
 
 ```bash
 git clone https://github.com/xwumps/jotion.git && cd jotion
@@ -52,10 +50,27 @@ bash scripts/init.sh
 ```
 
 ```bash
+bash scripts/update.sh
+```
+
+Auch hier nutzt die `.env` standardmäßig die fertigen Images. `update.sh` wechselt auf das neueste Release, lädt die Images und startet. Ein einfaches `docker compose up -d` lädt ebenfalls die fertigen Images (Version `latest`), gebaut wird nichts.
+
+### Selbst bauen
+
+Nur nötig für eigene Änderungen am Code oder wenn die GitHub Container Registry nicht erreichbar ist. In der `.env` auf eigenen Build umstellen:
+
+```
+JOTION_IMAGE_PREFIX=
+JOTION_VERSION=local
+```
+
+Dann:
+
+```bash
 docker compose up -d --build --wait
 ```
 
-Docker baut die Images dabei selbst. Das dauert beim ersten Mal einige Minuten, auf einem Raspberry Pi deutlich länger. Mit einer Git-Kopie lassen sich auch fertige Images nutzen: in der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen und `bash scripts/update.sh` ausführen.
+Das dauert beim ersten Mal einige Minuten, auf einem Raspberry Pi deutlich länger.
 
 ## 3. Einrichten
 

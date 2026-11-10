@@ -59,10 +59,10 @@ Mehr unter [Sicherungen](Sicherungen).
 
 ## Updates und Betrieb
 
-| Variable               | Standard                  | Bedeutung                                                                                                                                |
-| ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `JOTION_IMAGE_PREFIX`  | leer                      | `ghcr.io/xwumps/jotion` für fertige Images, leer für eigenen Build                                                                       |
-| `JOTION_VERSION`       | vom Update-Skript gesetzt | Version der Images                                                                                                                       |
-| `JOTION_UPDATE_CHECK`  | `true`                    | Admin-Bereich zeigt neue Versionen an (höchstens eine Abfrage bei GitHub pro Tag, nur wenn ein Admin den Bereich öffnet). `false` = nie. |
-| `JOTION_METRICS_TOKEN` | leer                      | Token für Prometheus-Metriken unter `/api/metrics`. Leer = Endpunkt aus.                                                                 |
-| `JOTION_BUILD_CA`      | leer                      | Zusätzliche CA für den eigenen Build hinter einem TLS-Proxy                                                                              |
+| Variable               | Standard                                       | Bedeutung                                                                                                                                |
+| ---------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `JOTION_IMAGE_PREFIX`  | `ghcr.io/xwumps/jotion`                        | Woher die Images kommen. Leer = selbst bauen (dann `JOTION_VERSION=local`)                                                               |
+| `JOTION_VERSION`       | `latest`, nach jedem Update die genaue Version | Version der Images, setzt `scripts/update.sh`                                                                                            |
+| `JOTION_UPDATE_CHECK`  | `true`                                         | Admin-Bereich zeigt neue Versionen an (höchstens eine Abfrage bei GitHub pro Tag, nur wenn ein Admin den Bereich öffnet). `false` = nie. |
+| `JOTION_METRICS_TOKEN` | leer                                           | Token für Prometheus-Metriken unter `/api/metrics`. Leer = Endpunkt aus.                                                                 |
+| `JOTION_BUILD_CA`      | leer                                           | Zusätzliche CA für den eigenen Build hinter einem TLS-Proxy                                                                              |

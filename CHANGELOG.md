@@ -8,6 +8,12 @@ gesichert; zurück geht es mit `scripts/restore.sh latest` und dem alten Stand.
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- Neue `.env` aus `.env.example` nutzen standardmäßig die fertigen Images
+  (`JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion`, `JOTION_VERSION=latest`). Auch mit Git-Kopie wird
+  dann nichts mehr gebaut. Selbst bauen: `JOTION_IMAGE_PREFIX` leer und `JOTION_VERSION=local`.
+
 ### Behoben
 
 - Release-Builds für ARM laufen auf echten ARM-Rechnern statt in Emulation. Unter Emulation

@@ -40,7 +40,7 @@ Migrationen laufen nur vorwärts. Zurück geht es deshalb über die Sicherung vo
 
 ## Von eigenem Build auf fertige Images wechseln
 
-In der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen und `bash scripts/update.sh` ausführen. Daten bleiben erhalten.
+In der `.env` `JOTION_IMAGE_PREFIX=ghcr.io/xwumps/jotion` setzen (bei neuen Installationen ist das schon der Standard) und `bash scripts/update.sh` ausführen. Daten bleiben erhalten.
 
 ## Für Maintainer: Release erstellen
 
